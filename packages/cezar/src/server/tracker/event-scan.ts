@@ -71,6 +71,8 @@ export function candidate(
   timestamp: string,
   change: TrackerEventCandidate['change'] = {},
 ): TrackerEventCandidate {
+  // Only providers with a verified history source build candidates; YouTrack has none yet.
+  if (association.kind === 'youtrack') throw new Error('This tracker does not support automation events');
   const eventId = JSON.stringify([
     association.kind,
     association.source.id,

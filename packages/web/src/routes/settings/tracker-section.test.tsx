@@ -276,7 +276,36 @@ it('shows local storage diagnostics and credential cleanup commands', async () =
   expect((screen.getByRole('button', { name: 'Configure Linear credentials' }) as HTMLButtonElement).disabled).toBe(false)
 })
 
-it.each(['jira', 'linear'] as const)('removing %s credentials removes the connected scope card even if metadata remains', async kind => {
+it('saves YouTrack credentials as a site origin and token only', async () => {
+  setApiScope('project-a')
+  let connection: { id: string; kind: string } | null = null
+  const writes: unknown[] = []
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith('/tracker/connection')) {
+      if (init?.method === 'PUT') {
+        writes.push(JSON.parse(String(init.body)))
+        connection = { id: '11111111-1111-4111-8111-111111111111', kind: 'youtrack' }
+      }
+      return new Response(JSON.stringify({ connection, demo: false }), { status: 200 })
+    }
+    return new Response(JSON.stringify({ association: null }), { status: 200 })
+  }))
+  render(<MemoryRouter><QueryClientProvider client={createQueryClient()}><TrackerSection /></QueryClientProvider></MemoryRouter>)
+  const configure = await screen.findByRole('button', { name: 'Configure YouTrack credentials' })
+  await waitFor(() => expect((configure as HTMLButtonElement).disabled).toBe(false))
+  fireEvent.click(configure)
+  expect(screen.queryByLabelText('Account email')).toBeNull()
+  fireEvent.change(screen.getByLabelText('YouTrack site URL'), { target: { value: ' https://acme.youtrack.cloud ' } })
+  fireEvent.change(screen.getByLabelText('API token'), { target: { value: 'private-test-secret' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save project credentials' }))
+  await screen.findByRole('button', { name: 'Replace YouTrack credentials' })
+  expect(writes).toEqual([{ kind: 'youtrack', origin: 'https://acme.youtrack.cloud', token: 'private-test-secret' }])
+  expect(screen.queryByLabelText('API token')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Browse YouTrack' }))
+  expect(await screen.findByLabelText('Search YouTrack projects')).toBeTruthy()
+})
+
+it.each(['jira', 'linear', 'youtrack'] as const)('removing %s credentials removes the connected scope card even if metadata remains', async kind => {
   const saved = { kind, connectionId: '11111111-1111-4111-8111-111111111111', source: { id: 'source', webUrl: 'https://example.com' }, externalId: '1', externalName: 'Saved scope' }
   const client = createQueryClient()
   client.setQueryData(queryKeys.tracker.association(), { association: saved })

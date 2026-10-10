@@ -88,7 +88,9 @@ export function TrackerSection() {
       if (!credentialKind) throw new Error('Choose a provider.')
       const result = await saveTrackerConnection(credentialKind === 'jira'
         ? { kind: 'jira', origin: origin.trim(), email: email.trim(), token: secret }
-        : { kind: 'linear', key: secret })
+        : credentialKind === 'youtrack'
+          ? { kind: 'youtrack', origin: origin.trim(), token: secret }
+          : { kind: 'linear', key: secret })
       return { ...result, projectId }
     },
     onSuccess: async result => {
@@ -184,6 +186,9 @@ export function TrackerSection() {
             <label className="mt-3 block text-sm">Jira site URL<input aria-label="Jira site URL" type="url" required value={origin} onChange={event => setOrigin(event.target.value)} placeholder="https://your-site.atlassian.net" className="mt-1 block w-full rounded border bg-background p-2" /></label>
             <label className="mt-3 block text-sm">Account email<input aria-label="Account email" type="email" required value={email} onChange={event => setEmail(event.target.value)} className="mt-1 block w-full rounded border bg-background p-2" /></label>
           </> : null}
+          {credentialKind === 'youtrack' ? (
+            <label className="mt-3 block text-sm">YouTrack site URL<input aria-label="YouTrack site URL" type="url" required value={origin} onChange={event => setOrigin(event.target.value)} placeholder="https://your-site.youtrack.cloud" className="mt-1 block w-full rounded border bg-background p-2" /></label>
+          ) : null}
           <label className="mt-3 block text-sm">API token<input aria-label="API token" type="password" autoComplete="new-password" required maxLength={8192} value={secret} onChange={event => setSecret(event.target.value)} className="mt-1 block w-full rounded border bg-background p-2" /></label>
           <div className="mt-3 flex gap-2"><Button type="submit" disabled={credentialBusy}>Save project credentials</Button><Button type="button" variant="outline" disabled={credentialBusy} onClick={resetSecrets}>Cancel</Button></div>
         </form>

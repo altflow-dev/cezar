@@ -1,7 +1,7 @@
 # Adding an issue tracker
 
 Use this guide when asking an agent to add a compiled-in, read-only issue tracker.
-The Jira and Linear integration provides the reusable path; a new provider should
+The Jira, Linear and YouTrack integration provides the reusable path; a new provider should
 not need its own HTTP route family, React screen, persistence file, or task composer.
 For connecting an existing provider, see [issue-trackers.md](issue-trackers.md).
 
@@ -35,7 +35,7 @@ Reads begin only on user demand. Credentials stay on the server.
 | Boundary schemas and provider identity | `packages/contract/src/tracker.ts` |
 | Complete provider behavior | `packages/cezar/src/server/tracker/types.ts` (`TrackerProvider`) |
 | Configuration and registration | `packages/cezar/src/server/tracker/connections.ts`, `index.ts` |
-| REST and GraphQL examples | `packages/cezar/src/server/tracker/jira.ts`, `linear.ts` |
+| REST and GraphQL examples | `packages/cezar/src/server/tracker/jira.ts`, `youtrack.ts` (REST, browse-only), `linear.ts` (GraphQL) |
 | Timeout, failures, limits, cache, cursors | `packages/cezar/src/server/tracker/transport.ts`, `cursor.ts` |
 | Local association | `packages/cezar/src/tracker-association.ts` |
 | Generic API | `trackerCandidatesRoutes` / `trackerRoutes` in `packages/cezar/src/server/server.ts` |

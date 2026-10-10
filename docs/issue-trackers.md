@@ -1,14 +1,15 @@
-# Jira Cloud and Linear
+# Jira Cloud, Linear and YouTrack Cloud
 
-Cezar can browse a Jira Cloud project or a Linear team and hand a selected issue to an
+Cezar can browse a Jira Cloud project, a Linear team or a YouTrack Cloud project and hand a selected issue to an
 agent. Each local project has one saved tracker connection. GitHub remains independent.
 Browsing performs no vendor writes. Enabled event automations can launch agent workflows as described below. The visible issue list checks its first page every 60 seconds; it stops when hidden or closed.
 
 ## Connect
 
-Open the project's **Settings → Issue tracker**, then **Configure Jira credentials** or
-**Configure Linear credentials**. Jira needs the site URL, account email and API token;
-Linear needs an API key. Use a token with read access restricted to the intended data.
+Open the project's **Settings → Issue tracker**, then **Configure Jira credentials**,
+**Configure Linear credentials** or **Configure YouTrack credentials**. Jira needs the site
+URL, account email and API token; Linear needs an API key; YouTrack needs the site URL and a
+permanent token. Use a token with read access restricted to the intended data.
 Save it, choose **Browse**, search for the project/team, then **Connect**. Discovery is
 paginated; **Load more** reaches later results. No server restart or environment editing
 is needed. Saving credentials is local; Browse/Connect verifies vendor access.
@@ -75,7 +76,7 @@ project where it was explicitly configured. Separate narrowly scoped tokens are 
 
 ### Existing environment-based connections
 
-`JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` and `LINEAR_API_KEY` in the server
+`JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `LINEAR_API_KEY`, `YOUTRACK_BASE_URL` and `YOUTRACK_TOKEN` in the server
 environment or a repository `.env` are not read by this integration. These names are used only
 inside the managed per-project credential file. Existing saved scopes stay visible, but reads fail closed until you configure
 credentials and reconnect in that project's Settings. There is no silent migration or fallback
@@ -117,8 +118,25 @@ and the issue's state, creator and labels. No create/update/admin permission is 
 The [GraphQL API](https://linear.app/developers/graphql) describes key authentication and
 [rate limits](https://linear.app/developers/rate-limiting).
 
+YouTrack supports Cloud sites at `https://<site>.youtrack.cloud`, using a
+[permanent token](https://www.jetbrains.com/help/youtrack/cloud/manage-permanent-token.html)
+with the **YouTrack** scope. Self-hosted servers, custom domains and legacy
+`*.myjetbrains.com/youtrack` addresses are outside this integration. The token acts as its
+account: that account needs **Read Project** and **Read Issue** in the project, and no update
+permission. Cezar reads the instance identity (`/api/config`), project discovery and direct
+lookup (`/api/admin/projects`), and issue search and detail (`/api/issues`) with the reporter,
+tags and state field.
+
+YouTrack specifics: **Active** means unresolved issues (`#Unresolved`); labels are YouTrack
+tags, and only tags visible to the token's account can match. The status shown is the
+project's state-type field, or Open/Resolved when it has none. Search matches every word you
+type as plain text — YouTrack query syntax such as `assignee: me` is not interpreted — and a
+complete issue ID such as `PROJ-12` finds that issue. Descriptions are passed through as
+Markdown; an issue still stored in the legacy wiki markup arrives as rendered HTML and is
+flagged as unsupported content. YouTrack event automations are not available yet.
+
 Rotate or renew an expired token using Replace credentials in project Settings, then reconnect the scope.
-Changing the Jira site or Linear organization requires explicitly reconnecting the project;
+Changing the Jira site, Linear organization or YouTrack site requires explicitly reconnecting the project;
 saved IDs are never silently retargeted.
 
 ## Agent context
@@ -149,7 +167,7 @@ a source link does not grant the agent access to omitted context.
 
 | Symptom | Action |
 | --- | --- |
-| Connect disabled | Save credentials for this project. Jira URL must be a Cloud site origin without a path, embedded credentials, query or fragment. |
+| Connect disabled | Save credentials for this project. A Jira or YouTrack URL must be a Cloud site origin without a path, embedded credentials, query or fragment. |
 | Access denied | Check token expiry, read scopes, account permissions and selected team/project. Replace credentials in this project and reconnect. |
 | Source discovery unavailable | Check connectivity and the Jira site URL; retry. Saved credentials remain local; no new scope association is saved when discovery or validation fails. |
 | Source changed | Reconnect deliberately to the new site/workspace in Settings. |
@@ -219,7 +237,7 @@ Adding a label is not a trigger and does not scan old skipped tasks; a recent cr
 still be reconsidered during the existing two-minute overlap. Preview uses the same filter.
 
 Jira currently supports issue creation and status changes. Linear currently supports issue
-creation. Jira label changes and Linear status/label changes are not advertised: their complete
+creation. YouTrack supports no events yet. Jira label changes and Linear status/label changes are not advertised: their complete
 history semantics have not been verified. The UI explains these limitations rather than treating
 a currently matching status as a transition.
 
