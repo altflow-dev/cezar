@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-/** Jira Cloud and Linear are the two read-only tracker providers supported by this contract. */
-export const trackerKindSchema = z.enum(['jira', 'linear']);
+/** Jira Cloud, Linear and YouTrack Cloud are the read-only tracker providers supported by this contract. */
+export const trackerKindSchema = z.enum(['jira', 'linear', 'youtrack']);
 export type TrackerKind = z.infer<typeof trackerKindSchema>;
 
 const httpsUrlSchema = z.url({ protocol: /^https$/ });
@@ -17,7 +17,7 @@ export const trackerSourceSchema = z
   .strict();
 export type TrackerSource = z.infer<typeof trackerSourceSchema>;
 
-/** A Jira project or Linear team offered by credential-scoped discovery. */
+/** A Jira project, Linear team or YouTrack project offered by credential-scoped discovery. */
 export const trackerCandidateSchema = z
   .object({
     id: nonemptyStringSchema,
@@ -60,7 +60,7 @@ export const trackerAssociationInputSchema = z
   .strict();
 export type TrackerAssociationInput = z.infer<typeof trackerAssociationInputSchema>;
 
-/** A provider-neutral Jira issue or Linear issue. */
+/** A provider-neutral Jira, Linear or YouTrack issue. */
 export const trackerItemSchema = z
   .object({
     kind: z.literal('issue'),
@@ -333,6 +333,7 @@ const trackerSecretSchema = z.string().trim().min(1).max(8192);
 export const trackerCredentialsSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('jira'), origin: z.string().max(512).regex(/^https:\/\/[a-z0-9][a-z0-9-]*\.atlassian\.net\/?$/i, 'Use an HTTPS Jira Cloud site origin'), email: z.email().max(320), token: trackerSecretSchema }).strict(),
   z.object({ kind: z.literal('linear'), key: trackerSecretSchema }).strict(),
+  z.object({ kind: z.literal('youtrack'), origin: z.string().max(512).regex(/^https:\/\/[a-z0-9][a-z0-9-]*\.youtrack\.cloud\/?$/i, 'Use an HTTPS YouTrack Cloud site origin'), token: trackerSecretSchema }).strict(),
 ]);
 export type TrackerCredentials = z.infer<typeof trackerCredentialsSchema>;
 export const trackerConnectionSchema = z.object({ id: z.uuid(), kind: trackerKindSchema }).strict();

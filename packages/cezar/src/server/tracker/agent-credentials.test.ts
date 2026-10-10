@@ -46,3 +46,9 @@ it('maps a bound Linear connection', async () => {
   await writeTrackerAssociation(join(project, '.ai/cezar'), linear);
   expect(await resolveTrackerAgentEnv(project, linear, env)).toEqual({ LINEAR_API_KEY: 'synthetic-linear-key' });
 });
+it('maps a bound YouTrack connection', async () => {
+  const record = await new TrackerConnections(env).write(project, { kind: 'youtrack', origin: 'https://acme.youtrack.cloud', token: 'synthetic-youtrack-token' });
+  const youtrack = { ...association, kind: 'youtrack' as const, connectionId: record!.id };
+  await writeTrackerAssociation(join(project, '.ai/cezar'), youtrack);
+  expect(await resolveTrackerAgentEnv(project, youtrack, env)).toEqual({ YOUTRACK_BASE_URL: 'https://acme.youtrack.cloud', YOUTRACK_TOKEN: 'synthetic-youtrack-token' });
+});

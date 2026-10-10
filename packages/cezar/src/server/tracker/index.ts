@@ -6,6 +6,7 @@ import { readTrackerAssociation } from '../../tracker-association.ts';
 import { createDryTrackerClient } from './dry-run.ts';
 import { createJiraClient } from './jira.ts';
 import { createLinearClient } from './linear.ts';
+import { createYouTrackClient } from './youtrack.ts';
 import { TrackerConnections } from './connections.ts';
 import { decodeCursor, encodeCursor } from './cursor.ts';
 import { requestFailure, TrackerRequestError } from './transport.ts';
@@ -49,6 +50,11 @@ export function createTrackerService(env: NodeJS.ProcessEnv = process.env, fetch
         linear: () => {
           if (record?.credentials.kind !== 'linear') throw new Error('Invalid connection');
           return createLinearClient({ key: record.credentials.key }, fetcher);
+        },
+        youtrack: () => {
+          if (record?.credentials.kind !== 'youtrack') throw new Error('Invalid connection');
+          const { origin, token } = record.credentials;
+          return createYouTrackClient({ origin: new URL(origin).origin, token }, fetcher);
         },
       };
       entry = { root, provider: demo ? createDryTrackerClient(kind) : factories[kind]() };

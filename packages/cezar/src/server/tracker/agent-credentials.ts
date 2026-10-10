@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import type { TrackerAssociation } from '@open-mercato/cezar-contract';
 import { readTrackerAssociation } from '../../tracker-association.ts';
+import { credentialEnv } from './connection-env.ts';
 import { TrackerConnections } from './connections.ts';
 
 export class TrackerAgentBindingError extends Error {
@@ -21,7 +22,5 @@ export async function resolveTrackerAgentEnv(
     || current.source.id !== expected.source.id || current.source.webUrl !== expected.source.webUrl
     || current.connectionId !== expected.connectionId || record.id !== expected.connectionId
     || record.credentials.kind !== expected.kind) throw new TrackerAgentBindingError();
-  return record.credentials.kind === 'jira'
-    ? { JIRA_BASE_URL: record.credentials.origin, JIRA_EMAIL: record.credentials.email, JIRA_API_TOKEN: record.credentials.token }
-    : { LINEAR_API_KEY: record.credentials.key };
+  return credentialEnv(record.credentials);
 }

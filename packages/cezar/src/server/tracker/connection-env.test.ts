@@ -14,6 +14,15 @@ it('round trips Jira metadata and credentials', () => {
     origin: 'https://example.atlassian.net', email: 'user+tag@example.com', token: 'dummy:#=token' } };
   expect(decodeConnectionEnv(encodeConnectionEnv(record))).toEqual(record);
 });
+it('round trips YouTrack metadata and credentials', () => {
+  const record = { id: randomUUID(), projectRoot: '/tmp/project', credentials: { kind: 'youtrack' as const,
+    origin: 'https://example.youtrack.cloud', token: 'perm-dummy:#=token' } };
+  const text = encodeConnectionEnv(record);
+  expect(decodeConnectionEnv(text)).toEqual(record);
+  expect(text).toContain('YOUTRACK_BASE_URL=');
+  expect(() => decodeConnectionEnv(text + 'LINEAR_API_KEY=dummy\n')).toThrow();
+  expect(() => decodeConnectionEnv(text.replace('perm-dummy', 'perm-edited'))).toThrow('Connection needs saving again');
+});
 it('rejects unsupported and control characters without printing input in errors', () => {
   for (const key of ['dummy\nINJECTED=value', 'dummy\rvalue', 'dummy\0value', 'dummy\tvalue', 'dummy"\'`#']) {
     expect(() => encodeConnectionEnv({ id: randomUUID(), projectRoot: '/tmp/project', credentials: { kind: 'linear', key } })).toThrow();
@@ -21,7 +30,7 @@ it('rejects unsupported and control characters without printing input in errors'
 });
 it('rejects duplicate keys, invalid lines, unknown fields, two providers and unsupported versions', () => {
   const text = encodeConnectionEnv({ id: randomUUID(), projectRoot: '/tmp/project', credentials: { kind: 'linear', key: 'dummy' } });
-  for (const extra of ['LINEAR_API_KEY=dummy\n', 'garbage\n', 'NODE_OPTIONS=--inspect\n', 'JIRA_API_TOKEN=dummy\n']) {
+  for (const extra of ['LINEAR_API_KEY=dummy\n', 'garbage\n', 'NODE_OPTIONS=--inspect\n', 'JIRA_API_TOKEN=dummy\n', 'YOUTRACK_TOKEN=dummy\n']) {
     expect(() => decodeConnectionEnv(text + extra)).toThrow();
   }
   expect(() => decodeConnectionEnv(text.replace("RECORD_VERSION='1'", "RECORD_VERSION='2'"))).toThrow();
