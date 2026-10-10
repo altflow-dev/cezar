@@ -1,4 +1,5 @@
 import type { ReferenceStatus } from '@open-mercato/cezar-api-client'
+import { t } from '@/lib/i18n'
 
 /**
  * What each PR/issue status MEANS, in one table.
@@ -32,63 +33,63 @@ export type ReferenceStatusTone =
 export const REFERENCE_STATUS: Record<ReferenceStatus, ReferenceStatusPresentation> = {
   // ---- pull requests --------------------------------------------------------------------
   draft: {
-    label: 'Draft',
-    hint: 'the author has not marked it ready for review',
+    label: t('Draft'),
+    hint: t('the author has not marked it ready for review'),
     // Neutral, not amber: a draft is not in progress towards anything, it is parked.
     tone: 'neutral',
   },
   'review-required': {
-    label: 'Waiting for review',
-    hint: 'checks are fine, no one has reviewed it yet',
+    label: t('Waiting for review'),
+    hint: t('checks are fine, no one has reviewed it yet'),
     // NOT violet, which is where `merged` and `completed` live: this one is waiting on a person
     // and that is the opposite of finished. Blue is the only hue the cockpit does not otherwise
     // use, so it reads as its own thing at a glance rather than as a shade of done.
     tone: 'info',
   },
   'changes-requested': {
-    label: 'Changes requested',
-    hint: 'a reviewer asked for edits before this can merge',
+    label: t('Changes requested'),
+    hint: t('a reviewer asked for edits before this can merge'),
     tone: 'danger',
   },
   'checks-pending': {
-    label: 'Checks running',
-    hint: 'CI has not finished on the latest commit',
+    label: t('Checks running'),
+    hint: t('CI has not finished on the latest commit'),
     tone: 'pending',
   },
   'checks-failing': {
-    label: 'Checks failing',
-    hint: 'CI is red on the latest commit',
+    label: t('Checks failing'),
+    hint: t('CI is red on the latest commit'),
     tone: 'danger',
   },
   ready: {
-    label: 'Ready to merge',
-    hint: 'open, checks pass, nothing is waiting on a reviewer',
+    label: t('Ready to merge'),
+    hint: t('open, checks pass, nothing is waiting on a reviewer'),
     tone: 'success',
   },
   merged: {
-    label: 'Merged',
-    hint: 'this landed on its base branch',
+    label: t('Merged'),
+    hint: t('this landed on its base branch'),
     tone: 'violet',
   },
   closed: {
-    label: 'Closed',
-    hint: 'closed without merging — the work did not land',
+    label: t('Closed'),
+    hint: t('closed without merging — the work did not land'),
     tone: 'danger',
   },
   // ---- issues ---------------------------------------------------------------------------
   open: {
-    label: 'Open',
-    hint: 'still open on the tracker',
+    label: t('Open'),
+    hint: t('still open on the tracker'),
     tone: 'success',
   },
   completed: {
-    label: 'Closed as completed',
-    hint: 'the issue was resolved',
+    label: t('Closed as completed'),
+    hint: t('the issue was resolved'),
     tone: 'violet',
   },
   'not-planned': {
-    label: 'Closed as not planned',
-    hint: 'the issue was declined — nothing shipped for it',
+    label: t('Closed as not planned'),
+    hint: t('the issue was declined — nothing shipped for it'),
     tone: 'neutral',
   },
 }
@@ -112,8 +113,8 @@ export const REFERENCE_STATUS: Record<ReferenceStatus, ReferenceStatusPresentati
  * anything. Not `pending` either — nothing resolves this on its own. It is the author's move.
  */
 export const REFERENCE_CONFLICT: ReferenceStatusPresentation = {
-  label: 'Merge conflicts',
-  hint: 'this branch no longer merges cleanly into its base — rebase or merge the base in',
+  label: t('Merge conflicts'),
+  hint: t('this branch no longer merges cleanly into its base — rebase or merge the base in'),
   tone: 'conflict',
 }
 

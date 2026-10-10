@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { SourcePill } from '@/components/source-pill'
 import { Switch } from '@/components/ui/switch'
 import type { TaskSource } from '@/lib/task-source'
+import { t } from '@/lib/i18n'
 
 /**
  * The "runs as" row of What to run (spec 2026-09-14-automations-redesign § UI/UX 4.4): the
@@ -50,18 +51,18 @@ export function EditorRunAs({
       <EnginePills pick={pick} onChange={onPick} accounts />
       <PickerPill
         slot="editor-base-pill"
-        ariaLabel="Base branch"
+        ariaLabel={t('Base branch')}
         readOnly
-        hint="Every run branches off the project's base branch."
-        label={<span className="font-mono text-[11.5px]">base: {baseBranch ?? '…'}</span>}
+        hint={t('Every run branches off the project\'s base branch.')}
+        label={<span className="font-mono text-[11.5px]">{t('base: ')}{baseBranch ?? '…'}</span>}
         value={baseBranch ?? ''}
         options={[]}
         onPick={() => undefined}
       />
       <span className="flex-1" />
       <Label className="text-[13px] font-medium">
-        Autonomous
-        <Switch aria-label="Autonomous" checked={autonomous} onCheckedChange={onAutonomous} />
+        {t('Autonomous')}
+        <Switch aria-label={t('Autonomous')} checked={autonomous} onCheckedChange={onAutonomous} />
       </Label>
     </div>
   )

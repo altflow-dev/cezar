@@ -4,6 +4,7 @@ import { useParams } from 'react-router'
 import { Link } from '@/lib/project-router'
 
 import type { ReviewItem } from './diff-comments'
+import { t } from '@/lib/i18n'
 
 /**
  * A sent review, as the transcript shows it: one card per comment — the file (a link that opens
@@ -18,7 +19,7 @@ export function ReviewCommentsBlock({ items }: { items: readonly ReviewItem[] })
   return (
     <div data-slot="review-comments" className="mt-1 flex flex-col gap-2 text-left">
       <p className="text-[12px] font-medium text-muted-foreground">
-        {items.length} {items.length === 1 ? 'comment' : 'comments'} on the diff
+        {items.length} {items.length === 1 ? t('comment') : t('comments')}{t(' on the diff')}
       </p>
       {items.map((item, index) => (
         <div
@@ -32,7 +33,7 @@ export function ReviewCommentsBlock({ items }: { items: readonly ReviewItem[] })
               <Link
                 to={reviewTarget(id, item)}
                 className="min-w-0 truncate font-mono font-medium text-foreground underline-offset-2 hover:underline"
-                title={`Open ${item.path} on the Changes tab`}
+                title={t('Open {path} on the Changes tab', { path: item.path })}
               >
                 {item.path}
               </Link>

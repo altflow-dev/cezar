@@ -35,6 +35,7 @@ import { GitTabLoadError, GitTabLoading } from '../task-git/git-tab-loading'
 import { RunHeader } from '../task-thread/run-header'
 import { backLanes, edgeStyle, edgeTypes, GraphNodeView } from './graph-node'
 import { FloatingPanel } from './workflow-graph'
+import { t } from '@/lib/i18n'
 
 /**
  * The task view's live graph (spec 2026-09-30-workflow-node-editor, phase 3): the run's own
@@ -164,8 +165,8 @@ function TaskGraphView({ run }: { run: ApiRun }) {
         <CenteredState
           icon={<WorkflowIcon />}
           tone="neutral"
-          title="No workflow graph"
-          subtitle="This task has no stored workflow definition to draw."
+          title={t('No workflow graph')}
+          subtitle={t('This task has no stored workflow definition to draw.')}
         />
       ) : (
         <div className="relative min-h-[420px] flex-1">
@@ -189,7 +190,7 @@ function TaskGraphView({ run }: { run: ApiRun }) {
             <Controls showInteractive={false} />
           </ReactFlow>
           {selected && overlay ? (
-            <FloatingPanel side="right" label="Node details" title={selected.name ?? selected.id} onClose={() => setSelectedId(null)}>
+            <FloatingPanel side="right" label={t('Node details')} title={selected.name ?? selected.id} onClose={() => setSelectedId(null)}>
               <NodeDetails
                 state={overlay.nodes.get(selected.id) ?? { status: 'pending' }}
                 outputs={run.graphState?.outputs?.[selected.id]}
@@ -222,7 +223,7 @@ function NodeDetails({
   loopMax?: number
   childRunId?: string
 }) {
-  const rows: [string, string][] = [['status', state.status === 'reached' ? 'passed through' : state.status]]
+  const rows: [string, string][] = [['status', state.status === 'reached' ? t('passed through') : state.status]]
   if (state.iterations) rows.push(['runs', String(state.iterations)])
   if (state.costUsd) rows.push(['cost', `$${state.costUsd.toFixed(2)}`])
   if (state.loopCount !== undefined) rows.push(['iterations', `${state.loopCount}${loopMax ? ` / ${loopMax}` : ''}`])
@@ -239,13 +240,13 @@ function NodeDetails({
       </dl>
       {childRunId ? (
         <Link to={`/tasks/${childRunId}`} className="inline-flex items-center gap-1 text-primary hover:underline">
-          Open the subtask <ExternalLinkIcon className="size-3" />
+          {t('Open the subtask ')}<ExternalLinkIcon className="size-3" />
         </Link>
       ) : null}
       <div>
-        <div className="mb-1 text-[11px] text-muted-foreground uppercase">Outputs</div>
+        <div className="mb-1 text-[11px] text-muted-foreground uppercase">{t('Outputs')}</div>
         {fields.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground">Nothing yet — outputs appear once the node has run.</p>
+          <p className="text-[11px] text-muted-foreground">{t('Nothing yet — outputs appear once the node has run.')}</p>
         ) : (
           fields.map(([k, v]) => (
             <div key={k} className="mb-2">

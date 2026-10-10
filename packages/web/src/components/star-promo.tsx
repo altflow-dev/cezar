@@ -26,6 +26,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { t } from '@/lib/i18n'
 
 const INTERACTIONS = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'] as const
 
@@ -168,9 +169,9 @@ export function StarAskDialog({
   const stats =
     delivered && delivered.completedTasks > 0
       ? [
-          { label: 'Tasks done', n: delivered.completedTasks, value: delivered.completedTasks.toLocaleString('en-US') },
-          { label: 'PRs opened', n: delivered.prsOpened, value: delivered.prsOpened.toLocaleString('en-US') },
-          { label: 'Lines written', n: delivered.additions, value: `+${delivered.additions.toLocaleString('en-US')}` },
+          { label: t('Tasks done'), n: delivered.completedTasks, value: delivered.completedTasks.toLocaleString('en-US') },
+          { label: t('PRs opened'), n: delivered.prsOpened, value: delivered.prsOpened.toLocaleString('en-US') },
+          { label: t('Lines written'), n: delivered.additions, value: `+${delivered.additions.toLocaleString('en-US')}` },
         ].filter((stat) => stat.n > 0)
       : null
   return (
@@ -194,27 +195,26 @@ export function StarAskDialog({
           </div>
           {count !== null && (
             <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border bg-card/80 px-2.5 py-0.5 font-mono text-[11px] text-muted-foreground backdrop-blur">
-              ⭐ {formatStarCount(count)} stars on GitHub
+              ⭐ {formatStarCount(count)}{t(' stars on GitHub')}
             </span>
           )}
         </div>
         <div className="space-y-4 p-6">
           <div className="space-y-2">
             <span className="section-mark block font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Open source · MIT
+              {t('Open source · MIT')}
             </span>
             <DialogTitle className="text-xl font-semibold tracking-tight">
-              Is cezar pulling its weight?
+              {t('Is cezar pulling its weight?')}
             </DialogTitle>
             <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
-              cezar is free, open source and runs on your machine, with no account to create. A
-              GitHub star is how other developers find it, and how we know what to keep building.
+              {t('cezar is free, open source and runs on your machine, with no account to create. A GitHub star is how other developers find it, and how we know what to keep building.')}
             </DialogDescription>
           </div>
           {stats && (
             <div className="rounded-lg border bg-card-2 p-3">
               <span className="block font-mono text-[10.5px] uppercase tracking-[0.12em] text-soft-foreground">
-                Your last 30 days with cezar
+                {t('Your last 30 days with cezar')}
               </span>
               <dl
                 className="mt-2 grid gap-2"
@@ -240,13 +240,13 @@ export function StarAskDialog({
               }}
             >
               <StarIcon className="size-4 fill-current" aria-hidden="true" />
-              Star cezar on GitHub
+              {t('Star cezar on GitHub')}
               <ArrowUpRightIcon className="size-4" aria-hidden="true" />
             </a>
           </Button>
           <div className="flex items-center justify-between gap-2">
             <Button variant="ghost" className="min-h-11" onClick={() => onOpenChange(false)}>
-              Maybe later
+              {t('Maybe later')}
             </Button>
             <Button
               variant="ghost"
@@ -256,7 +256,7 @@ export function StarAskDialog({
                 onOpenChange(false)
               }}
             >
-              Don’t ask again
+              {t('Don’t ask again')}
             </Button>
           </div>
         </div>

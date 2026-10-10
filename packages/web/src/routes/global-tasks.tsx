@@ -83,6 +83,7 @@ import { TASK_ORIGIN_OPTIONS, useTaskOrigin, type TaskOrigin } from '@/lib/task-
 import { usageMetricVisibility } from '@/lib/token-metrics'
 import { useNow } from '@/lib/use-now'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 /**
  * The global Tasks page at `/tasks` — every registered project's work in one table.
@@ -384,7 +385,7 @@ export function GlobalTasksRoute() {
         <CenteredState
           icon={<LayersIcon />}
           tone="danger"
-          title="Tasks across projects did not load"
+          title={t('Tasks across projects did not load')}
           subtitle={(index.error ?? projects.error)?.message}
         />
       </div>
@@ -401,8 +402,8 @@ export function GlobalTasksRoute() {
         type="text"
         value={queryDraft}
         onChange={(event) => setQueryDraft(event.target.value)}
-        placeholder="Search every project…"
-        aria-label="Search tasks across projects"
+        placeholder={t('Search every project…')}
+        aria-label={t('Search tasks across projects')}
         className="h-9 w-full rounded-md border border-input bg-card pr-3 pl-8 text-[13px] text-foreground outline-none placeholder:text-soft-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
       />
     </div>
@@ -411,18 +412,18 @@ export function GlobalTasksRoute() {
   return (
     <div data-route="global-tasks" className="flex min-h-full flex-col">
       <header className="sticky top-0 z-10 hidden h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5 md:flex">
-        <h1 className="text-base font-semibold">All tasks</h1>
+        <h1 className="text-base font-semibold">{t('All tasks')}</h1>
         <div className="inline-flex gap-0.5 rounded-md bg-muted p-[3px]">
           <ViewTab view="active" current={view} onSelect={setView}>
-            Active
+            {t('Active')}
           </ViewTab>
           <ViewTab view="archived" current={view} onSelect={setView}>
-            Archived
+            {t('Archived')}
           </ViewTab>
         </div>
         <div className="flex-1" />
         <span data-slot="global-tasks-count" className="text-[12.5px] text-soft-foreground tabular-nums">
-          {visible.length} of {allTasks.length}
+          {visible.length}{t(' of ')}{allTasks.length}
         </span>
         {search}
       </header>
@@ -452,8 +453,8 @@ export function GlobalTasksRoute() {
 
         {truncated.length > 0 ? (
           <p data-slot="global-tasks-truncated" className="text-[11.5px] text-soft-foreground">
-            Showing the newest {index.data?.perProjectLimit} tasks per project — older ones in{' '}
-            {truncated.join(', ')} are only in that project&rsquo;s own Tasks page.
+            {t('Showing the newest ')}{index.data?.perProjectLimit}{t(' tasks per project — older ones in')}{' '}
+            {truncated.join(', ')}{t(' are only in that project’s own Tasks page.')}
           </p>
         ) : null}
 
@@ -616,7 +617,7 @@ function FilterBar({
       <div className="flex flex-wrap items-center gap-1.5">
         <Segmented
           slot="task-origin"
-          label="Show tasks started by"
+          label={t('Show tasks started by')}
           value={origin}
           options={TASK_ORIGIN_OPTIONS.map((option) => ({ ...option, count: originCounts[option.value] }))}
           onChange={onOriginChange}
@@ -626,33 +627,33 @@ function FilterBar({
             one project is that project's own Tasks page, which every project name here links to. */}
         <FacetFilter
           slot="status"
-          label="Status"
+          label={t('Status')}
           selected={filters.statuses}
           onToggle={(value) => onToggle('statuses', value)}
           onClear={() => onClearFacet('statuses')}
           options={allStatuses(tasks)
             .map((status) => ({ value: status, label: status }))
             .map(withCount(counts.statuses))}
-          emptyLabel="No tasks to filter"
+          emptyLabel={t('No tasks to filter')}
         />
         <FacetFilter
           slot="workflow"
-          label="Workflow"
+          label={t('Workflow')}
           selected={filters.workflows}
           onToggle={(value) => onToggle('workflows', value)}
           onClear={() => onClearFacet('workflows')}
           options={allWorkflows(tasks)
             .map((workflow) => ({ value: workflow, label: workflow }))
             .map(withCount(counts.workflows))}
-          emptyLabel="No tasks to filter"
+          emptyLabel={t('No tasks to filter')}
         />
         <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
-        <span className="text-[11px] font-medium text-soft-foreground">Group by</span>
+        <span className="text-[11px] font-medium text-soft-foreground">{t('Group by')}</span>
         {/* Pressing the pressed one releases it — see `toggleGroupBy`, which is why there is
             no "None" button to hunt for. */}
         <SegmentedControl
           slot="group-by"
-          label="Group tasks by"
+          label={t('Group tasks by')}
           value={groupBy}
           options={GROUP_BY_OPTIONS}
           onChange={(picked) => onGroupByChange(toggleGroupBy(groupBy, picked))}
@@ -665,7 +666,7 @@ function FilterBar({
             className="ml-auto inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <XIcon className="size-3" aria-hidden="true" />
-            Clear
+            {t('Clear')}
             {` (${resetCount({ filters, groupBy })})`}
           </button>
         ) : null}
@@ -673,7 +674,7 @@ function FilterBar({
 
       {tags.length > 0 ? (
         <div data-slot="tag-filters" className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] font-medium text-soft-foreground">Tags</span>
+          <span className="text-[11px] font-medium text-soft-foreground">{t('Tags')}</span>
           {tags.map((tag) => (
             <ToggleChip
               key={tag}
@@ -689,7 +690,7 @@ function FilterBar({
               real question, and it is the one this chip answers. */}
           <ToggleChip
             slot="tag-filter"
-            label="Untagged"
+            label={t('Untagged')}
             count={counts.tags.get(UNTAGGED) ?? 0}
             selected={filters.tags.includes(UNTAGGED)}
             onToggle={() => onToggle('tags', UNTAGGED)}
@@ -700,11 +701,11 @@ function FilterBar({
         // invisible, and the sentence that fixes it is one line long — with the door in it,
         // since the pane that fixes it is two clicks away and outside this page.
         <p data-slot="no-tags-hint" className="text-[11px] text-soft-foreground">
-          Tag connected repositories in{' '}
+          {t('Tag connected repositories in')}{' '}
           <Link to="/settings/global/projects" className="font-medium text-violet hover:underline">
-            Settings → Projects
+            {t('Settings → Projects')}
           </Link>{' '}
-          to group their tasks together here.
+          {t('to group their tasks together here.')}
         </p>
       )}
     </div>
@@ -760,18 +761,18 @@ function TaskTable({
                 up. A cross-project list is scanned by title; everything else is the answer to a
                 question you ask about a row you already found. */}
             <tr>
-              <Th className="w-[104px]">Status</Th>
-              <Th>Task</Th>
-              {showProject ? <Th className="w-[124px]">Project</Th> : null}
-              <Th className="hidden w-[120px] xl:table-cell">Tags</Th>
-              <Th className="w-[84px]">Ref</Th>
-              <Th className="hidden w-[108px] xl:table-cell">Workflow</Th>
-              {showCost ? <Th className="hidden w-[64px] text-right lg:table-cell">Cost</Th> : null}
-              <Th className="hidden w-[56px] text-right xl:table-cell">CPU</Th>
-              <Th className="hidden w-[84px] text-right xl:table-cell">Mem</Th>
-              <Th className="w-[56px] text-right">Age</Th>
+              <Th className="w-[104px]">{t('Status')}</Th>
+              <Th>{t('Task')}</Th>
+              {showProject ? <Th className="w-[124px]">{t('Project')}</Th> : null}
+              <Th className="hidden w-[120px] xl:table-cell">{t('Tags')}</Th>
+              <Th className="w-[84px]">{t('Ref')}</Th>
+              <Th className="hidden w-[108px] xl:table-cell">{t('Workflow')}</Th>
+              {showCost ? <Th className="hidden w-[64px] text-right lg:table-cell">{t('Cost')}</Th> : null}
+              <Th className="hidden w-[56px] text-right xl:table-cell">{t('CPU')}</Th>
+              <Th className="hidden w-[84px] text-right xl:table-cell">{t('Mem')}</Th>
+              <Th className="w-[56px] text-right">{t('Age')}</Th>
               <Th className="w-[64px] text-right">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{t('Actions')}</span>
               </Th>
             </tr>
           </thead>
@@ -1024,7 +1025,7 @@ function ReadToggle({
   if (!canBeUnread(task.run)) return null
   const unread = isUnread(task.run)
   const title = runTitle(task.run)
-  const label = unread ? `Mark ${title} read` : `Mark ${title} unread`
+  const label = unread ? t('Mark {title} read', { title }) : t('Mark {title} unread', { title })
   const Icon = unread ? EyeIcon : EyeOffIcon
   return (
     <Tooltip>
@@ -1043,7 +1044,7 @@ function ReadToggle({
           <Icon className="size-3.5" aria-hidden="true" />
         </button>
       </TooltipTrigger>
-      <TooltipContent side="left">{unread ? 'Mark read' : 'Mark unread'}</TooltipContent>
+      <TooltipContent side="left">{unread ? t('Mark read') : t('Mark unread')}</TooltipContent>
     </Tooltip>
   )
 }
@@ -1071,8 +1072,8 @@ function ArchiveToggle({
   const archived = task.run.archived
   if (!archived && !ARCHIVABLE_STATUSES.has(task.run.status)) return null
   const label = archived
-    ? `Restore ${runTitle(task.run)} to the active list`
-    : `Archive ${runTitle(task.run)}`
+    ? t('Restore {v0} to the active list', { v0: runTitle(task.run) })
+    : t('Archive {v0}', { v0: runTitle(task.run) })
   const Icon = archived ? ArchiveRestoreIcon : ArchiveIcon
   return (
     <Tooltip>
@@ -1088,7 +1089,7 @@ function ArchiveToggle({
           <Icon className="size-3.5" aria-hidden="true" />
         </button>
       </TooltipTrigger>
-      <TooltipContent side="left">{archived ? 'Restore' : 'Archive'}</TooltipContent>
+      <TooltipContent side="left">{archived ? t('Restore') : t('Archive')}</TooltipContent>
     </Tooltip>
   )
 }
@@ -1212,7 +1213,7 @@ function ReferenceOverflow({
         <button
           type="button"
           data-slot="reference-overflow"
-          aria-label={`Show all ${references.length} references for ${taskTitle}`}
+          aria-label={t('Show all {length} references for {taskTitle}', { length: references.length, taskTitle })}
           onPointerEnter={onPointerEnter}
           onPointerLeave={onPointerLeave}
           // A real press — mouse, tap or keyboard — is not a hover, whatever happened before it.
@@ -1240,7 +1241,7 @@ function ReferenceOverflow({
           if (openedByHover.current) event.preventDefault()
         }}
       >
-        <p className="px-1 pb-1.5 text-[10.5px] text-soft-foreground">References</p>
+        <p className="px-1 pb-1.5 text-[10.5px] text-soft-foreground">{t('References')}</p>
         <span className="flex flex-col items-start gap-1">
           {references.map((reference) => (
             <ReferenceChip
@@ -1329,15 +1330,15 @@ function GlobalTasksEmptyState({
           heading="h2"
           icon={<LayersIcon />}
           tone="neutral"
-          title={origin === 'regular' ? 'No regular tasks here' : 'No automation tasks here'}
+          title={origin === 'regular' ? t('No regular tasks here') : t('No automation tasks here')}
           subtitle={
             origin === 'regular'
-              ? 'Tasks started by automations are hidden.'
-              : 'Only tasks started by automations are shown.'
+              ? t('Tasks started by automations are hidden.')
+              : t('Only tasks started by automations are shown.')
           }
           actions={
             <Button type="button" variant="outline" onClick={onShowAll}>
-              Show all tasks
+              {t('Show all tasks')}
             </Button>
           }
         />
@@ -1350,8 +1351,8 @@ function GlobalTasksEmptyState({
         heading="h2"
         icon={<SearchXIcon />}
         tone="neutral"
-        title="No matching tasks"
-        subtitle="No task in any project matches these filters."
+        title={t('No matching tasks')}
+        subtitle={t('No task in any project matches these filters.')}
       />
     )
   }
@@ -1360,16 +1361,16 @@ function GlobalTasksEmptyState({
       heading="h2"
       icon={<ArchiveIcon />}
       tone="neutral"
-      title="Nothing archived yet"
-      subtitle="Finished tasks you archive land here, from every project."
+      title={t('Nothing archived yet')}
+      subtitle={t('Finished tasks you archive land here, from every project.')}
     />
   ) : (
     <CenteredState
       heading="h2"
       icon={<ListChecksIcon />}
       tone="neutral"
-      title="No tasks yet"
-      subtitle="Start a task in any project and it shows up here."
+      title={t('No tasks yet')}
+      subtitle={t('Start a task in any project and it shows up here.')}
     />
   )
 }

@@ -57,6 +57,7 @@ import type {
   DiffRevealTarget,
 } from './types'
 import { overlaySegments } from './word-diff'
+import { t } from '@/lib/i18n'
 
 /**
  * The default `<Diff>` renderer (R5 Step 1.4) — our own implementation of the facade
@@ -435,7 +436,7 @@ export function DiffView({
     >
       <p data-slot="diff-totals" className="flex items-center gap-2 px-1 pb-3 text-xs text-muted-foreground">
         <span>
-          {stat.files} {stat.files === 1 ? 'file' : 'files'} changed
+          {stat.files} {stat.files === 1 ? t('file') : t('files')}{t(' changed')}
         </span>
         <DiffStatLabel stat={stat} />
       </p>
@@ -635,16 +636,16 @@ function DiffFileCard({
           ) : null}
           {file.image ? (
             <span className="shrink-0 rounded-sm bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground">
-              image
+              {t('image')}
             </span>
           ) : file.binary ? (
             <span className="shrink-0 rounded-sm bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground">
-              binary
+              {t('binary')}
             </span>
           ) : null}
           {preview ? (
             <span className="shrink-0 rounded-sm bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground">
-              preview
+              {t('preview')}
             </span>
           ) : null}
           <span className="ml-auto flex shrink-0 items-center gap-2">
@@ -771,10 +772,10 @@ function DiffFileBody({
     return <ImagePreview file={file} imageSrc={imageSrc} onOpenInApp={onOpenInApp} />
   }
   if (file.binary) {
-    return <Note>Binary file — no text diff.</Note>
+    return <Note>{t('Binary file — no text diff.')}</Note>
   }
   if (parsed.hunks.length === 0) {
-    return <Note>{parsed.truncated ? 'Patch truncated by the server.' : 'No content changes (metadata only).'}</Note>
+    return <Note>{parsed.truncated ? t('Patch truncated by the server.') : t('No content changes (metadata only).')}</Note>
   }
 
   const tokensFor = (line: HunkLine): SynToken[] | null => {
@@ -813,7 +814,7 @@ function DiffFileBody({
           : null}
       </div>
       </FileLinesContext.Provider>
-      {parsed.truncated ? <Note>Patch truncated by the server — counts above remain exact.</Note> : null}
+      {parsed.truncated ? <Note>{t('Patch truncated by the server — counts above remain exact.')}</Note> : null}
     </div>
   )
 }
@@ -866,7 +867,7 @@ function HunkHeaderRow({ hunk }: { hunk: Hunk }) {
 
 /** "⋯ N unchanged lines" — a button when expansion is wired, a separator otherwise. */
 function GapRow({ gap, onExpand }: { gap: ContextGap; onExpand?: (gap: ContextGap) => void }) {
-  const label = gap.count === undefined ? '⋯ unchanged lines to end of file' : `⋯ ${gap.count} unchanged ${gap.count === 1 ? 'line' : 'lines'}`
+  const label = gap.count === undefined ? t('⋯ unchanged lines to end of file') : `⋯ ${gap.count} unchanged ${gap.count === 1 ? 'line' : 'lines'}`
   if (!onExpand) {
     return (
       <div data-slot="diff-gap" className="border-y border-border/40 bg-muted/20 px-4 py-0.5 text-[11px] text-soft-foreground">
@@ -881,7 +882,7 @@ function GapRow({ gap, onExpand }: { gap: ContextGap; onExpand?: (gap: ContextGa
       onClick={() => onExpand(gap)}
       className="block w-full border-y border-border/40 bg-muted/20 px-4 py-0.5 text-left text-[11px] text-soft-foreground hover:bg-muted/50 hover:text-foreground"
     >
-      {label} — expand
+      {label}{t(' — expand')}
     </button>
   )
 }

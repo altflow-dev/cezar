@@ -22,6 +22,7 @@ import type { GitAction, GitActionBar, GitActionId } from '@/lib/git-actions'
 import { isHttpUrl } from '@/lib/utils'
 
 import { BranchChip, DiffViewToggles } from './diff-controls'
+import { t } from '@/lib/i18n'
 
 /**
  * The Changes tab's toolbar (spec #390). Deliberately DUMB about git: it renders whatever
@@ -85,7 +86,7 @@ export function GitToolbar({
         {bar.menu.length > 0 ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="More git actions">
+              <Button variant="ghost" size="icon-sm" aria-label={t('More git actions')}>
                 <EllipsisVerticalIcon aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
@@ -142,7 +143,7 @@ function ActionButton({
           size="sm"
           data-action={action.id}
           disabled
-          title="View PR unavailable — the recorded PR link is not an http(s) URL"
+          title={t('View PR unavailable — the recorded PR link is not an http(s) URL')}
         >
           {ACTION_ICONS[action.id]}
           {action.label}

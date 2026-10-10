@@ -8,6 +8,7 @@ import { CenteredState } from '@/components/centered-state'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { toast } from '@/components/ui/toaster'
+import { t } from '@/lib/i18n'
 
 export function SkillsSection() {
   const config = useWorkspaceConfig()
@@ -15,7 +16,7 @@ export function SkillsSection() {
   if (config.isPending) {
     return (
       <p data-slot="skills-settings-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
-        Loading skill settings…
+        {t('Loading skill settings…')}
       </p>
     )
   }
@@ -24,7 +25,7 @@ export function SkillsSection() {
       <CenteredState
         icon={<PackageCheckIcon />}
         tone="danger"
-        title="Skill settings did not load"
+        title={t('Skill settings did not load')}
         subtitle={config.error.message}
         heading="h2"
       />
@@ -50,11 +51,10 @@ function SkillsForm({ config }: { config: WorkspaceConfigResponse }) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-foreground">
-              <label htmlFor="skills-auto-update">Update Open Mercato skills automatically</label>
+              <label htmlFor="skills-auto-update">{t('Update Open Mercato skills automatically')}</label>
             </h2>
             <p className="text-[13px] text-muted-foreground">
-              Checks installed Open Mercato skills in the background and applies available updates. Other
-              skills and untracked folders are never changed.
+              {t('Checks installed Open Mercato skills in the background and applies available updates. Other skills and untracked folders are never changed.')}
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
@@ -66,16 +66,16 @@ function SkillsForm({ config }: { config: WorkspaceConfigResponse }) {
               onCheckedChange={(checked) => save.mutate({ skillsAutoUpdate: checked })}
             />
             <span className="text-[11px] text-soft-foreground">
-              {config.effectiveSkillsAutoUpdate ? 'On' : 'Off'}
-              {inherited ? ' (default)' : ''}
+              {config.effectiveSkillsAutoUpdate ? t('On') : t('Off')}
+              {inherited ? t(' (default)') : ''}
             </span>
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           <span>
             {inherited
-              ? 'No override is saved. CEZ_SKILLS_AUTO_UPDATE supplies the inherited default when set; otherwise it is on.'
-              : 'An explicit workspace override is saved.'}
+              ? t('No override is saved. CEZ_SKILLS_AUTO_UPDATE supplies the inherited default when set; otherwise it is on.')
+              : t('An explicit workspace override is saved.')}
           </span>
           <Button
             type="button"
@@ -85,7 +85,7 @@ function SkillsForm({ config }: { config: WorkspaceConfigResponse }) {
             disabled={inherited || save.isPending}
             onClick={() => save.mutate({ skillsAutoUpdate: null })}
           >
-            Use default
+            {t('Use default')}
           </Button>
         </div>
       </section>

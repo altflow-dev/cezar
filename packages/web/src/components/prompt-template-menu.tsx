@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import type { PromptTemplate } from '@/lib/prompt-templates'
 import { multiWordFilter } from '@/lib/skills'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 /**
  * "Insert a template" — the trigger shared by all three follow-up composers: the GitHub
@@ -60,8 +61,8 @@ export function PromptTemplateMenu({
         <button
           type="button"
           data-slot="prompt-template-trigger"
-          aria-label="Insert a prompt template"
-          title="Insert a prompt template"
+          aria-label={t('Insert a prompt template')}
+          title={t('Insert a prompt template')}
           disabled={disabled}
           className={cn(
             'inline-flex h-[26px] items-center gap-1.5 rounded-full border border-border bg-card text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50',
@@ -72,7 +73,7 @@ export function PromptTemplateMenu({
           <NotebookPenIcon aria-hidden="true" className="size-3 shrink-0 text-violet" />
           {iconOnly ? null : (
             <>
-              templates
+              {t('templates')}
               <ChevronDownIcon aria-hidden="true" className="size-2.5 shrink-0 text-soft-foreground" />
             </>
           )}
@@ -90,7 +91,7 @@ export function PromptTemplateMenu({
       >
         <Command filter={multiWordFilter}>
           <CommandInput
-            placeholder="search templates…"
+            placeholder={t('search templates…')}
             onInput={() => listRef.current?.scrollTo(0, 0)}
           />
           <CommandList
@@ -98,8 +99,8 @@ export function PromptTemplateMenu({
             data-slot="prompt-template-list-menu"
             className="max-h-[min(16rem,calc(var(--radix-popover-content-available-height)-3rem))]"
           >
-            <CommandEmpty>Nothing matches.</CommandEmpty>
-            <CommandGroup heading="Insert a template">
+            <CommandEmpty>{t('Nothing matches.')}</CommandEmpty>
+            <CommandGroup heading={t('Insert a template')}>
               {templates.map((template) => (
                 <CommandItem
                   key={template.id}
@@ -124,7 +125,7 @@ export function PromptTemplateMenu({
                     {template.skills && template.skills.length > 0 ? (
                       <span
                         data-slot="prompt-template-assigned"
-                        title={`Applied automatically with: ${template.skills.join(', ')}`}
+                        title={t('Applied automatically with: {skills}', { skills: template.skills.join(', ') })}
                         className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-medium text-violet"
                       >
                         <SparklesIcon aria-hidden="true" className="size-2.5" />
@@ -149,7 +150,7 @@ export function PromptTemplateMenu({
                   void navigate('/settings/prompt-templates')
                 }}
               >
-                Edit templates…
+                {t('Edit templates…')}
               </CommandItem>
             </CommandGroup>
           </CommandList>

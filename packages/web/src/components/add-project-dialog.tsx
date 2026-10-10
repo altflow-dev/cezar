@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { FolderBrowser, useBrowseTarget } from '@/components/folder-browser'
+import { t } from '@/lib/i18n'
 
 /**
  * "Add project → Open local folder" (multi-project spec, "Add project" / step 4.2).
@@ -84,9 +85,9 @@ export function AddProjectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-slot="add-project-dialog" className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Open local folder</DialogTitle>
+          <DialogTitle>{t('Open local folder')}</DialogTitle>
           <DialogDescription>
-            Pick the folder cezar should run in. Git repos are marked; any folder works.
+            {t('Pick the folder cezar should run in. Git repos are marked; any folder works.')}
           </DialogDescription>
         </DialogHeader>
 
@@ -95,17 +96,17 @@ export function AddProjectDialog({
           selected={selected}
           onSelect={setSelected}
           onEnter={enter}
-          emptyHint="No subfolders here — “Add project” registers this folder."
+          emptyHint={t('No subfolders here — “Add project” registers this folder.')}
           decorate={(dir) => (
             <>
               {dir.isRepo ? (
                 <Badge variant="outline" className="shrink-0 text-[10px]">
-                  git
+                  {t('git')}
                 </Badge>
               ) : null}
               {registered.has(dir.path) ? (
                 <Badge variant="ghost" className="shrink-0 text-[10px] text-muted-foreground">
-                  already added
+                  {t('already added')}
                 </Badge>
               ) : null}
             </>
@@ -114,7 +115,7 @@ export function AddProjectDialog({
 
         {register.isError ? (
           <p data-slot="add-project-error" className="min-w-0 break-words text-[13px] text-danger">
-            {register.error instanceof Error ? register.error.message : 'could not add that folder'}
+            {register.error instanceof Error ? register.error.message : t('could not add that folder')}
           </p>
         ) : null}
 
@@ -132,14 +133,14 @@ export function AddProjectDialog({
           </span>
           <span className="flex shrink-0 gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button
               data-slot="add-project-confirm"
               disabled={target === null || register.isPending}
               onClick={add}
             >
-              {register.isPending ? 'Adding…' : 'Add project'}
+              {register.isPending ? t('Adding…') : t('Add project')}
             </Button>
           </span>
         </DialogFooter>

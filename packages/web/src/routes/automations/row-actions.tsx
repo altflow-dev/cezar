@@ -34,6 +34,7 @@ import {
 import { useNavigate } from '@/lib/project-router'
 
 import type { AutomationActions } from './use-automations'
+import { t } from '@/lib/i18n'
 
 /**
  * The actions cell of one list row (spec 2026-09-14-automations-redesign § UI/UX 1, column 9):
@@ -50,14 +51,14 @@ export function RowActions({ automation, actions }: { automation: AutomationList
 
   return (
     <span data-slot="row-actions" className="inline-flex gap-0.5" onClick={stop}>
-      {automation.kind !== 'schedule' ? <Button variant="ghost" size="icon-sm" title="Preview matches" aria-label="Preview matches" disabled={actions.busy} onClick={() => void actions.preview(automation)}>
+      {automation.kind !== 'schedule' ? <Button variant="ghost" size="icon-sm" title={t('Preview matches')} aria-label={t('Preview matches')} disabled={actions.busy} onClick={() => void actions.preview(automation)}>
         <EyeIcon className="size-[13px]" />
       </Button> : null}
       <Button
         variant="ghost"
         size="icon-sm"
-        title="Run now"
-        aria-label="Run now"
+        title={t('Run now')}
+        aria-label={t('Run now')}
         disabled={actions.busy}
         onClick={() => void actions.runNow(automation)}
       >
@@ -66,8 +67,8 @@ export function RowActions({ automation, actions }: { automation: AutomationList
       <Button
         variant="ghost"
         size="icon-sm"
-        title={automation.enabled ? 'Pause' : 'Enable'}
-        aria-label={automation.enabled ? 'Pause' : 'Enable'}
+        title={automation.enabled ? t('Pause') : t('Enable')}
+        aria-label={automation.enabled ? t('Pause') : t('Enable')}
         disabled={actions.busy}
         onClick={() => void actions.toggleEnabled(automation)}
       >
@@ -75,49 +76,49 @@ export function RowActions({ automation, actions }: { automation: AutomationList
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label="More">
+          <Button variant="ghost" size="icon-sm" aria-label={t('More')}>
             <EllipsisIcon className="size-3.5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-[200px]" onClick={stop}>
           <DropdownMenuItem onSelect={() => navigate(editorPath)}>
             <PencilIcon />
-            Edit
+            {t('Edit')}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => navigate(`${editorPath}/log`)}>
             <ScrollTextIcon />
-            View log
+            {t('View log')}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void actions.duplicate(automation)}>
             <CopyIcon />
-            Duplicate
+            {t('Duplicate')}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void actions.copyCli(automation)}>
             <TerminalIcon />
-            Copy as CLI
+            {t('Copy as CLI')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={() => setConfirming(true)}>
             <Trash2Icon />
-            Delete
+            {t('Delete')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent onClick={stop}>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete “{automation.name}”?</AlertDialogTitle>
+            <AlertDialogTitle>{t('Delete “')}{automation.name}”?</AlertDialogTitle>
             <AlertDialogDescription>
-              The automation is removed for good. Tasks it already launched and its execution log stay.
+              {t('The automation is removed for good. Tasks it already launched and its execution log stay.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-danger text-danger-foreground hover:brightness-[0.96]"
               onClick={() => void actions.remove(automation)}
             >
-              Delete
+              {t('Delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

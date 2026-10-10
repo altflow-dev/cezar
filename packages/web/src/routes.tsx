@@ -33,6 +33,7 @@ import {
 } from './routes/settings/settings-shell'
 import { TasksOverviewRoute } from './routes/tasks-overview'
 import { GlobalTasksRoute } from './routes/global-tasks'
+import { t } from '@/lib/i18n'
 
 // Dashboard charts, drag controls and exports are paid for only on this route.
 const DashboardRoute = lazy(() =>
@@ -146,7 +147,7 @@ function MovedSettingsSectionRedirect({ sectionId }: { sectionId: SettingsSectio
 function ScopeResolving() {
   return (
     <div data-route="scope-resolving" className="flex min-h-full flex-col">
-      <p className="px-4 py-6 text-center text-xs text-soft-foreground">Loading…</p>
+      <p className="px-4 py-6 text-center text-xs text-soft-foreground">{t('Loading…')}</p>
     </div>
   )
 }
@@ -299,21 +300,21 @@ export interface PageTitleContext {
 }
 
 const PAGE_TITLE_ROUTES = [
-  { pattern: '/', pageLabel: 'Tasks' },
+  { pattern: '/', pageLabel: t('Tasks') },
   // The global page. It is not project-scoped, so it never carries a `/p/` prefix to strip —
   // but it goes through the same table, because the browser title is one mechanism.
-  { pattern: '/tasks', pageLabel: 'All tasks' },
-  { pattern: '/dashboard', pageLabel: 'Dashboard' },
-  { pattern: '/new', pageLabel: 'New task' },
-  { pattern: '/compare/:groupId', pageLabel: 'Compare' },
-  { pattern: '/git/*', pageLabel: 'Git' },
+  { pattern: '/tasks', pageLabel: t('All tasks') },
+  { pattern: '/dashboard', pageLabel: t('Dashboard') },
+  { pattern: '/new', pageLabel: t('New task') },
+  { pattern: '/compare/:groupId', pageLabel: t('Compare') },
+  { pattern: '/git/*', pageLabel: t('Git') },
   { pattern: '/github/*', pageLabel: 'GitHub' },
-  { pattern: '/tracker/*', pageLabel: 'Tracker' },
-  { pattern: '/automations/*', pageLabel: 'Automations' },
-  { pattern: '/skills', pageLabel: 'Skills' },
-  { pattern: '/inbox', pageLabel: 'Inbox' },
-  { pattern: '/workflows/*', pageLabel: 'Workflows' },
-  { pattern: '/settings/*', pageLabel: 'Settings' },
+  { pattern: '/tracker/*', pageLabel: t('Tracker') },
+  { pattern: '/automations/*', pageLabel: t('Automations') },
+  { pattern: '/skills', pageLabel: t('Skills') },
+  { pattern: '/inbox', pageLabel: t('Inbox') },
+  { pattern: '/workflows/*', pageLabel: t('Workflows') },
+  { pattern: '/settings/*', pageLabel: t('Settings') },
 ] as const
 
 /** Browser-title context from the project-relative route map; raw ids are lookup keys only. */
@@ -622,7 +623,7 @@ export const AppRoutes = memo(function AppRoutes() {
           keep redirecting to the boot project's thread (`LegacyPathRedirect` below owns it).
           React Router ranks this static segment above that `*`, so the two never compete. */}
       <Route path="/tasks" element={<GlobalTasksRoute />} />
-      <Route path="/dashboard" element={<Suspense fallback={<div role="status" className="p-6 text-sm text-muted-foreground">Loading dashboard…</div>}><DashboardRoute /></Suspense>} />
+      <Route path="/dashboard" element={<Suspense fallback={<div role="status" className="p-6 text-sm text-muted-foreground">{t('Loading dashboard…')}</div>}><DashboardRoute /></Suspense>} />
 
       {/* Global settings (multi-project spec, step 3.5) — the one cockpit area that is NOT
           under `/p/:projectId`, because nothing here belongs to a project: appearance and

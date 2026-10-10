@@ -23,15 +23,16 @@ import {
 import { Coverage } from './rows'
 import { ExportRows } from './export-rows'
 import { CostMetricCard, CostProjectBars } from './cost-visuals'
+import { t } from '@/lib/i18n'
 const fields = {
   cost: 'costUsd',
   input: 'inputTokens',
   output: 'outputTokens',
 } as const
 const labels = {
-  cost: 'Reported USD',
-  input: 'Input tokens',
-  output: 'Output tokens',
+  cost: t('Reported USD'),
+  input: t('Input tokens'),
+  output: t('Output tokens'),
 } as const
 type Sort = DashboardCosts['sort']
 function contentChanged(a: DashboardCosts, b: DashboardCosts) {
@@ -60,7 +61,7 @@ function SortSelect({
 }) {
   return (
     <label className={filterLabel}>
-      Sort by
+      {t('Sort by')}
       <FilterSelect
         value={value}
         onChange={(e) => onChange(e.target.value as Sort)}
@@ -82,10 +83,10 @@ export function UsageCosts({ visibility }: { visibility: UsageMetricVisibility }
   return (
     <Card className="gap-0 py-0">
       <div className={widgetHeader}>
-        <h2 className={widgetHeading}>Usage &amp; cost</h2>
+        <h2 className={widgetHeading}>{t('Usage & cost')}</h2>
       </div>
       {!visibility.cost && !visibility.tokens ? (
-        <p className="p-4 text-sm">Usage metrics are hidden by workspace settings</p>
+        <p className="p-4 text-sm">{t('Usage metrics are hidden by workspace settings')}</p>
       ) : (
         <CostContent key={`${visibility.cost}:${visibility.tokens}`} visibility={visibility} />
       )}
@@ -204,67 +205,66 @@ function CostPeriod({
       )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-medium">Lifetime totals of retained tasks</h3>
+          <h3 className="font-medium">{t('Lifetime totals of retained tasks')}</h3>
           <details className="mt-1 text-xs text-muted-foreground">
             <summary
               data-export-heading="Metric definitions"
               className={`${disclosureSummary} min-h-11`}
             >
               <DisclosureChevron />
-              How these metrics work
+              {t('How these metrics work')}
             </summary>
             <p>
-              Includes archived tasks and subtasks.{' '}
-              {policy.cost && 'Reported USD is not an invoice. '}Missing reports are excluded,
-              not treated as zero. Calendar days use your current UTC offset, including today.
+              {t('Includes archived tasks and subtasks.')}{' '}
+              {policy.cost && t('Reported USD is not an invoice. ')}{t('Missing reports are excluded, not treated as zero. Calendar days use your current UTC offset, including today.')}
             </p>
           </details>
         </div>
         <label className={filterLabel}>
-          Tasks created
+          {t('Tasks created')}
           <FilterSelect
             value={period}
             onChange={(e) => setPeriod(e.target.value as DashboardCosts['period'])}
           >
-            <option value="all">All time</option>
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
+            <option value="all">{t('All time')}</option>
+            <option value="7d">{t('Last 7 days')}</option>
+            <option value="30d">{t('Last 30 days')}</option>
           </FilterSelect>
         </label>
       </div>
       {period !== 'all' && (
         <p className="text-muted-foreground">
-          Lifetime usage of tasks created in this period — not spending during the period.
+          {t('Lifetime usage of tasks created in this period — not spending during the period.')}
         </p>
       )}
-      {query.isPending && <p>Loading usage…</p>}
+      {query.isPending && <p>{t('Loading usage…')}</p>}
       {query.isError && (
         <p role="alert">
-          {data ? 'Showing stale usage. Could not refresh.' : 'Could not load usage.'}{' '}
+          {data ? t('Showing stale usage. Could not refresh.') : t('Could not load usage.')}{' '}
           <Button className="min-h-11" onClick={() => void query.refetch()}>
-            Retry
+            {t('Retry')}
           </Button>
         </p>
       )}
       {changed && (
         <p role="status">
-          Newer usage data is available; displayed values use the previous snapshot.
+          {t('Newer usage data is available; displayed values use the previous snapshot.')}
         </p>
       )}
       {changed && (
         <Button className="min-h-11" variant="outline" onClick={() => setAccepted(latest)}>
-          Updates available — Show
+          {t('Updates available — Show')}
         </Button>
       )}
       {data && partial && (
         <div>
-          <p className="text-muted-foreground">Coverage of displayed usage:</p>
+          <p className="text-muted-foreground">{t('Coverage of displayed usage:')}</p>
           <Coverage coverage={data.coverage} retry={() => void query.refetch()} />
         </div>
       )}
       {latest && currentPartial && coverageChanged && (
         <div>
-          <p className="text-muted-foreground">Current source availability:</p>
+          <p className="text-muted-foreground">{t('Current source availability:')}</p>
           <Coverage coverage={latest.coverage} retry={() => void query.refetch()} />
         </div>
       )}
@@ -285,34 +285,34 @@ function CostPeriod({
             </div>
           )}
           {!policy.cost && !policy.tokens && (
-            <p>Usage metrics are hidden by workspace settings</p>
+            <p>{t('Usage metrics are hidden by workspace settings')}</p>
           )}
           {data.totals.tasks === 0 ? (
             <p>
               {partial || currentPartial
-                ? 'No retained tasks could be read from available sources.'
-                : 'No retained tasks in this cohort.'}
+                ? t('No retained tasks could be read from available sources.')
+                : t('No retained tasks in this cohort.')}
             </p>
           ) : (
             choices(policy).every((metric) => !data.totals[fields[metric]]?.reportedTasks) && (
-              <p>No reports for the visible metrics in this cohort.</p>
+              <p>{t('No reports for the visible metrics in this cohort.')}</p>
             )
           )}
           {empty && (
-            <p className="text-muted-foreground">Usage appears when tasks report cost or tokens.</p>
+            <p className="text-muted-foreground">{t('Usage appears when tasks report cost or tokens.')}</p>
           )}
           <p className="text-muted-foreground">
-            Deleted tasks are excluded from retained history.
+            {t('Deleted tasks are excluded from retained history.')}
             {data.invalidDateTasks
-              ? ` ${data.invalidDateTasks} tasks have missing or invalid creation dates${period === 'all' ? '; included in All time' : '; excluded from this period'}.`
+              ? ` ${t('{count} tasks have missing or invalid creation dates', { count: data.invalidDateTasks })}${period === 'all' ? t('; included in All time') : t('; excluded from this period')}.`
               : ''}
           </p>
           {!empty && (policy.cost || policy.tokens) && (
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h3 className="font-medium">Top projects</h3>
-                  <p className="text-muted-foreground">Ranking uses reported metrics only.</p>
+                  <h3 className="font-medium">{t('Top projects')}</h3>
+                  <p className="text-muted-foreground">{t('Ranking uses reported metrics only.')}</p>
                 </div>
                 <SortSelect value={effectiveSort} onChange={setSort} visibility={policy} />
               </div>
@@ -326,7 +326,7 @@ function CostPeriod({
                 onSelect={openPanel}
               />
               <Button data-usage-trigger className="min-h-11" variant="outline" onClick={() => openPanel('')}>
-                View tasks
+                {t('View tasks')}
               </Button>
             </>
           )}
@@ -347,9 +347,9 @@ function CostPeriod({
           }}
         >
           <SheetHeader>
-            <SheetTitle>{panel?.projectId ? `${panel.projectId} tasks` : 'All tasks'}</SheetTitle>
+            <SheetTitle>{panel?.projectId ? t('{projectId} tasks', { projectId: panel.projectId }) : t('All tasks')}</SheetTitle>
             <SheetDescription>
-              Lifetime usage of retained tasks. Missing reports are unavailable.
+              {t('Lifetime usage of retained tasks. Missing reports are unavailable.')}
             </SheetDescription>
           </SheetHeader>
           {panel !== null && (
@@ -450,12 +450,12 @@ function CostTaskPage({
   return (
     <div className="space-y-3 p-4 text-sm" data-sheet-loading={query.isFetching}>
       <SortSelect value={effectiveSort} onChange={setSort} visibility={policy} />
-      {query.isPending && <p>Loading tasks…</p>}
+      {query.isPending && <p>{t('Loading tasks…')}</p>}
       {query.isError && (
         <p role="alert">
-          Could not refresh tasks. {data ? 'Showing stale usage.' : ''}{' '}
+          {t('Could not refresh tasks. ')}{data ? t('Showing stale usage.') : ''}{' '}
           <Button className="min-h-11" onClick={() => void query.refetch()}>
-            Retry
+            {t('Retry')}
           </Button>
         </p>
       )}
@@ -468,31 +468,31 @@ function CostTaskPage({
             setAcceptedSort(sort)
           }}
         >
-          Updates available — Show
+          {t('Updates available — Show')}
         </Button>
       )}
       {data && partial && (
         <div>
-          <p className="text-muted-foreground">Coverage of displayed tasks:</p>
+          <p className="text-muted-foreground">{t('Coverage of displayed tasks:')}</p>
           <Coverage coverage={data.coverage} retry={() => void query.refetch()} />
         </div>
       )}
       {query.data && currentPartial && coverageChanged && (
         <div>
-          <p className="text-muted-foreground">Current source availability:</p>
+          <p className="text-muted-foreground">{t('Current source availability:')}</p>
           <Coverage coverage={query.data.coverage} retry={() => void query.refetch()} />
         </div>
       )}
       {data && (
         <>
           <p className="border-b pb-2 font-mono text-[11px] text-soft-foreground">
-            {data.tasks.rows.length} of {data.tasks.total} retained tasks
+            {data.tasks.rows.length}{t(' of ')}{data.tasks.total}{t(' retained tasks')}
           </p>
           {data.tasks.total === 0 && (
             <p>
               {data.coverage.projects.some((p) => p.state !== 'complete')
-                ? 'No tasks could be read from available sources.'
-                : 'No retained tasks in this cohort.'}
+                ? t('No tasks could be read from available sources.')
+                : t('No retained tasks in this cohort.')}
             </p>
           )}
           {data.tasks.rows.map((row) => (
@@ -522,7 +522,7 @@ function CostTaskPage({
                 setCount((n) => n + 20)
               }}
             >
-              Show 20 more tasks
+              {t('Show 20 more tasks')}
             </Button>
           )}
         </>
@@ -574,9 +574,9 @@ function CostTaskRow({
           </Link>
         </div>
         <p className="mt-1 pl-[15px] font-mono text-[11px] text-soft-foreground">
-          {row.projectId} · {disabled ? 'Checking current state…' : (truth?.status ?? row.status)}
-          {row.archived ? ' · Archived' : ''}
-          {row.subtask ? ' · Subtask' : ''}
+          {row.projectId} · {disabled ? t('Checking current state…') : (truth?.status ?? row.status)}
+          {row.archived ? t(' · Archived') : ''}
+          {row.subtask ? t(' · Subtask') : ''}
         </p>
       </div>
       <div className="text-right tabular-nums">

@@ -25,12 +25,13 @@ import { Coverage } from './rows'
 import { ExportRows } from './export-rows'
 import { OutcomeInsights } from './insights'
 import { useDashboardFilter } from './url-filter'
+import { t } from '@/lib/i18n'
 
 const labels = {
-  running: 'Running now',
-  'needs-you': 'Needs you',
-  completed: 'Completed',
-  failed: 'Failed outcomes',
+  running: t('Running now'),
+  'needs-you': t('Needs you'),
+  completed: t('Completed'),
+  failed: t('Failed outcomes'),
 }
 const metricTints = {
   'needs-you': metricAccents.violet,
@@ -83,9 +84,9 @@ export function Overview({
   const overview = (
     <Card className="gap-0 py-0">
       <div className={widgetHeader}>
-        <h2 className={widgetHeading}>Workspace overview</h2>
+        <h2 className={widgetHeading}>{t('Workspace overview')}</h2>
         <label className={filterLabel}>
-          Outcomes period
+          {t('Outcomes period')}
           <FilterSelect
             value={period}
             onChange={(e) => {
@@ -93,22 +94,22 @@ export function Overview({
               setSelection(null)
             }}
           >
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
+            <option value="7d">{t('Last 7 days')}</option>
+            <option value="30d">{t('Last 30 days')}</option>
           </FilterSelect>
         </label>
       </div>
       <div className="space-y-4 p-4">
         {query.isPending && (
           <p role="status" className="text-sm text-muted-foreground">
-            Loading overview…
+            {t('Loading overview…')}
           </p>
         )}
         {query.isError && (
           <p role="alert">
-            {data ? 'Showing previous results. ' : ''}Could not refresh overview.{' '}
+            {data ? t('Showing previous results. ') : ''}{t('Could not refresh overview.')}{' '}
             <Button variant="outline" onClick={() => void query.refetch()}>
-              Retry overview
+              {t('Retry overview')}
             </Button>
           </p>
         )}
@@ -116,12 +117,12 @@ export function Overview({
           <>
             <p className="text-sm text-muted-foreground">
               {data.metrics.needsYou
-                ? `${data.metrics.needsYou} tasks require your input or review.`
+                ? t('{needsYou} tasks require your input or review.', { needsYou: data.metrics.needsYou })
                 : complete && live.connected && !query.isError
-                  ? 'No tasks currently require your input or review.'
-                  : 'No waiting tasks found in the available data.'}{' '}
-              {data.metrics.failed} failed {data.metrics.failed === 1 ? 'outcome' : 'outcomes'}{' '}
-              in this period. Includes subtasks; completed does not mean accepted or deployed.
+                  ? t('No tasks currently require your input or review.')
+                  : t('No waiting tasks found in the available data.')}{' '}
+              {data.metrics.failed}{t(' failed ')}{data.metrics.failed === 1 ? t('outcome') : t('outcomes')}{' '}
+              {t('in this period. Includes subtasks; completed does not mean accepted or deployed.')}
             </p>
             <Coverage coverage={data.coverage} retry={() => void query.refetch()} />
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -148,14 +149,14 @@ export function Overview({
                       icon={<Icon className="size-4" />}
                     >
                       {group === 'running' || group === 'needs-you'
-                        ? 'Current state'
-                        : `Last ${period === '7d' ? 7 : 30} calendar days`}
+                        ? t('Current state')
+                        : t('Last {days} calendar days', { days: period === '7d' ? 7 : 30 })}
                     </MetricContent>
                     <span
                       data-export-exclude
                       className="mt-4 flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors group-hover/metric:text-foreground"
                     >
-                      View tasks{' '}
+                      {t('View tasks')}{' '}
                       <ChevronRight
                         className="size-3 transition-transform group-hover/metric:translate-x-0.5 motion-reduce:transition-none"
                         aria-hidden="true"
@@ -168,23 +169,22 @@ export function Overview({
             <OutcomeInsights period={period} active={active} />
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t pt-3">
               <p className="text-sm text-muted-foreground">
-                Median cycle time{' '}
+                {t('Median cycle time')}{' '}
                 <strong className="font-mono font-semibold text-foreground">
                   {hours(data.metrics.medianCycleHours)}
                 </strong>{' '}
-                · {data.metrics.timedTasks}/{data.metrics.completed} completed tasks have valid
-                timings.{' '}
+                · {data.metrics.timedTasks}/{data.metrics.completed}{t(' completed tasks have valid timings.')}{' '}
                 <Button
                   variant="ghost"
                   className="h-auto px-1.5 py-1 text-sm text-foreground underline-offset-4 hover:underline"
                   onClick={() => open('completed')}
                 >
-                  Inspect completed tasks
+                  {t('Inspect completed tasks')}
                 </Button>
               </p>
               <p className="font-mono text-[11px] text-soft-foreground">
                 <time dateTime={data.asOf} title={new Date(data.asOf).toLocaleString()}>
-                  Updated {shortAge(data.asOf)} ago
+                  {t('Updated ')}{shortAge(data.asOf)}{t(' ago')}
                 </time>
               </p>
             </div>
@@ -194,12 +194,10 @@ export function Overview({
                 className={`${disclosureSummary} py-1`}
               >
                 <DisclosureChevron />
-                How these metrics work
+                {t('How these metrics work')}
               </summary>
               <p className="mt-1 max-w-prose pl-5 leading-relaxed">
-                Outcomes use finish dates, including archived tasks. Scheduled retries are
-                excluded from failed outcomes. Period includes today at your current fixed UTC
-                offset.
+                {t('Outcomes use finish dates, including archived tasks. Scheduled retries are excluded from failed outcomes. Period includes today at your current fixed UTC offset.')}
               </p>
             </details>
             <ExportRows
@@ -211,8 +209,8 @@ export function Overview({
                 asOf: data.asOf,
                 note:
                   metric === 'running' || metric === 'needsYou'
-                    ? 'Current non-archived state'
-                    : `Finished since ${data.windowStart}`,
+                    ? t('Current non-archived state')
+                    : t('Finished since {windowStart}', { windowStart: data.windowStart }),
               }))}
             />
           </>
@@ -227,26 +225,25 @@ export function Overview({
         data-export-context={`Outcomes: Last ${period === '7d' ? 7 : 30} calendar days; workload: current state`}
       >
         <div className={widgetHeader}>
-          <h2 className={widgetHeading}>Projects</h2>
+          <h2 className={widgetHeading}>{t('Projects')}</h2>
         </div>
         <p className="px-4 pt-3 text-xs text-muted-foreground">
-          Current workload and outcomes for the selected period. Sorted by tasks needing you,
-          then running tasks. Counts include subtasks.
+          {t('Current workload and outcomes for the selected period. Sorted by tasks needing you, then running tasks. Counts include subtasks.')}
         </p>
         <div
           className="overflow-x-auto px-1 pb-2"
           role="region"
-          aria-label="Project outcomes"
+          aria-label={t('Project outcomes')}
           tabIndex={0}
         >
           <table className="w-full text-left text-sm">
             <thead>
               <tr>
-                {['Project', 'Needs you', 'Running', 'Completed', 'Failed', 'Median cycle'].map(
-                  (label) => (
+                {[t('Project'), t('Needs you'), t('Running'), t('Completed'), t('Failed'), t('Median cycle')].map(
+                  (label, column) => (
                     <th
                       key={label}
-                      className={`whitespace-nowrap px-3 py-2 font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-soft-foreground ${label === 'Project' ? '' : 'text-right'}`}
+                      className={`whitespace-nowrap px-3 py-2 font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-soft-foreground ${column === 0 ? '' : 'text-right'}`}
                     >
                       {label}
                     </th>
@@ -270,7 +267,7 @@ export function Overview({
                       </Link>
                       {source?.state !== 'complete' && (
                         <span className="block text-xs text-muted-foreground">
-                          Incomplete data
+                          {t('Incomplete data')}
                         </span>
                       )}
                     </td>
@@ -280,12 +277,12 @@ export function Overview({
                           data-export-keep
                           variant="ghost"
                           className="min-h-11 tabular-nums"
-                          aria-label={`${projectName(project.projectId)}: ${labels[group]}: ${source?.state === 'unavailable' ? 'Unavailable' : project[group === 'needs-you' ? 'needsYou' : group]}`}
+                          aria-label={`${projectName(project.projectId)}: ${labels[group]}: ${source?.state === 'unavailable' ? t('Unavailable') : project[group === 'needs-you' ? 'needsYou' : group]}`}
                           disabled={source?.state === 'unavailable'}
                           onClick={() => open(group, project.projectId)}
                         >
                           {source?.state === 'unavailable'
-                            ? 'Unavailable'
+                            ? t('Unavailable')
                             : project[group === 'needs-you' ? 'needsYou' : group]}
                         </Button>
                       </td>
@@ -293,7 +290,7 @@ export function Overview({
                     <td className="px-3 py-2 text-right tabular-nums">
                       {hours(project.medianCycleHours)}
                       <span className="block text-xs text-muted-foreground">
-                        {project.timedTasks}/{project.completed} timed
+                        {project.timedTasks}/{project.completed}{t(' timed')}
                       </span>
                     </td>
                   </tr>
@@ -301,7 +298,7 @@ export function Overview({
               })}
             </tbody>
           </table>
-          {!data.projects.length && <p className="py-4">No projects to compare yet.</p>}
+          {!data.projects.length && <p className="py-4">{t('No projects to compare yet.')}</p>}
         </div>
         <ExportRows
           rows={data.projects.flatMap(({ projectId, ...metrics }) =>
@@ -316,7 +313,7 @@ export function Overview({
                   : value,
               unit: metric === 'medianCycleHours' ? 'hours' : 'tasks',
               asOf: data.asOf,
-              note: `Outcomes since ${data.windowStart}; running and needsYou are current state`,
+              note: t('Outcomes since {windowStart}; running and needsYou are current state', { windowStart: data.windowStart }),
             })),
           )}
         />
@@ -342,12 +339,11 @@ export function Overview({
         >
           <SheetHeader>
             <SheetTitle>
-              {selection ? labels[selection.group] : 'Tasks'}
+              {selection ? labels[selection.group] : t('Tasks')}
               {selection?.projectId ? ` · ${selection.projectId}` : ''}
             </SheetTitle>
             <SheetDescription>
-              Tasks behind the selected metric. Includes subtasks. Snapshot keeps counts and
-              rows consistent.
+              {t('Tasks behind the selected metric. Includes subtasks. Snapshot keeps counts and rows consistent.')}
             </SheetDescription>
           </SheetHeader>
           {selection && (
@@ -397,25 +393,25 @@ function OutcomeTasks({
   }
   return (
     <div className="space-y-3 p-4" data-sheet-loading={query.isFetching}>
-      {query.isPending && <p>Loading tasks…</p>}
+      {query.isPending && <p>{t('Loading tasks…')}</p>}
       {query.isError && (
         <p role="alert">
-          This snapshot may have expired or become unavailable.{' '}
-          <Button onClick={refresh}>Refresh overview</Button>
+          {t('This snapshot may have expired or become unavailable.')}{' '}
+          <Button onClick={refresh}>{t('Refresh overview')}</Button>
         </p>
       )}
       {query.data && (
         <>
           <p ref={summary} tabIndex={-1} className="text-xs text-muted-foreground">
-            {query.data.page.total} tasks · Snapshot from{' '}
+            {query.data.page.total}{t(' tasks · Snapshot from')}{' '}
             <time dateTime={query.data.asOf} title={new Date(query.data.asOf).toLocaleString()}>
-              {shortAge(query.data.asOf)} ago
+              {shortAge(query.data.asOf)}{t(' ago')}
             </time>
           </p>
           {query.data.page.rows.map((row) => (
             <OutcomeTask key={`${row.projectId}:${row.id}`} row={row} group={selection.group} projectName={projectName} />
           ))}
-          {!query.data.page.rows.length && <p>No tasks in this group.</p>}
+          {!query.data.page.rows.length && <p>{t('No tasks in this group.')}</p>}
         </>
       )}
       <div className="flex gap-2">
@@ -424,14 +420,14 @@ function OutcomeTasks({
           disabled={!offset || query.isFetching}
           onClick={() => goToPage(Math.max(0, offset - 20))}
         >
-          Previous
+          {t('Previous')}
         </Button>
         <Button
           variant="outline"
           disabled={!query.data || query.data.page.nextOffset === null || query.isFetching}
           onClick={() => goToPage(query.data!.page.nextOffset!)}
         >
-          Next
+          {t('Next')}
         </Button>
       </div>
     </div>
@@ -459,9 +455,9 @@ function OutcomeTask({
   const inactive = removed || obsolete
   const attention = deriveAttention(row)
   const label = current && removed
-    ? 'Task removed'
+    ? t('Task removed')
     : obsolete
-      ? group === 'running' ? 'No longer running' : 'No longer needs you'
+      ? group === 'running' ? t('No longer running') : t('No longer needs you')
       : attention.label
   return (
     <div className="border-b py-3">
@@ -478,13 +474,13 @@ function OutcomeTask({
       </Link>
       <p className="text-xs text-muted-foreground">
         <StatusDot tone={attention.tone} /> {projectName(row.projectId)} ·{' '}
-        {label} · {row.archived ? 'Archived · ' : ''}
+        {label} · {row.archived ? t('Archived · ') : ''}
         <time
           dateTime={row.finishedAt ?? row.createdAt}
           title={new Date(row.finishedAt ?? row.createdAt).toLocaleString()}
         >
-          {row.finishedAt ? 'Finished' : 'Created'}{' '}
-          {shortAge(row.finishedAt ?? row.createdAt)} ago
+          {row.finishedAt ? t('Finished') : t('Created')}{' '}
+          {shortAge(row.finishedAt ?? row.createdAt)}{t(' ago')}
         </time>
       </p>
     </div>

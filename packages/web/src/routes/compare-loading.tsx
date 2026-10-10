@@ -1,6 +1,7 @@
 import { LoaderCircleIcon } from 'lucide-react'
 
 import { CenteredState } from '@/components/centered-state'
+import { t } from '@/lib/i18n'
 
 /**
  * The compare view's loading state — like thread-loading.tsx, in its own module ON PURPOSE:
@@ -14,8 +15,8 @@ export function CompareLoading() {
       <CenteredState
         icon={<LoaderCircleIcon className="motion-safe:animate-spin" />}
         tone="neutral"
-        title="Loading variants…"
-        subtitle="Fetching every variant's status, spend and diff summary."
+        title={t('Loading variants…')}
+        subtitle={t('Fetching every variant\'s status, spend and diff summary.')}
       />
     </div>
   )

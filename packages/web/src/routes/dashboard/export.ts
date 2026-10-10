@@ -1,4 +1,5 @@
 import { formatAmount } from './format'
+import { t } from '@/lib/i18n'
 export type ExportRecord = {
   section: string
   entity?: string
@@ -33,14 +34,14 @@ const scope =
   'Visible modules and loaded rows only. Filters and report availability apply. Retained task usage is not an invoice or a complete history.'
 const confidential = 'Confidential — internal distribution only'
 const summaryLabels: Record<string, { label: string; usd?: boolean }> = {
-  costUsd: { label: 'Reported cost', usd: true },
-  inputTokens: { label: 'Input tokens' },
-  outputTokens: { label: 'Output tokens' },
-  needsYou: { label: 'Needs you' },
-  running: { label: 'Running now' },
-  completed: { label: 'Completed in period' },
-  failed: { label: 'Failed outcomes in period' },
-  medianCycleHours: { label: 'Median cycle (hours)' },
+  costUsd: { label: t('Reported cost'), usd: true },
+  inputTokens: { label: t('Input tokens') },
+  outputTokens: { label: t('Output tokens') },
+  needsYou: { label: t('Needs you') },
+  running: { label: t('Running now') },
+  completed: { label: t('Completed in period') },
+  failed: { label: t('Failed outcomes in period') },
+  medianCycleHours: { label: t('Median cycle (hours)') },
 }
 function formatSummaryValue(value: number | string | null, usd?: boolean) {
   if (value == null) return 'Unavailable'

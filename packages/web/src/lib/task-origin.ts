@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { t } from '@/lib/i18n'
 
 /**
  * Who started a task — a person, or an automation — and the remembered filter both Tasks tables
@@ -20,9 +21,9 @@ export type TaskOrigin = 'regular' | 'automation' | 'all'
 export const DEFAULT_TASK_ORIGIN: TaskOrigin = 'regular'
 
 export const TASK_ORIGIN_OPTIONS: readonly { value: TaskOrigin; label: string }[] = [
-  { value: 'regular', label: 'Regular' },
-  { value: 'automation', label: 'Automations' },
-  { value: 'all', label: 'All' },
+  { value: 'regular', label: t('Regular') },
+  { value: 'automation', label: t('Automations') },
+  { value: 'all', label: t('All') },
 ]
 
 export const TASK_ORIGIN_STORAGE_KEY = 'cez-task-origin'

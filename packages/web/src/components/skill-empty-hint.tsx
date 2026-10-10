@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n'
 /**
  * The "no skills yet" copy shared by every empty state that tells a user where to drop skill
  * files — the Skills tab (`routes/skills.tsx`) and the workflow builder's skill palette
@@ -30,7 +31,7 @@ function ProjectDirList() {
     <>
       {SKILL_PROJECT_DIRS.map((dir, index) => (
         <span key={dir}>
-          {index > 0 ? (index === SKILL_PROJECT_DIRS.length - 1 ? ', or ' : ', ') : ''}
+          {index > 0 ? (index === SKILL_PROJECT_DIRS.length - 1 ? t(', or ') : ', ') : ''}
           <Path>{dir}</Path>
         </span>
       ))}
@@ -42,10 +43,9 @@ function ProjectDirList() {
 export function SkillEmptyHint() {
   return (
     <>
-      No skills yet. Drop Markdown files into <ProjectDirList /> (agent mirrors like{' '}
-      <Path>.claude/skills/</Path> work too) — optional frontmatter: <Path>name</Path>,{' '}
-      <Path>description</Path>. Global (<Path>~/.agents/skills</Path>) and team-repo skills
-      appear here too — try Refresh.
+      {t('No skills yet. Drop Markdown files into ')}<ProjectDirList />{t(' (agent mirrors like')}{' '}
+      <Path>{t('.claude/skills/')}</Path>{t(' work too) — optional frontmatter: ')}<Path>{t('name')}</Path>,{' '}
+      <Path>{t('description')}</Path>{t('. Global (')}<Path>{t('~/.agents/skills')}</Path>{t(') and team-repo skills appear here too — try Refresh.')}
     </>
   )
 }
@@ -55,8 +55,7 @@ export function SkillEmptyHint() {
 export function SkillEmptyHintCompact() {
   return (
     <>
-      No skills yet — drop Markdown files into <ProjectDirList /> (or a global/team-repo skill
-      source).
+      {t('No skills yet — drop Markdown files into ')}<ProjectDirList />{t(' (or a global/team-repo skill source).')}
     </>
   )
 }

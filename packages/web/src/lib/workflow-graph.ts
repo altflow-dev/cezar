@@ -1,5 +1,6 @@
 import dagre from '@dagrejs/dagre'
 import type { WorkflowGraph, WorkflowGraphNode, WorkflowStepDef } from '@open-mercato/cezar-api-client'
+import { t } from '@/lib/i18n'
 
 /**
  * Pure model helpers for the workflow node editor (spec 2026-09-30-workflow-node-editor, phase 2).
@@ -163,13 +164,13 @@ export function newNode(type: GraphNodeType, taken: Iterable<string>): WorkflowG
     case 'agent':
       return { id: uniqueId('agent', taken), type, prompt: '{{task}}' }
     case 'gate.human':
-      return { id: uniqueId('gate', taken), type, message: 'Approve the changes for {{task}}?' }
+      return { id: uniqueId('gate', taken), type, message: t('Approve the changes for {{task}}?') }
     case 'ask-user':
       return { id: uniqueId('ask', taken), type, question: 'What should I do next?' }
     case 'dispatch':
       return { id: uniqueId('subtask', taken), type, prompt: '{{task}}' }
     case 'git.commit':
-      return { id: uniqueId('commit', taken), type, message: 'chore: {{task}}' }
+      return { id: uniqueId('commit', taken), type, message: t('chore: {{task}}') }
     case 'github.draft-pr':
       return { id: uniqueId('pr', taken), type }
     case 'github.wait-ci':
@@ -215,7 +216,7 @@ const BRANCH_DY = 96
 const BRANCH_DX = 150
 
 function branchAgent(id: string, n: number): WorkflowGraphNode {
-  return { id, type: 'agent', name: `Branch ${n}`, prompt: '{{task}}' }
+  return { id, type: 'agent', name: t('Branch {n}', { n }), prompt: '{{task}}' }
 }
 
 /**
@@ -284,7 +285,7 @@ function blankGraphNodes(): WorkflowGraph {
   return {
     nodes: [
       { id: 'start', type: 'start' },
-      { id: 'work', type: 'agent', name: 'Do the task', prompt: '{{task}}' },
+      { id: 'work', type: 'agent', name: t('Do the task'), prompt: '{{task}}' },
       { id: 'end', type: 'end', status: 'success' },
     ],
     edges: [

@@ -39,6 +39,7 @@ import { LastRunCard } from './last-run-card'
 import { NextRunsPreview } from './next-runs-preview'
 import { TemplatePalette } from './template-palette'
 import { automationsQueryKey, type AutomationActions } from './use-automations'
+import { t } from '@/lib/i18n'
 
 /** Where a save error is shown: under the section it names, or above everything. */
 type ErrorSection = 'top' | 'when' | 'what'
@@ -57,8 +58,8 @@ function sectionOf(message: string): ErrorSection {
 
 const PLACEHOLDER = {
   tracker: 'Implement {{tracker.key}} and prepare a pull request.',
-  schedule: 'Describe the task the agent should do each time. Placeholders: {{date}}, {{project}}',
-  github: 'Describe the task the agent should do for each match. Placeholders: {{github.url}}, {{github.title}}, {{github.number}}, {{github.labels}}',
+  schedule: t('Describe the task the agent should do each time. Placeholders: {{date}}, {{project}}'),
+  github: t('Describe the task the agent should do for each match. Placeholders: {{github.url}}, {{github.title}}, {{github.number}}, {{github.labels}}'),
 } as const
 
 /**
@@ -159,7 +160,7 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
   }
 
   const reload = () => void queryClient.invalidateQueries({ queryKey: automationsQueryKey() })
-  const saveLabel = automation ? 'Save changes' : draft.enabled ? 'Save and enable' : 'Save paused'
+  const saveLabel = automation ? t('Save changes') : draft.enabled ? t('Save and enable') : t('Save paused')
 
 
   return (
@@ -167,21 +168,21 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
       {/* The kit's 56px header. Below `md` it may wrap onto a second row: a phone cannot fit the
           title, the template toggle and both actions on one line, and Save must stay reachable. */}
       <header className="sticky top-0 z-10 flex min-h-14 shrink-0 flex-wrap items-center gap-3 border-b border-border bg-background px-5 max-md:py-2 md:h-14 md:flex-nowrap">
-        <Button variant="ghost" size="icon-sm" aria-label="Back" onClick={onBack}>
+        <Button variant="ghost" size="icon-sm" aria-label={t('Back')} onClick={onBack}>
           <ArrowLeftIcon aria-hidden="true" className="size-[15px]" />
         </Button>
-        <h1 className="truncate text-base font-semibold">{automation ? 'Edit automation' : 'New automation'}</h1>
+        <h1 className="truncate text-base font-semibold">{automation ? t('Edit automation') : t('New automation')}</h1>
         {automation ? (
-          <Pill dot={automation.enabled ? 'success' : 'neutral'}>{automation.enabled ? 'enabled' : 'paused'}</Pill>
+          <Pill dot={automation.enabled ? 'success' : 'neutral'}>{automation.enabled ? t('enabled') : t('paused')}</Pill>
         ) : null}
         <span className="flex-1" />
         {!automation ? (
-          <Button variant="ghost" size="sm" aria-expanded={showTemplates} aria-label={showTemplates ? 'Hide templates' : 'Start from a template'} onClick={() => setShowTemplates((open) => !open)}>
+          <Button variant="ghost" size="sm" aria-expanded={showTemplates} aria-label={showTemplates ? t('Hide templates') : t('Start from a template')} onClick={() => setShowTemplates((open) => !open)}>
             <LayoutTemplateIcon aria-hidden="true" className="size-3.5" />
-            <span className="max-md:hidden">{showTemplates ? 'Hide templates' : 'Start from a template'}</span>
+            <span className="max-md:hidden">{showTemplates ? t('Hide templates') : t('Start from a template')}</span>
           </Button>
         ) : null}
-        <Button variant="outline" onClick={onBack}>Cancel</Button>
+        <Button variant="outline" onClick={onBack}>{t('Cancel')}</Button>
         <Button disabled={!canSave} onClick={() => void save()}>{saveLabel}</Button>
       </header>
 
@@ -190,8 +191,8 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
           <div className="flex min-w-0 flex-col gap-4">
             {conflict ? (
               <div role="alert" data-slot="editor-conflict" className="flex flex-wrap items-center gap-3 rounded-lg border border-danger/40 bg-danger/10 px-3.5 py-2.5 text-[13px] text-foreground">
-                Edited elsewhere — reload to see the latest version
-                <Button variant="outline" size="sm" className="ml-auto" onClick={reload}>Reload</Button>
+                {t('Edited elsewhere — reload to see the latest version')}
+                <Button variant="outline" size="sm" className="ml-auto" onClick={reload}>{t('Reload')}</Button>
               </div>
             ) : null}
             {error?.section === 'top' ? <InlineAlert>{error.message}</InlineAlert> : null}
@@ -208,17 +209,17 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
               />
             ) : null}
 
-            <Section title="Name">
+            <Section title={t('Name')}>
               <Input
-                aria-label="Name"
-                placeholder="Nightly dependency bump"
+                aria-label={t('Name')}
+                placeholder={t('Nightly dependency bump')}
                 value={draft.name}
                 onChange={(event) => patch({ name: event.target.value })}
                 className="max-w-[420px] text-[15px] md:text-[15px]"
               />
             </Section>
 
-            <Section title="When">
+            <Section title={t('When')}>
               <KindSegment
                 value={draft.kind}
                 editing={!!automation}
@@ -241,10 +242,10 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
               {error?.section === 'when' ? <InlineAlert>{error.message}</InlineAlert> : null}
             </Section>
 
-            <Section title="What to run">
+            <Section title={t('What to run')}>
               <div data-slot="editor-prompt-templates" className="flex flex-wrap items-center gap-1.5 text-xs text-soft-foreground">
                 <FileTextIcon aria-hidden="true" className="size-3" />
-                Prompt templates
+                {t('Prompt templates')}
                 {promptTemplates.map((template) => (
                   <Chip key={template.id} className="h-6 text-[11.5px]" title={template.text} onClick={() => insertPrompt(template.text)}>
                     {template.label}
@@ -256,12 +257,12 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
                   icon={<Settings2Icon aria-hidden="true" className="size-3" />}
                   onClick={() => navigate(settingsSectionPath('project', 'prompt-templates'))}
                 >
-                  Manage…
+                  {t('Manage…')}
                 </Chip>
               </div>
               <Textarea
                 ref={promptRef}
-                aria-label="Prompt"
+                aria-label={t('Prompt')}
                 rows={5}
                 placeholder={PLACEHOLDER[draft.kind]}
                 value={draft.prompt}
@@ -282,7 +283,7 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
                 onAutonomous={(autonomous) => patch({ autonomous })}
               />
               <p className="m-0 text-xs leading-[1.5] text-soft-foreground">
-                Each run is an ordinary cezar task in its own worktree — it queues behind the parallel cap like anything else and never auto-merges.
+                {t('Each run is an ordinary cezar task in its own worktree — it queues behind the parallel cap like anything else and never auto-merges.')}
               </p>
               <EditorDispatchRow
                 available={dispatchAvailable}
@@ -294,12 +295,12 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
               {error?.section === 'what' ? <InlineAlert>{error.message}</InlineAlert> : null}
             </Section>
 
-            <Section title="Enable">
+            <Section title={t('Enable')}>
               <Label className="text-[13px] font-medium">
-                <Switch aria-label="Enabled" checked={draft.enabled} onCheckedChange={(enabled) => patch({ enabled })} />
-                Enabled
+                <Switch aria-label={t('Enabled')} checked={draft.enabled} onCheckedChange={(enabled) => patch({ enabled })} />
+                {t('Enabled')}
                 {draft.kind !== 'schedule' ? (
-                  <span className="text-xs font-normal text-muted-foreground">— from a current-time baseline; existing matches will not launch</span>
+                  <span className="text-xs font-normal text-muted-foreground">{t('— from a current-time baseline; existing matches will not launch')}</span>
                 ) : null}
               </Label>
             </Section>
@@ -308,7 +309,7 @@ export function AutomationEditor({ data, automation, actions, onBack, onSaved, o
           <div className="flex flex-col gap-3 lg:sticky lg:top-[76px]">
             <NextRunsPreview kind={draft.kind} schedule={draft.schedule} intervalSeconds={draft.intervalSeconds} timeZone={timeZone} />
             <CopyAsCliCard definition={cli} />
-            {automation && automation.kind !== 'schedule' && actions ? <Button variant="outline" disabled={actions.busy} onClick={() => void actions.preview(automation)}>Preview saved matches</Button> : null}
+            {automation && automation.kind !== 'schedule' && actions ? <Button variant="outline" disabled={actions.busy} onClick={() => void actions.preview(automation)}>{t('Preview saved matches')}</Button> : null}
             {automation?.lastRun ? (
               <LastRunCard
                 lastRun={automation.lastRun}
@@ -355,28 +356,28 @@ function KindSegment({ value, editing, githubAvailable, githubReason, onChange }
   githubReason: string | undefined
   onChange: (kind: 'schedule' | 'github' | 'tracker') => void
 }) {
-  const kindLocked = 'Change the kind by creating a new automation'
+  const kindLocked = t('Change the kind by creating a new automation')
   const options: ReadonlyArray<{ value: 'schedule' | 'github' | 'tracker'; label: string; disabled: boolean; title?: string }> = [
     {
       value: 'schedule',
-      label: 'On a schedule',
+      label: t('On a schedule'),
       disabled: editing && value !== 'schedule',
       ...(editing && value !== 'schedule' ? { title: kindLocked } : {}),
     },
     {
       value: 'github',
-      label: 'When GitHub changes',
+      label: t('When GitHub changes'),
       disabled: !githubAvailable || (editing && value !== 'github'),
       ...(!githubAvailable
-        ? { title: githubReason ?? 'GitHub is unavailable' }
+        ? { title: githubReason ?? t('GitHub is unavailable') }
         : editing && value !== 'github'
           ? { title: kindLocked }
           : {}),
     },
-    { value: 'tracker', label: 'When Jira / Linear changes', disabled: editing && value !== 'tracker', ...(editing && value !== 'tracker' ? { title: kindLocked } : {}) },
+    { value: 'tracker', label: t('When Jira / Linear changes'), disabled: editing && value !== 'tracker', ...(editing && value !== 'tracker' ? { title: kindLocked } : {}) },
   ]
   return (
-    <div data-slot="editor-kind" role="group" aria-label="Trigger" className="inline-flex flex-wrap gap-0.5 self-start rounded-md bg-muted p-[3px]">
+    <div data-slot="editor-kind" role="group" aria-label={t('Trigger')} className="inline-flex flex-wrap gap-0.5 self-start rounded-md bg-muted p-[3px]">
       {options.map((option) => (
         <button
           key={option.value}

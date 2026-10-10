@@ -30,6 +30,7 @@ import { bumpSkillUsage } from '@/lib/skills'
 import { isSubmitShortcut, submitShortcutHint } from '@/lib/use-submit-shortcut'
 
 import { readFollowupPrompt, writeFollowupPrompt } from './hand-to-agent-draft'
+import { t } from '@/lib/i18n'
 
 /**
  * The detail pane's "Hand this to the agent" panel: the legacy chip walls replaced by
@@ -177,7 +178,7 @@ export function HandToAgent({
       // confirms itself as a toast, the way every other cockpit action does. Unconditional, not
       // mobile-only: a second confirmation costs nothing on desktop, and a viewport-conditional
       // toast is one more thing to get wrong.
-      toast(`Added to the queue — ${kindLabel} #${item.number}`)
+      toast(t('Added to the queue — {kindLabel} #{number}', { kindLabel, number: item.number }))
       // Frequency sort (#408): every hand-off skill counts, mirroring the /new composer.
       // Only bump once the CURRENT map is actually known (`uiState.data` present). The PUT
       // merge is shallow (`uiStateSchema` passthrough, src/server/server.ts), so the client
@@ -232,7 +233,7 @@ export function HandToAgent({
     <section data-slot="gh-hand" className="mt-7 rounded-lg border border-border bg-card p-4">
       <h3 className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[.04em] text-soft-foreground uppercase">
         <ZapIcon aria-hidden="true" className="size-3.5 text-violet" />
-        Hand this to the agent
+        {t('Hand this to the agent')}
       </h3>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -268,7 +269,7 @@ export function HandToAgent({
               data-slot="gh-skill-chip"
               data-skill={name}
               onClick={() => toggleSkill(name)}
-              title="Remove this skill"
+              title={t('Remove this skill')}
               className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-px font-mono text-[11px] font-medium text-foreground transition-colors hover:bg-danger/10 hover:text-danger"
             >
               {name}
@@ -281,12 +282,12 @@ export function HandToAgent({
       <Textarea
         ref={promptRef}
         data-slot="gh-custom-prompt"
-        aria-label="Custom prompt"
+        aria-label={t('Custom prompt')}
         aria-keyshortcuts="Control+Enter Meta+Enter"
         value={prompt}
         onChange={(event) => setPrompt(event.target.value)}
         onKeyDown={submitShortcut}
-        placeholder={`Instructions for the agent… (#${item.number} and its link are always sent)`}
+        placeholder={t('Instructions for the agent… (#{number} and its link are always sent)', { number: item.number })}
         className="mt-3 min-h-20 text-[13px]"
       />
 
@@ -298,7 +299,7 @@ export function HandToAgent({
           onClick={() => start.mutate()}
         >
           <PlayIcon aria-hidden="true" className="size-3.5" />
-          Run agent on this {kindLabel}
+          {t('Run agent on this ')}{kindLabel}
         </Button>
         <kbd
           aria-hidden="true"
@@ -310,14 +311,14 @@ export function HandToAgent({
           <>
             <span data-slot="gh-queued" className="flex items-center gap-1 text-xs font-medium text-success">
               <CheckIcon aria-hidden="true" className="size-3.5" />
-              queued
+              {t('queued')}
             </span>
             <Link
               to={`/tasks/${queuedRunId}`}
               data-slot="gh-view-run"
               className="text-xs font-semibold text-violet hover:underline"
             >
-              View task →
+              {t('View task →')}
             </Link>
           </>
         ) : null}

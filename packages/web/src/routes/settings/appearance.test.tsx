@@ -6,6 +6,7 @@ import { createQueryClient } from '@/api/query-client'
 import { workspaceQueryKeys } from '@/api/queries'
 import { AppearanceProvider } from '@/components/appearance-provider'
 import { ThemeProvider } from '@/components/theme-provider'
+import { LANGUAGE_STORAGE_KEY, setLanguageForTest } from '@/lib/i18n'
 import { AppearanceSection } from './appearance'
 
 /**
@@ -70,14 +71,14 @@ function seedProjects(client: QueryClient, ids: string[]) {
   })
 }
 
-function renderSection(projectIds: string[]) {
+function renderSection(projectIds: string[], reload?: () => void) {
   const client = createQueryClient()
   seedProjects(client, projectIds)
   render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
         <AppearanceProvider>
-          <AppearanceSection />
+          <AppearanceSection reload={reload} />
         </AppearanceProvider>
       </ThemeProvider>
     </QueryClientProvider>,
@@ -90,6 +91,30 @@ afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
   localStorage.clear()
+})
+
+describe('Settings → Appearance: language', () => {
+  afterEach(() => setLanguageForTest('en'))
+
+  it('offers both languages by their own names and reloads into the chosen one', () => {
+    const reload = vi.fn()
+    renderSection(['cezar'], reload)
+    const group = screen.getByRole('radiogroup', { name: 'Language' })
+    expect([...group.querySelectorAll('[role="radio"]')].map((radio) => [radio.textContent, radio.getAttribute('aria-checked')]))
+      .toEqual([['English', 'true'], ['Polski', 'false']])
+    fireEvent.click(screen.getByRole('radio', { name: 'English' }))
+    expect(reload).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('radio', { name: 'Polski' }))
+    expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('pl')
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders in Polish and marks it as the current language', () => {
+    setLanguageForTest('pl')
+    renderSection(['cezar'])
+    const group = screen.getByRole('radiogroup', { name: 'Język' })
+    expect(group.querySelector('[aria-checked="true"]')?.textContent).toBe('Polski')
+  })
 })
 
 describe('Settings → Appearance: project order', () => {

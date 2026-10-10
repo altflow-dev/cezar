@@ -1,4 +1,5 @@
 import type { ForgeInfo, RunStatus } from '@open-mercato/cezar-api-client'
+import { t } from '@/lib/i18n'
 
 /**
  * The git action policy object (spec §"Session git view — Changes & Files tabs (#390)",
@@ -61,48 +62,48 @@ export interface GitActionBar {
 const isActive = (status: RunStatus): boolean =>
   status === 'running' || status === 'queued' || status === 'waiting'
 
-const NO_WORKTREE_REASON = 'no worktree — this task ran directly in the repo working tree'
+const NO_WORKTREE_REASON = t('no worktree — this task ran directly in the repo working tree')
 
 function commitAction(state: GitActionState): GitAction {
-  const disabled = (reason: string): GitAction => ({ id: 'commit', label: 'Commit', enabled: false, reason })
-  if (!state.hasWorktree) return disabled(`Commit unavailable — ${NO_WORKTREE_REASON}`)
-  if (state.status === 'running') return disabled('Commit unavailable — the agent is still working in this worktree')
-  if (state.changedFiles === undefined) return disabled('Commit unavailable — changes are still loading')
-  if (state.changedFiles === 0) return disabled('Commit unavailable — no changes to commit')
-  return { id: 'commit', label: 'Commit', enabled: true }
+  const disabled = (reason: string): GitAction => ({ id: 'commit', label: t('Commit'), enabled: false, reason })
+  if (!state.hasWorktree) return disabled(t('Commit unavailable — {NO_WORKTREE_REASON}', { NO_WORKTREE_REASON }))
+  if (state.status === 'running') return disabled(t('Commit unavailable — the agent is still working in this worktree'))
+  if (state.changedFiles === undefined) return disabled(t('Commit unavailable — changes are still loading'))
+  if (state.changedFiles === 0) return disabled(t('Commit unavailable — no changes to commit'))
+  return { id: 'commit', label: t('Commit'), enabled: true }
 }
 
 function pushAction(state: GitActionState): GitAction {
-  const disabled = (reason: string): GitAction => ({ id: 'push', label: 'Push', enabled: false, reason })
-  if (!state.hasWorktree) return disabled(`Push unavailable — ${NO_WORKTREE_REASON}`)
-  if (state.remote === undefined) return disabled('Push unavailable — no remote configured')
-  if (state.branch === undefined) return disabled('Push unavailable — the run has no branch to push')
-  if (state.status === 'running') return disabled('Push unavailable — the agent is still working in this worktree')
-  return { id: 'push', label: 'Push', enabled: true }
+  const disabled = (reason: string): GitAction => ({ id: 'push', label: t('Push'), enabled: false, reason })
+  if (!state.hasWorktree) return disabled(t('Push unavailable — {NO_WORKTREE_REASON}', { NO_WORKTREE_REASON }))
+  if (state.remote === undefined) return disabled(t('Push unavailable — no remote configured'))
+  if (state.branch === undefined) return disabled(t('Push unavailable — the run has no branch to push'))
+  if (state.status === 'running') return disabled(t('Push unavailable — the agent is still working in this worktree'))
+  return { id: 'push', label: t('Push'), enabled: true }
 }
 
 function createPrAction(state: GitActionState): GitAction {
   const disabled = (reason: string): GitAction => ({
     id: 'create-pr',
-    label: 'Create PR',
+    label: t('Create PR'),
     enabled: false,
     reason,
   })
   if (!state.hasWorktree || state.branch === undefined) {
-    return disabled(`Create PR unavailable — ${NO_WORKTREE_REASON}`)
+    return disabled(t('Create PR unavailable — {NO_WORKTREE_REASON}', { NO_WORKTREE_REASON }))
   }
   if (state.forge === null) {
-    return disabled('Create PR unavailable — no supported forge remote (GitHub) detected')
+    return disabled(t('Create PR unavailable — no supported forge remote (GitHub) detected'))
   }
   if (!state.forge.available) {
-    return disabled(`Create PR unavailable — ${state.forge.reason ?? 'the forge is unreachable'}`)
+    return disabled(t('Create PR unavailable — {reason}', { reason: state.forge.reason ?? t('the forge is unreachable') }))
   }
   // The server refuses `POST /pr` while the engine owns the run — mirror it honestly here
   // rather than letting the click discover the 409.
   if (isActive(state.status)) {
-    return disabled('Create PR unavailable — the run is still active; wait for the review gate')
+    return disabled(t('Create PR unavailable — the run is still active; wait for the review gate'))
   }
-  return { id: 'create-pr', label: 'Create PR', enabled: true }
+  return { id: 'create-pr', label: t('Create PR'), enabled: true }
 }
 
 /**
@@ -115,7 +116,7 @@ function createPrAction(state: GitActionState): GitAction {
  */
 export function gitActionPolicy(state: GitActionState): GitActionBar {
   const primary: GitAction = state.prUrl
-    ? { id: 'view-pr', label: 'View PR', enabled: true, href: state.prUrl }
+    ? { id: 'view-pr', label: t('View PR'), enabled: true, href: state.prUrl }
     : commitAction(state)
 
   const secondary: GitAction[] = state.prUrl
@@ -129,18 +130,18 @@ export function gitActionPolicy(state: GitActionState): GitActionBar {
     const terminal: GitAction = !state.hasSession
       ? {
           id: 'open-terminal',
-          label: 'Open in terminal',
+          label: t('Open in terminal'),
           enabled: false,
-          reason: 'Terminal unavailable — no agent session to resume',
+          reason: t('Terminal unavailable — no agent session to resume'),
         }
       : isActive(state.status)
         ? {
             id: 'open-terminal',
-            label: 'Open in terminal',
+            label: t('Open in terminal'),
             enabled: false,
-            reason: 'Terminal unavailable — the session is still active in the engine',
+            reason: t('Terminal unavailable — the session is still active in the engine'),
           }
-        : { id: 'open-terminal', label: 'Open in terminal', enabled: true }
+        : { id: 'open-terminal', label: t('Open in terminal'), enabled: true }
     menu.push(terminal)
   }
 

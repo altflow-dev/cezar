@@ -33,6 +33,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { t } from '@/lib/i18n'
 
 /**
  * The shared "Open in…" menu: hand a local path to whichever app the machine actually has.
@@ -114,7 +115,7 @@ export interface OpenInChoice {
 export function OpenInMenu({
   choices,
   onPick,
-  label = 'Open in…',
+  label = t('Open in…'),
   title,
   triggerVariant = 'ghost',
   disabled = false,

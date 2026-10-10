@@ -13,8 +13,9 @@ import { useNow } from '@/lib/use-now'
 import { cn } from '@/lib/utils'
 
 import { EventBlock, HOUR_H, HourGutter, HourLines, NowLine, PollBand, dayStart, minuteOf, occurrencesIn, stacked } from './calendar-parts'
+import { t, tp } from '@/lib/i18n'
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const
+const MONTHS = [t('Jan'), t('Feb'), t('Mar'), t('Apr'), t('May'), t('Jun'), t('Jul'), t('Aug'), t('Sep'), t('Oct'), t('Nov'), t('Dec')] as const
 
 /**
  * The Day calendar (spec 2026-09-14-automations-redesign § UI/UX 3, `design-05`): one day's
@@ -36,7 +37,7 @@ export function DayView({ data }: { data: AutomationsResponse }) {
     return (
       <div data-slot="day-view" className="p-5">
         <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          Cannot draw the day: unknown time zone “{timeZone}”.
+          {t('Cannot draw the day: unknown time zone “')}{timeZone}”.
         </p>
       </div>
     )
@@ -51,16 +52,16 @@ export function DayView({ data }: { data: AutomationsResponse }) {
     <div data-slot="day-view" className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-4 p-5 max-md:grid-cols-1">
       <Card flush>
         <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5">
-          <Button variant="ghost" size="icon-sm" aria-label="Previous day" onClick={() => setOffset((value) => value - 1)}>
+          <Button variant="ghost" size="icon-sm" aria-label={t('Previous day')} onClick={() => setOffset((value) => value - 1)}>
             <ChevronLeftIcon className="size-3.5" />
           </Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Next day" onClick={() => setOffset((value) => value + 1)}>
+          <Button variant="ghost" size="icon-sm" aria-label={t('Next day')} onClick={() => setOffset((value) => value + 1)}>
             <ChevronRightIcon className="size-3.5" />
           </Button>
           <span data-slot="day-title" className="text-sm font-semibold whitespace-nowrap">{title}</span>
-          {isToday ? <Pill dot="success">today</Pill> : null}
+          {isToday ? <Pill dot="success">{t('today')}</Pill> : null}
           <span className="ml-auto text-xs whitespace-nowrap text-muted-foreground">
-            {events.length} scheduled runs{polls.length ? ` · ${polls.length} GitHub poll${polls.length === 1 ? '' : 's'}` : ''}
+            {events.length}{t(' scheduled runs')}{polls.length ? ` · ${tp(polls.length, '{count} GitHub poll', '{count} GitHub polls')}` : ''}
           </span>
         </div>
         <PollBand automations={data.automations} />
@@ -82,7 +83,7 @@ export function DayView({ data }: { data: AutomationsResponse }) {
         </div>
       </Card>
       <Card flush data-slot="agenda" className="py-3">
-        <div className="px-3.5 pb-2 text-[11px] font-semibold tracking-[.05em] text-soft-foreground uppercase">Agenda</div>
+        <div className="px-3.5 pb-2 text-[11px] font-semibold tracking-[.05em] text-soft-foreground uppercase">{t('Agenda')}</div>
         {polls.map((automation) => (
           <button
             key={automation.id}
@@ -91,14 +92,14 @@ export function DayView({ data }: { data: AutomationsResponse }) {
             onClick={() => navigate(`/automations/${encodeURIComponent(automation.id)}`)}
             className="grid w-full cursor-pointer grid-cols-[48px_1fr] gap-2.5 px-3.5 py-2 text-left hover:bg-muted"
           >
-            <span className="font-mono text-[10.5px] font-medium text-soft-foreground">poll</span>
+            <span className="font-mono text-[10.5px] font-medium text-soft-foreground">{t('poll')}</span>
             <span className="min-w-0">
               <span className="flex items-center gap-2 text-[13px] font-medium">
                 <GithubIcon className="size-3 shrink-0 text-violet" />
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap">{automation.name}</span>
               </span>
               <span className="mt-0.5 block overflow-hidden font-mono text-[11.5px] leading-[1.4] text-ellipsis whitespace-nowrap text-soft-foreground">
-                {triggerLabel(automation)} · continuous
+                {triggerLabel(automation)}{t(' · continuous')}
               </span>
             </span>
           </button>
@@ -132,7 +133,7 @@ export function DayView({ data }: { data: AutomationsResponse }) {
         })}
         {events.length === 0 ? (
           <p className="px-3.5 py-2 text-[12.5px] text-soft-foreground">
-            {polls.length ? 'Nothing scheduled — the GitHub polls above still run.' : 'Nothing scheduled.'}
+            {polls.length ? t('Nothing scheduled — the GitHub polls above still run.') : t('Nothing scheduled.')}
           </p>
         ) : null}
       </Card>

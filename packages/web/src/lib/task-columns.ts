@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n'
 /** Stable ids persisted in `~/.cezar/ui-state.json`; never derive them from labels. */
 export const TASK_COLUMN_IDS = [
   'status',
@@ -42,11 +43,11 @@ export interface TaskColumnDefinition {
  * this list so capability-hidden and folded columns cannot drift structurally.
  */
 export const TASK_COLUMNS = [
-  { id: 'status', label: 'Status', canFold: false, defaultExpanded: true, align: 'left', width: '116px' },
-  { id: 'task', label: 'Task', canFold: false, defaultExpanded: true, align: 'left' },
+  { id: 'status', label: t('Status'), canFold: false, defaultExpanded: true, align: 'left', width: '116px' },
+  { id: 'task', label: t('Task'), canFold: false, defaultExpanded: true, align: 'left' },
   {
     id: 'workflow',
-    label: 'Workflow',
+    label: t('Workflow'),
     canFold: true,
     defaultExpanded: true,
     align: 'left',
@@ -55,7 +56,7 @@ export const TASK_COLUMNS = [
   },
   {
     id: 'branch',
-    label: 'Branch',
+    label: t('Branch'),
     canFold: true,
     defaultExpanded: false,
     align: 'left',
@@ -65,7 +66,7 @@ export const TASK_COLUMNS = [
   { id: 'diff', label: '±', canFold: true, defaultExpanded: true, align: 'left', width: '78px', icon: 'diff' },
   {
     id: 'reference',
-    label: 'Ref',
+    label: t('Ref'),
     canFold: true,
     defaultExpanded: true,
     align: 'left',
@@ -74,7 +75,7 @@ export const TASK_COLUMNS = [
   },
   {
     id: 'tokens',
-    label: 'IN / OUT',
+    label: t('IN / OUT'),
     canFold: true,
     defaultExpanded: true,
     align: 'right',
@@ -84,7 +85,7 @@ export const TASK_COLUMNS = [
   },
   {
     id: 'cost',
-    label: 'Cost',
+    label: t('Cost'),
     canFold: true,
     defaultExpanded: true,
     align: 'right',
@@ -95,7 +96,7 @@ export const TASK_COLUMNS = [
   { id: 'cpu', label: 'CPU', canFold: true, defaultExpanded: true, align: 'right', width: '68px', icon: 'cpu' },
   {
     id: 'memory',
-    label: 'Mem',
+    label: t('Mem'),
     canFold: true,
     defaultExpanded: true,
     align: 'right',
@@ -104,7 +105,7 @@ export const TASK_COLUMNS = [
   },
   {
     id: 'started',
-    label: 'Started',
+    label: t('Started'),
     canFold: true,
     defaultExpanded: true,
     align: 'right',

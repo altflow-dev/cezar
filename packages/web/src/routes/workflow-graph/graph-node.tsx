@@ -46,6 +46,7 @@ import {
   type NodeRunState,
   type PortTone,
 } from '@/lib/workflow-graph'
+import { t } from '@/lib/i18n'
 
 /**
  * How one workflow node looks on a canvas — shared by the editor and the task view's live graph
@@ -58,10 +59,10 @@ import {
 export type Category = WorkflowNodeCatalogResponse['nodes'][number]['category']
 
 export const CATEGORY_ORDER: { id: Category; label: string; color: string }[] = [
-  { id: 'agents', label: 'Agents', color: 'var(--violet)' },
-  { id: 'flow', label: 'Flow control', color: 'var(--primary)' },
-  { id: 'scripts', label: 'Scripts & checks', color: 'var(--info)' },
-  { id: 'git', label: 'Git & GitHub', color: 'var(--foreground)' },
+  { id: 'agents', label: t('Agents'), color: 'var(--violet)' },
+  { id: 'flow', label: t('Flow control'), color: 'var(--primary)' },
+  { id: 'scripts', label: t('Scripts & checks'), color: 'var(--info)' },
+  { id: 'git', label: t('Git & GitHub'), color: 'var(--foreground)' },
 ]
 
 export const TYPE_CATEGORY: Record<GraphNodeType, Category> = {
@@ -120,27 +121,27 @@ export const TONE: Record<PortTone, string> = {
 }
 
 export const TYPE_LABEL: Record<GraphNodeType, string> = {
-  start: 'Start',
-  end: 'End',
-  loop: 'Loop',
-  agent: 'Agent',
-  check: 'Check',
-  'gate.human': 'Human gate',
-  'ask-user': 'Ask user',
-  dispatch: 'Subtask',
-  'git.commit': 'Commit',
-  'github.draft-pr': 'Draft PR',
-  'github.wait-ci': 'Wait for CI',
+  start: t('Start'),
+  end: t('End'),
+  loop: t('Loop'),
+  agent: t('Agent'),
+  check: t('Check'),
+  'gate.human': t('Human gate'),
+  'ask-user': t('Ask user'),
+  dispatch: t('Subtask'),
+  'git.commit': t('Commit'),
+  'github.draft-pr': t('Draft PR'),
+  'github.wait-ci': t('Wait for CI'),
   'github.pr-comment': 'PR comment',
-  fork: 'Fork',
-  join: 'Join',
-  if: 'If',
+  fork: t('Fork'),
+  join: t('Join'),
+  if: t('If'),
   workflow: 'Sub-workflow',
-  'git.push': 'Push',
-  'git.sync-base': 'Sync with base',
-  'github.pr-update': 'Update PR',
-  'github.issue-comment': 'Issue comment',
-  'notify.webhook': 'Webhook',
+  'git.push': t('Push'),
+  'git.sync-base': t('Sync with base'),
+  'github.pr-update': t('Update PR'),
+  'github.issue-comment': t('Issue comment'),
+  'notify.webhook': t('Webhook'),
 }
 
 export const categoryColor = (type: GraphNodeType) =>
@@ -164,7 +165,7 @@ export function nodeDetail(node: WorkflowGraphNode, loopCount?: number): string 
     case 'loop':
       return loopCount ? `${loopCount} / ${node.max}` : `max ${node.max}`
     case 'end':
-      return node.status === 'failed' ? 'fails the run' : 'succeeds'
+      return node.status === 'failed' ? t('fails the run') : 'succeeds'
     case 'gate.human':
       return node.message
     case 'ask-user':
@@ -172,27 +173,27 @@ export function nodeDetail(node: WorkflowGraphNode, loopCount?: number): string 
     case 'git.commit':
       return node.message
     case 'github.draft-pr':
-      return node.title ?? 'task title'
+      return node.title ?? t('task title')
     case 'github.wait-ci':
       return `≤ ${Math.round(node.timeoutMs / 60_000)} min`
     case 'github.pr-comment':
       return node.body
     case 'fork':
-      return `${node.branches} agents at once`
+      return t('{branches} agents at once', { branches: node.branches })
     case 'join':
-      return node.wait === 'any' ? 'first to succeed' : 'wait for all'
+      return node.wait === 'any' ? t('first to succeed') : t('wait for all')
     case 'workflow':
       return node.workflow
     case 'git.push':
       return 'task branch → origin'
     case 'git.sync-base':
-      return 'merge latest base'
+      return t('merge latest base')
     case 'github.pr-update':
       return [node.ready ? 'ready' : '', node.addLabels?.length ? `+${node.addLabels.join(', ')}` : '', node.reviewers?.length ? `@${node.reviewers.join(', @')}` : '']
         .filter(Boolean)
-        .join(' · ') || 'no changes'
+        .join(' · ') || t('no changes')
     case 'github.issue-comment':
-      return node.issue ? `#${node.issue}` : "task's issue"
+      return node.issue ? `#${node.issue}` : t('task\'s issue')
     case 'notify.webhook':
       return node.url.replace(/^https?:\/\//, '')
     case 'if': {
@@ -218,7 +219,7 @@ export function nodeDetail(node: WorkflowGraphNode, loopCount?: number): string 
 
 const STATUS: Partial<Record<NodeRunState['status'], { ring: string; dot: string; label: string }>> = {
   running: { ring: 'ring-2 ring-primary shadow-lg shadow-primary/25', dot: 'bg-primary motion-safe:animate-pulse', label: 'running' },
-  waiting: { ring: 'ring-2 ring-info', dot: 'bg-info motion-safe:animate-pulse', label: 'needs you' },
+  waiting: { ring: 'ring-2 ring-info', dot: 'bg-info motion-safe:animate-pulse', label: t('needs you') },
   done: { ring: '', dot: 'bg-success', label: 'done' },
   failed: { ring: 'ring-2 ring-danger', dot: 'bg-danger', label: 'failed' },
   cancelled: { ring: '', dot: 'bg-muted-foreground', label: 'cancelled' },
@@ -261,7 +262,7 @@ const INNER_DOT: Record<string, string> = {
 
 function InnerSteps({ steps }: { steps: readonly InnerStep[] }) {
   return (
-    <div className="flex min-w-0 items-center gap-1 text-[10px] text-muted-foreground" aria-label="steps inside">
+    <div className="flex min-w-0 items-center gap-1 text-[10px] text-muted-foreground" aria-label={t('steps inside')}>
       {steps.slice(0, 6).map((st, i) => (
         <span key={st.id} className="flex min-w-0 items-center gap-1" title={`${st.name}${st.status ? ` — ${st.status}` : ''}`}>
           {i > 0 && <span aria-hidden="true">→</span>}
@@ -345,8 +346,8 @@ export const GraphNodeView = memo(function GraphNodeView({
             to={subtaskTo}
             // `nodrag nopan`: following the link, not grabbing the canvas.
             className="nodrag nopan absolute right-1.5 bottom-1 rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            aria-label={`Open the subtask for ${title}`}
-            title="Open the subtask"
+            aria-label={t('Open the subtask for {title}', { title })}
+            title={t('Open the subtask')}
             onClick={(e) => e.stopPropagation()}
           >
             <ExternalLinkIcon className="size-3" />
@@ -395,8 +396,8 @@ export const GraphNodeView = memo(function GraphNodeView({
                         type="button"
                         // `nodrag nopan`: a click here is a button press, not the start of a node drag.
                         className="nodrag nopan flex size-5 items-center justify-center rounded-md border border-border bg-card text-muted-foreground hover:border-primary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                        aria-label={`Add a node after ${node.name ?? node.id} → ${port}`}
-                        title={`Add a node on “${port}”`}
+                        aria-label={t('Add a node after {v0} → {port}', { v0: node.name ?? node.id, port })}
+                        title={t('Add a node on “{port}”', { port })}
                         onClick={(e) => {
                           e.stopPropagation()
                           onAddFromPort(port)

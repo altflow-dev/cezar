@@ -26,6 +26,7 @@ import type {
 // a `components/` module must not import from `routes/`. Re-exported so every existing caller of
 // this module keeps working.
 import { QUICK_TASK, type TaskSource } from '@/lib/task-source'
+import { t } from '@/lib/i18n'
 
 export { QUICK_TASK, type TaskSource }
 
@@ -77,26 +78,26 @@ export interface ModelPreset {
  */
 export const MODELS_BY_RUNNER: Record<Runner, readonly ModelPreset[]> = {
   claude: [
-    { id: '', label: 'auto', desc: 'Pick the best model per step' },
-    { id: 'opus', label: 'opus', desc: 'Deep reasoning for hard tasks' },
-    { id: 'sonnet', label: 'sonnet', desc: 'Fast and cheap' },
-    { id: 'haiku', label: 'haiku', desc: 'Fastest — simple, scoped tasks' },
+    { id: '', label: 'auto', desc: t('Pick the best model per step') },
+    { id: 'opus', label: 'opus', desc: t('Deep reasoning for hard tasks') },
+    { id: 'sonnet', label: 'sonnet', desc: t('Fast and cheap') },
+    { id: 'haiku', label: 'haiku', desc: t('Fastest — simple, scoped tasks') },
   ],
   codex: [
-    { id: '', label: 'auto', desc: 'Use your Codex default model' },
+    { id: '', label: 'auto', desc: t('Use your Codex default model') },
   ],
   opencode: [
-    { id: '', label: 'auto', desc: 'Use your OpenCode default model' },
+    { id: '', label: 'auto', desc: t('Use your OpenCode default model') },
   ],
   junie: [
-    { id: '', label: 'auto', desc: 'Use your Junie default model' },
+    { id: '', label: 'auto', desc: t('Use your Junie default model') },
   ],
   cursor: [
-    { id: '', label: 'auto', desc: 'Use your Cursor default model' },
+    { id: '', label: 'auto', desc: t('Use your Cursor default model') },
   ],
   // pi selects a model with the same `provider/model` convention as opencode.
   pi: [
-    { id: '', label: 'auto', desc: 'Use your pi default model' },
+    { id: '', label: 'auto', desc: t('Use your pi default model') },
     { id: 'anthropic/claude-opus-4-8', label: 'claude-opus-4.8', desc: 'via Anthropic' },
     { id: 'anthropic/claude-sonnet-5', label: 'claude-sonnet-5', desc: 'via Anthropic' },
     { id: 'openai/gpt-5.1', label: 'gpt-5.1', desc: 'via OpenAI' },
@@ -106,7 +107,7 @@ export const MODELS_BY_RUNNER: Record<Runner, readonly ModelPreset[]> = {
   // is Copilot's own documented value for "let Copilot pick" (`copilot --help`), and the field
   // stays free text for anything the account is entitled to.
   copilot: [
-    { id: '', label: 'auto', desc: 'Let Copilot pick the model' },
+    { id: '', label: 'auto', desc: t('Let Copilot pick the model') },
   ],
 }
 
@@ -182,7 +183,7 @@ export function modelsForRunner(
   for (const id of customIds) {
     if (!id || seen.has(id) || modelConflictsWithRunner(id, runner)) continue
     seen.add(id)
-    base.push({ id, label: id, desc: 'Custom or legacy model' })
+    base.push({ id, label: id, desc: t('Custom or legacy model') })
   }
   return base
 }
@@ -210,8 +211,8 @@ export function modelCatalogStatus(
 ): string | undefined {
   if (!runnerDiscoversModels(runner)) return undefined
   const name = DISCOVERY_RUNNER_LABEL[runner]
-  if (catalog?.stale) return `Using cached ${name} model list`
-  if (failed || catalog?.source === 'unavailable') return `Latest ${name} models unavailable`
+  if (catalog?.stale) return t('Using cached {name} model list', { name })
+  if (failed || catalog?.source === 'unavailable') return t('Latest {name} models unavailable', { name })
   return undefined
 }
 

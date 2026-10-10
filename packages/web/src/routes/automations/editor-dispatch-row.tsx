@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
 import { DISPATCH_SUBTASK_OPTIONS } from './editor-draft'
+import { t } from '@/lib/i18n'
 
 /**
  * The automation's own dispatch setting (spec 2026-09-14-automations-redesign Q4, § UI/UX 4.4):
@@ -34,21 +35,21 @@ export function EditorDispatchRow({
     <div
       data-slot="editor-dispatch"
       data-enabled={enabled ? 'true' : undefined}
-      title="Let this run start its own subtasks with cez task create — each in a worktree forked off its branch, reporting back into the parent session."
+      title={t('Let this run start its own subtasks with cez task create — each in a worktree forked off its branch, reporting back into the parent session.')}
       className="flex flex-wrap items-center gap-2.5 border-t border-border pt-3 text-[13px] text-muted-foreground"
     >
       <Label className="text-[13px] font-medium text-foreground">
         <GitForkIcon aria-hidden="true" className={cn('size-3.5', enabled ? 'text-violet' : 'text-soft-foreground')} />
-        Dispatch
-        <Switch aria-label="Dispatch" checked={enabled} onCheckedChange={(next) => onChange({ dispatch: next })} />
+        {t('Dispatch')}
+        <Switch aria-label={t('Dispatch')} checked={enabled} onCheckedChange={(next) => onChange({ dispatch: next })} />
       </Label>
       {enabled ? (
         <>
           <span className="text-soft-foreground">·</span>
           <span className="inline-flex items-center gap-1.5">
-            up to
+            {t('up to')}
             <Select value={String(maxSubtasks)} onValueChange={(value) => onChange({ maxSubtasks: Number(value) })}>
-              <SelectTrigger size="sm" aria-label="Max subtasks" className="h-7 px-2 text-[12.5px]">
+              <SelectTrigger size="sm" aria-label={t('Max subtasks')} className="h-7 px-2 text-[12.5px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -57,15 +58,15 @@ export function EditorDispatchRow({
                 ))}
               </SelectContent>
             </Select>
-            subtasks
+            {t('subtasks')}
           </span>
           <span className="text-soft-foreground">·</span>
           <Label className="text-[13px] font-normal text-muted-foreground">
-            <Switch size="sm" aria-label="Review child" checked={reviewChild} onCheckedChange={(next) => onChange({ reviewChild: next })} />
-            review child
+            <Switch size="sm" aria-label={t('Review child')} checked={reviewChild} onCheckedChange={(next) => onChange({ reviewChild: next })} />
+            {t('review child')}
           </Label>
           <span data-slot="editor-dispatch-hint" className="ml-auto text-[11.5px] whitespace-nowrap text-soft-foreground">
-            ≤ {maxSubtasks + 1} agents
+            ≤ {maxSubtasks + 1}{t(' agents')}
           </span>
         </>
       ) : null}

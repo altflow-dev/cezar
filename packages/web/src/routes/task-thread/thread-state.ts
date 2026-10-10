@@ -9,6 +9,7 @@ import {
   type UiItem,
   type UiToolItem,
 } from '@open-mercato/cezar-api-client'
+import { t } from '@/lib/i18n'
 
 /**
  * The thread reducer: folds one run's ordered event list (`useRunEvents` — v1 lines and
@@ -166,14 +167,14 @@ export function threadFooter(status: RunStatus, error?: string, awaitingAnswer =
       // The session closed on an unanswered question: the header says "needs you", so the footer
       // must not announce a failure — the answer is the way forward, not a retry.
       if (awaitingAnswer) {
-        return { state: 'closed', tone: 'dim', label: 'Session closed — waiting for your answer, which reopens it' }
+        return { state: 'closed', tone: 'dim', label: t('Session closed — waiting for your answer, which reopens it') }
       }
-      return { state: 'closed', tone: 'danger', label: error ? `Session failed — ${error}` : 'Session failed' }
+      return { state: 'closed', tone: 'danger', label: error ? t('Session failed — {error}', { error }) : t('Session failed') }
     case 'review':
-      return { state: 'closed', tone: 'dim', label: 'Session closed — waiting for your review' }
+      return { state: 'closed', tone: 'dim', label: t('Session closed — waiting for your review') }
     case 'done':
     case 'cancelled':
-      return { state: 'closed', tone: 'dim', label: 'Session closed' }
+      return { state: 'closed', tone: 'dim', label: t('Session closed') }
     default:
       // queued/running: the stream itself is the status.
       return null
@@ -620,7 +621,7 @@ export function reduceThread(events: RunEvent[], options: ThreadReduceOptions = 
           id: `v1:${event.seq}`,
           name: 'check',
           toolKind: 'execute',
-          title: `Ran ${command}`,
+          title: t('Ran {command}', { command }),
           status: exitCode === 0 ? 'completed' : 'failed',
           output: str(event.text) ?? '',
           exitCode,

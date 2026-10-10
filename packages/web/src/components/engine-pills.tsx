@@ -14,6 +14,7 @@ import {
   runnerOverride,
 } from '@/routes/new-task-form'
 import { readFollowupSelection, writeFollowupSelection } from '@/routes/github/hand-to-agent-draft'
+import { t } from '@/lib/i18n'
 
 /**
  * The runner + model pill pair for the surfaces that START a run outside the /new composer
@@ -291,14 +292,14 @@ export function EnginePills({
       ) : null}
       <PickerPill
         slot="model-pill"
-        ariaLabel="Model"
+        ariaLabel={t('Model')}
         // `resolveModel` only ever returns a member of `models` ('' is the auto preset), so
         // the lookup cannot miss.
         label={models.find((m) => m.id === model)!.label}
         value={model}
         disabled={unavailable}
         readOnly={modelsLocked === true}
-        disabledHint={modelsLocked ? 'Model selection is locked to native coding-agent settings.' : undefined}
+        disabledHint={modelsLocked ? t('Model selection is locked to native coding-agent settings.') : undefined}
         onPick={(next) => onChange({ ...pick, model: next })}
         options={models.map((m) => ({ value: m.id, label: m.label, desc: m.desc }))}
         status={modelCatalogStatus(runner, catalog.data, catalog.isError)}

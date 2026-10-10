@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { toast } from '@/components/ui/toaster'
+import { t } from '@/lib/i18n'
 
 /**
  * Removing a project, said the same way in both places that offer it: the global registry table
@@ -41,7 +42,7 @@ export function useProjectRemoval() {
         // "Removed from the workspace", not "Deleted": the toast is the last word the user reads
         // about a button they may have pressed nervously.
         onSuccess: () => {
-          toast(`${project.name} removed from the workspace — its files are untouched`)
+          toast(t('{name} removed from the workspace — its files are untouched', { name: project.name }))
           onRemoved?.()
         },
         onError: (error: Error) => toast(error.message, { tone: 'danger' }),
@@ -63,24 +64,22 @@ export function RemoveProjectDialog({
     <AlertDialog open={project !== null} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove {project?.name} from the workspace?</AlertDialogTitle>
+          <AlertDialogTitle>{t('Remove ')}{project?.name}{t(' from the workspace?')}</AlertDialogTitle>
           <AlertDialogDescription>
-            This only unregisters the project — <strong>nothing on disk is deleted</strong>. The
-            folder, its git history and its task history all stay exactly where they are, and
-            adding it back later finds everything intact.
+            {t('This only unregisters the project — ')}<strong>{t('nothing on disk is deleted')}</strong>{t('. The folder, its git history and its task history all stay exactly where they are, and adding it back later finds everything intact.')}
             <span className="mt-1 block truncate font-mono text-[11px] text-foreground" title={project?.root}>
               {project?.root}
             </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep it</AlertDialogCancel>
+          <AlertDialogCancel>{t('Keep it')}</AlertDialogCancel>
           <AlertDialogAction
             data-action="projects-confirm-remove"
             className="bg-danger text-danger-foreground hover:brightness-[0.96]"
             onClick={onConfirm}
           >
-            Remove from list
+            {t('Remove from list')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

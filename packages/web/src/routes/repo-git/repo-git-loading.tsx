@@ -1,6 +1,7 @@
 import { LoaderCircleIcon } from 'lucide-react'
 
 import { CenteredState } from '@/components/centered-state'
+import { t } from '@/lib/i18n'
 
 /** The repo view's loading surface — also the route's `Suspense` fallback (routes.tsx), so it
  *  lives outside the lazy chunk it stands in for, same reason as git-tab-loading.tsx. */
@@ -10,8 +11,8 @@ export function RepoGitLoading() {
       <CenteredState
         icon={<LoaderCircleIcon className="motion-safe:animate-spin" />}
         tone="neutral"
-        title="Loading repository…"
-        subtitle="Fetching the repo's git state."
+        title={t('Loading repository…')}
+        subtitle={t('Fetching the repo\'s git state.')}
       />
     </div>
   )

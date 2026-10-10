@@ -6,6 +6,7 @@ import type {
 } from '@open-mercato/cezar-api-client'
 import { dashboardKeys, getDashboard, getDashboardTasks } from '@/api/dashboard'
 import { ApiError } from '@/api/client'
+import { t } from '@/lib/i18n'
 export function useDashboardPage(
   snapshot: DashboardSnapshot | undefined,
   group: DashboardGroup,
@@ -18,7 +19,7 @@ export function useDashboardPage(
     enabled: enabled && !!snapshot,
     retry: false,
     queryFn: async ({ signal }) => {
-      if (!snapshot) throw new Error('Dashboard not loaded')
+      if (!snapshot) throw new Error(t('Dashboard not loaded'))
       const rows = []
       try {
         for (let offset = 0; offset < count; ) {

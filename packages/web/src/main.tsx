@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { setApiBaseUrl } from '@open-mercato/cezar-api-client'
 import { App } from './app'
+import { currentLanguage } from '@/lib/i18n'
 import './styles/index.css'
 
 /**
@@ -22,6 +23,9 @@ function resolveApiBase(): string {
 }
 
 setApiBaseUrl(resolveApiBase())
+
+// Screen readers and the browser's own translate prompt read the page language from here.
+document.documentElement.lang = currentLanguage()
 
 const container = document.getElementById('root')
 if (!container) throw new Error('cezar: #root container is missing from index.html')

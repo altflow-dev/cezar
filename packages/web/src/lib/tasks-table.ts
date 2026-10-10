@@ -6,6 +6,7 @@ import type {
 } from '@open-mercato/cezar-api-client'
 import { groupTitle, runTitle, type ListView } from '@/lib/task-groups'
 import { isAwaitingAnswer } from '@/lib/attention'
+import { t } from '@/lib/i18n'
 
 /**
  * The pure half of the Tasks table (the `/` overview): search, the header's archive count, the
@@ -72,10 +73,10 @@ export function scheduledResume(
     label: sameDay
       ? time
       : `${new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(at)} ${time}`,
-    title: `Resumes automatically at ${new Intl.DateTimeFormat(undefined, {
+    title: t('Resumes automatically at {time}', { time: new Intl.DateTimeFormat(undefined, {
       dateStyle: 'medium',
       timeStyle: 'long',
-    }).format(at)}`,
+    }).format(at) }),
   }
 }
 
@@ -404,9 +405,9 @@ export function usageCells(
     cpu: { text: '', kind: 'none' },
     mem: peakMem
       ? {
-          text: `peak ${peakMem}`,
+          text: t('peak {peakMem}', { peakMem }),
           kind: 'peak',
-          title: `peak — run finished${run.peakProcCount ? ` · ${run.peakProcCount} procs` : ''}`,
+          title: `${t('peak — run finished')}${run.peakProcCount ? ` · ${run.peakProcCount} procs` : ''}`,
         }
       : { text: '', kind: 'none' },
   }

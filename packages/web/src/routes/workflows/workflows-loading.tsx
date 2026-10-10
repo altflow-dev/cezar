@@ -1,6 +1,7 @@
 import { LoaderCircleIcon } from 'lucide-react'
 
 import { CenteredState } from '@/components/centered-state'
+import { t } from '@/lib/i18n'
 
 /**
  * The Workflows builder's loading state, in its own module ON PURPOSE (same rule as
@@ -14,8 +15,8 @@ export function WorkflowsLoading() {
       <CenteredState
         icon={<LoaderCircleIcon className="motion-safe:animate-spin" />}
         tone="neutral"
-        title="Loading workflows…"
-        subtitle="Fetching the saved workflows and the node catalog."
+        title={t('Loading workflows…')}
+        subtitle={t('Fetching the saved workflows and the node catalog.')}
       />
     </div>
   )

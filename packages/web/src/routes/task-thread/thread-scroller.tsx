@@ -24,6 +24,7 @@ import {
   type ThreadRowAnchor,
   type ThreadRowPosition,
 } from './thread-scroll'
+import { t } from '@/lib/i18n'
 
 /**
  * The thread's scroll machinery: one hook that owns the shell scroller's behavior for the
@@ -615,7 +616,7 @@ export function JumpToLatestPill({ onJump }: { onJump: () => void }) {
       className="pointer-events-auto inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border bg-background px-3.5 text-xs font-medium text-muted-foreground shadow-modal hover:text-foreground"
     >
       <ArrowDownIcon aria-hidden className="size-3.5" />
-      Jump to latest
+      {t('Jump to latest')}
     </button>
   )
 }

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { statusLabel, statusTone, usd, AUTOMATION_COST_VISIBLE } from '@/lib/automation-format'
 import { shortAge } from '@/lib/format'
+import { t } from '@/lib/i18n'
 
 /**
  * The edit screen's "Last run" card (spec 2026-09-14-automations-redesign § UI/UX 4): the newest
@@ -26,7 +27,7 @@ export function LastRunCard({
 }) {
   return (
     <Card flush data-slot="last-run-card" className="px-3.5 py-3">
-      <div className="mb-2 text-[11px] font-semibold tracking-[.05em] uppercase text-soft-foreground">Last run</div>
+      <div className="mb-2 text-[11px] font-semibold tracking-[.05em] uppercase text-soft-foreground">{t('Last run')}</div>
       <div className="flex items-center gap-2 text-[13px]">
         <StatusDot tone={statusTone(lastRun.status)} />
         {statusLabel(lastRun.status)}
@@ -38,12 +39,12 @@ export function LastRunCard({
       <div className="mt-2.5 flex gap-1.5">
         <Button variant="outline" size="sm" disabled={busy} onClick={onRunNow}>
           <PlayIcon aria-hidden="true" className="size-3" />
-          Run now
+          {t('Run now')}
         </Button>
         {onLog ? (
           <Button variant="ghost" size="sm" onClick={onLog}>
             <ScrollTextIcon aria-hidden="true" className="size-3" />
-            View log
+            {t('View log')}
           </Button>
         ) : null}
       </div>

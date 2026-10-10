@@ -12,6 +12,7 @@ import { toast } from '@/components/ui/toaster'
 import { availableRunners } from '@/routes/new-task-form'
 import { cn } from '@/lib/utils'
 import { AGENT_DESCRIPTORS, descriptorFor, type AgentDescriptor } from './agent-descriptors'
+import { t } from '@/lib/i18n'
 
 /**
  * Settings → Agent config (spec #404, regrouped per
@@ -48,10 +49,10 @@ const PRIVATE_MCP_STARTER = `{
 
 /** What this file actually governs for a run — the honest label the spec insists on. */
 function effectLabel(file: AgentConfigFile): string {
-  if (file.private) return 'Private to this project — added to every run at launch, takes effect on the next session. Never committed.'
-  if (file.seeded) return 'Copied into each run’s worktree — takes effect on your next run.'
-  if (file.tracked === 'tracked') return 'Runs read the committed copy — this edit applies after you commit it.'
-  if (file.tracked === 'outside-repo') return 'Applies to every session on this machine.'
+  if (file.private) return t('Private to this project — added to every run at launch, takes effect on the next session. Never committed.')
+  if (file.seeded) return t('Copied into each run’s worktree — takes effect on your next run.')
+  if (file.tracked === 'tracked') return t('Runs read the committed copy — this edit applies after you commit it.')
+  if (file.tracked === 'outside-repo') return t('Applies to every session on this machine.')
   return 'Personal, git-ignored.'
 }
 
@@ -66,7 +67,7 @@ export function AgentConfigSection() {
   if (listing.isPending) {
     return (
       <p data-slot="agent-config-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
-        Loading agent config…
+        {t('Loading agent config…')}
       </p>
     )
   }
@@ -75,7 +76,7 @@ export function AgentConfigSection() {
       <CenteredState
         icon={<FileCogIcon />}
         tone="danger"
-        title="Agent config did not load"
+        title={t('Agent config did not load')}
         subtitle={listing.error.message}
         heading="h2"
       />
@@ -102,8 +103,7 @@ function AgentConfigView({ listing, installed }: { listing: AgentConfigListing; 
           data-slot="agent-config-readonly"
           className="rounded-md border border-border bg-muted/40 px-3 py-2 text-[13px] text-soft-foreground"
         >
-          Read-only: agent config is edited from the machine that owns the checkout (this cockpit runs in hosted
-          mode). You can still see every file and which one wins.
+          {t('Read-only: agent config is edited from the machine that owns the checkout (this cockpit runs in hosted mode). You can still see every file and which one wins.')}
         </div>
       )}
 
@@ -126,7 +126,7 @@ function AgentConfigView({ listing, installed }: { listing: AgentConfigListing; 
             {d.label}
             {!installed.includes(d.id) && (
               <Badge variant="outline" className="text-[10px] text-soft-foreground">
-                not installed
+                {t('not installed')}
               </Badge>
             )}
           </button>
@@ -154,7 +154,7 @@ function AgentConfigView({ listing, installed }: { listing: AgentConfigListing; 
             <FileEditor key={selected.id} file={selected} />
           ) : (
             <div className="flex h-full min-h-40 items-center justify-center rounded-md border border-dashed border-border text-[13px] text-soft-foreground">
-              Select a config file to view or edit it.
+              {t('Select a config file to view or edit it.')}
             </div>
           )}
         </div>
@@ -202,15 +202,15 @@ function AgentPane({
                     <span className="min-w-0 flex-1 truncate font-mono text-[12px]">{file.label}</span>
                     {file.seeded && (
                       <Badge variant="outline" className="shrink-0 text-[10px]">
-                        seeded
+                        {t('seeded')}
                       </Badge>
                     )}
                     {file.private && (
                       <Badge variant="outline" className="shrink-0 text-[10px]">
-                        private
+                        {t('private')}
                       </Badge>
                     )}
-                    {!file.exists && <span className="shrink-0 text-[11px] text-soft-foreground">absent</span>}
+                    {!file.exists && <span className="shrink-0 text-[11px] text-soft-foreground">{t('absent')}</span>}
                   </button>
                 </li>
               ))}
@@ -228,10 +228,9 @@ function AgentPane({
 function UserMcpBlock({ userMcp }: { userMcp: NonNullable<AgentConfigListing['userMcp']> }) {
   return (
     <div data-slot="agent-config-user-mcp" className="mt-3">
-      <h4 className="mb-1 text-[12px] font-semibold">User &amp; local scopes</h4>
+      <h4 className="mb-1 text-[12px] font-semibold">{t('User & local scopes')}</h4>
       <p className="mb-2 text-[12px] text-soft-foreground">
-        Managed by <code className="font-mono">claude mcp add</code> in {userMcp.path} — cezar does not edit
-        Claude’s state file.
+        {t('Managed by ')}<code className="font-mono">claude mcp add</code>{t(' in ')}{userMcp.path}{t(' — cezar does not edit Claude’s state file.')}
       </p>
       {userMcp.readable ? (
         userMcp.servers.length > 0 ? (
@@ -245,10 +244,10 @@ function UserMcpBlock({ userMcp }: { userMcp: NonNullable<AgentConfigListing['us
             ))}
           </ul>
         ) : (
-          <p className="text-[12px] text-soft-foreground">No user-scoped MCP servers.</p>
+          <p className="text-[12px] text-soft-foreground">{t('No user-scoped MCP servers.')}</p>
         )
       ) : (
-        <p className="text-[12px] text-soft-foreground">Could not read the file.</p>
+        <p className="text-[12px] text-soft-foreground">{t('Could not read the file.')}</p>
       )}
     </div>
   )
@@ -284,7 +283,7 @@ export function FileEditor({ file }: { file: AgentConfigFile }) {
       {
         onSuccess: () => {
           setDraft(null)
-          toast(`${file.exists ? 'Saved' : 'Created'} ${file.label}`)
+          toast(`${file.exists ? t('Saved') : t('Created')} ${file.label}`)
         },
         onError: (err) => {
           if (err instanceof ApiError && err.status === 409) setConflict(true)
@@ -308,7 +307,7 @@ export function FileEditor({ file }: { file: AgentConfigFile }) {
           rel="noreferrer"
           className="text-[12px] text-soft-foreground underline hover:text-foreground"
         >
-          docs
+          {t('docs')}
         </a>
       </div>
 
@@ -321,7 +320,7 @@ export function FileEditor({ file }: { file: AgentConfigFile }) {
       </p>
 
       {fileQuery.isPending ? (
-        <p className="text-[13px] text-soft-foreground">Loading file…</p>
+        <p className="text-[13px] text-soft-foreground">{t('Loading file…')}</p>
       ) : fileQuery.isError ? (
         <p className="text-[13px] text-destructive">{fileQuery.error.message}</p>
       ) : (
@@ -330,7 +329,7 @@ export function FileEditor({ file }: { file: AgentConfigFile }) {
           language={file.format}
           readOnly={!canWrite}
           onChange={setDraft}
-          aria-label={`${file.label} contents`}
+          aria-label={t('{label} contents', { label: file.label })}
           className="h-[26rem]"
         />
       )}
@@ -345,9 +344,9 @@ export function FileEditor({ file }: { file: AgentConfigFile }) {
           data-slot="agent-config-conflict"
           className="flex items-center justify-between gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px]"
         >
-          <span>The file changed on disk since you opened it.</span>
+          <span>{t('The file changed on disk since you opened it.')}</span>
           <Button size="sm" variant="outline" onClick={() => void fileQuery.refetch()}>
-            Reload from disk
+            {t('Reload from disk')}
           </Button>
         </div>
       )}
@@ -355,7 +354,7 @@ export function FileEditor({ file }: { file: AgentConfigFile }) {
       {canWrite && (
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={save} disabled={!dirty || put.isPending}>
-            {file.exists ? 'Save' : 'Create'}
+            {file.exists ? t('Save') : t('Create')}
           </Button>
           <Button
             size="sm"
@@ -363,9 +362,9 @@ export function FileEditor({ file }: { file: AgentConfigFile }) {
             onClick={() => setDraft(null)}
             disabled={!dirty || put.isPending}
           >
-            Revert
+            {t('Revert')}
           </Button>
-          {dirty && <span className="text-[12px] text-soft-foreground">Unsaved changes</span>}
+          {dirty && <span className="text-[12px] text-soft-foreground">{t('Unsaved changes')}</span>}
         </div>
       )}
     </div>

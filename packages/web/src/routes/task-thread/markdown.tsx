@@ -10,6 +10,7 @@ import {
 import { SYN_THEME, highlight, highlightSync, supportedLanguages } from '@/lib/highlighter'
 
 import { LinkSafetyDialog } from './link-safety-dialog'
+import { t } from '@/lib/i18n'
 
 /**
  * Assistant markdown for the thread — Streamdown (spec tech pick: stable-block memoization,
@@ -136,7 +137,7 @@ function TranscriptLink({ href, children, className, ...props }: TranscriptLinkP
         data-local-only-link={isLocalFilesystemDestination(href ?? '') ? '' : undefined}
         title={
           isLocalFilesystemDestination(href ?? '')
-            ? 'This is a local filesystem path and cannot be opened here.'
+            ? t('This is a local filesystem path and cannot be opened here.')
             : undefined
         }
         className={className}

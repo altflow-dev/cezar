@@ -2,6 +2,7 @@ import type { AgentProfile, ProviderStatusResponse, Runner } from '@open-mercato
 import { cn } from '@/lib/utils'
 import { providerStatusFor } from '@/lib/provider-status'
 import { RUNNERS } from '@/routes/new-task-form'
+import { t } from '@/lib/i18n'
 
 /**
  * "Which agent, and which of its logins" as ONE flat list (spec 2026-07-29-agent-profiles):
@@ -43,7 +44,7 @@ export function agentPickerRows(profiles: readonly AgentProfile[]): AgentPickerR
       // folder the CLI has not written yet is called out rather than left looking fine: a run under
       // it fails on auth BY DESIGN — it must not quietly fall back to another login — so the place
       // to say so is where the choice is made.
-      desc: login.exists ? login.configDir : `${login.configDir} — folder not created yet`,
+      desc: login.exists ? login.configDir : t('{configDir} — folder not created yet', { configDir: login.configDir }),
       missing: !login.exists,
     }))
   })
@@ -80,7 +81,7 @@ export function DefaultAgentPicker({
   return (
     <div
       role="radiogroup"
-      aria-label="Default runner"
+      aria-label={t('Default runner')}
       data-slot="agents-runner"
       className={cn(
         'gap-0.5 rounded-md border border-border bg-card p-0.5',
@@ -97,14 +98,14 @@ export function DefaultAgentPicker({
           provider?.enabled === true &&
           provider.status === 'connected'
         const providerReason = providerStatus.isPending
-          ? 'Checking provider authentication…'
+          ? t('Checking provider authentication…')
           : providerStatus.isError
-            ? 'Provider authentication could not be verified.'
+            ? t('Provider authentication could not be verified.')
             : provider?.enabled === false
-              ? 'This provider is disabled. Enable it above or choose another provider.'
+              ? t('This provider is disabled. Enable it above or choose another provider.')
             : providerConnected
               ? undefined
-              : 'Connect this provider before selecting it.'
+              : t('Connect this provider before selecting it.')
         const hasAccountChoice = rows.filter((other) => other.runner.id === row.runner.id).length > 1
         const checked = row.runner.id === runner && row.account === accountFor(row.runner.id)
         return (

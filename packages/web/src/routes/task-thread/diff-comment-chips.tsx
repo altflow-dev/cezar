@@ -5,6 +5,7 @@ import { Link } from '@/lib/project-router'
 
 import { linesLabel, sortDiffComments, type DiffComment } from './diff-comments'
 import { reviewTarget } from './review-comments-block'
+import { t } from '@/lib/i18n'
 
 /**
  * The diff comments as draft items in the thread composer — one chip per comment, `file +line`,
@@ -57,7 +58,7 @@ export function DiffCommentChips({
                     type="button"
                     onClick={() => onOpen(comment)}
                     className="min-w-0 truncate px-2 font-medium hover:underline"
-                    aria-label={`Show comment on ${comment.path} ${where}`}
+                    aria-label={t('Show comment on {path} {where}', { path: comment.path, where })}
                   >
                     {label}
                   </button>
@@ -71,14 +72,14 @@ export function DiffCommentChips({
                       commentId: comment.id,
                     })}
                     className="min-w-0 truncate px-2 font-medium hover:underline"
-                    aria-label={`Comment on ${comment.path} ${where}`}
+                    aria-label={t('Comment on {path} {where}', { path: comment.path, where })}
                   >
                     {label}
                   </Link>
                 )}
                 <button
                   type="button"
-                  aria-label={`Remove comment on ${name} ${where}`}
+                  aria-label={t('Remove comment on {name} {where}', { name, where })}
                   onClick={() => onRemove(comment.id)}
                   className="flex h-full items-center px-1.5 text-soft-foreground hover:bg-muted hover:text-foreground"
                 >

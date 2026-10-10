@@ -17,16 +17,17 @@ import {
 import { GripHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { TileId } from './preferences'
+import { t } from '@/lib/i18n'
 
 const names: Record<TileId, string> = {
-  overview: 'Workspace overview',
-  portfolio: 'Projects',
-  automations: 'Automations',
-  fleet: 'Queue & scheduling',
-  needsYou: 'Needs you',
-  recent: 'Recent results & GitHub',
-  usage: 'Usage & cost',
-  trends: 'Trends',
+  overview: t('Workspace overview'),
+  portfolio: t('Projects'),
+  automations: t('Automations'),
+  fleet: t('Queue & scheduling'),
+  needsYou: t('Needs you'),
+  recent: t('Recent results & GitHub'),
+  usage: t('Usage & cost'),
+  trends: t('Trends'),
 }
 function Module({ id, children, wide }: { id: TileId; children: ReactNode; wide: boolean }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } =
@@ -49,7 +50,7 @@ function Module({ id, children, wide }: { id: TileId; children: ReactNode; wide:
         className="absolute -top-[22px] left-1/2 z-10 min-h-11 min-w-11 -translate-x-1/2 cursor-grab touch-none p-0 opacity-0 transition-opacity hover:bg-transparent focus-visible:opacity-100 active:cursor-grabbing group-hover/module:opacity-100 no-hover:opacity-100"
         {...attributes}
         {...listeners}
-        aria-label={`Move ${names[id]}`}
+        aria-label={t('Move {v0}', { v0: names[id] })}
       >
         <span className="flex h-4 w-8 items-center justify-center rounded-full border bg-card text-muted-foreground shadow-xs">
           <GripHorizontal className="size-3.5" aria-hidden="true" />
@@ -93,20 +94,20 @@ export function DashboardLayout({
       collisionDetection={closestCenter}
       accessibility={{
         announcements: {
-          onDragStart: ({ active }) => `Picked up ${describe(active.id)}.`,
+          onDragStart: ({ active }) => t('Picked up {v0}.', { v0: describe(active.id) }),
           onDragOver: ({ active, over }) =>
             over
-              ? `${names[active.id as TileId]} moved to position ${visible.indexOf(over.id as TileId) + 1} of ${visible.length}.`
+              ? t('{v0} moved to position {v1} of {length}.', { v0: names[active.id as TileId], v1: visible.indexOf(over.id as TileId) + 1, length: visible.length })
               : undefined,
           onDragEnd: ({ active, over }) =>
             over
-              ? `${names[active.id as TileId]} dropped at position ${visible.indexOf(over.id as TileId) + 1} of ${visible.length}.`
-              : `Order unchanged. ${describe(active.id)}.`,
-          onDragCancel: ({ active }) => `Reordering cancelled. ${describe(active.id)}.`,
+              ? t('{v0} dropped at position {v1} of {length}.', { v0: names[active.id as TileId], v1: visible.indexOf(over.id as TileId) + 1, length: visible.length })
+              : t('Order unchanged. {v0}.', { v0: describe(active.id) }),
+          onDragCancel: ({ active }) => t('Reordering cancelled. {v0}.', { v0: describe(active.id) }),
         },
         screenReaderInstructions: {
           draggable:
-            'Press Space to pick up a module, use arrow keys to move, Space to drop, or Escape to cancel.',
+            t('Press Space to pick up a module, use arrow keys to move, Space to drop, or Escape to cancel.'),
         },
       }}
       onDragEnd={({ active, over }) => {

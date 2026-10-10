@@ -9,6 +9,7 @@ import {
 
 import type { StatusDotTone } from '@/components/status-dot'
 import { TRACKER_PROVIDERS } from '@/lib/tracker-providers'
+import { t } from '@/lib/i18n'
 
 /**
  * The Automations surface's small formatting vocabulary (spec 2026-09-14-automations-redesign
@@ -50,7 +51,7 @@ export function logTime(iso: string, timeZone: string, now = Date.now()): string
   const parts = zonedParts(ms, timeZone)
   if (!parts) return ''
   if (now - ms < 6 * 86_400_000) return `${dayName(parts.weekday)} ${hm(parts.hour, parts.minute)}`
-  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][parts.month - 1]
+  const month = [t('Jan'), t('Feb'), t('Mar'), t('Apr'), t('May'), t('Jun'), t('Jul'), t('Aug'), t('Sep'), t('Oct'), t('Nov'), t('Dec')][parts.month - 1]
   return `${parts.day} ${month} ${hm(parts.hour, parts.minute)}`
 }
 
@@ -87,8 +88,8 @@ export function statusTone(status: RunStatus): StatusDotTone {
 /** The word beside that dot. */
 export function statusLabel(status: RunStatus): string {
   switch (status) {
-    case 'review': return 'needs review'
-    case 'waiting': return 'needs you'
+    case 'review': return t('needs review')
+    case 'waiting': return t('needs you')
     default: return status
   }
 }
@@ -98,8 +99,8 @@ export function triggerLabel(automation: Pick<AutomationDefinition, 'kind' | 'ev
   if (automation.kind === 'schedule' && automation.schedule) return scheduleLabel(automation.schedule)
   if (automation.kind === 'tracker') {
     const trigger = automation.trackerTrigger
-    const provider = trigger ? TRACKER_PROVIDERS[trigger.association.kind].label : 'Tracker'
-    return trigger ? `${provider} · ${trigger.events.join(', ')}${trigger.targetStatusIds?.length ? ` → ${trigger.targetStatusIds.join(', ')}` : ''}${trigger.changedLabelIds?.length ? ` · labels ${trigger.changedLabelIds.join(', ')}` : ''} · every ${Math.round((automation.intervalSeconds ?? 1800) / 60)} min` : `${provider} · select an event to complete setup`
+    const provider = trigger ? TRACKER_PROVIDERS[trigger.association.kind].label : t('Tracker')
+    return trigger ? `${provider} · ${trigger.events.join(', ')}${trigger.targetStatusIds?.length ? ` → ${trigger.targetStatusIds.join(', ')}` : ''}${trigger.changedLabelIds?.length ? ` · labels ${trigger.changedLabelIds.join(', ')}` : ''} · every ${Math.round((automation.intervalSeconds ?? 1800) / 60)} min` : t('{provider} · select an event to complete setup', { provider })
   }
   const events = (automation.events ?? []).join(', ')
   const minutes = Math.round((automation.intervalSeconds ?? 300) / 60)

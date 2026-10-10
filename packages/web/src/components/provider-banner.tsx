@@ -10,6 +10,7 @@ import {
 import { parseProviderStatusResponse } from '@/lib/provider-status'
 
 import { StatusDot } from './status-dot'
+import { t } from '@/lib/i18n'
 
 interface ProviderBannerProps {
   status: ProviderStatusResponse | undefined
@@ -44,18 +45,18 @@ export function ProviderBanner({
       >
         <StatusDot tone="danger" />
         <span>
-          Provider authentication failed during a task:{' '}
+          {t('Provider authentication failed during a task:')}{' '}
           {incidents.map(({ label }) => label).join(', ')}.
         </span>
         <Link
           to="/settings/agents#providers"
           className="ml-auto shrink-0 font-medium underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          Open agent settings
+          {t('Open agent settings')}
         </Link>
         <button
           type="button"
-          aria-label="Dismiss provider authentication alert"
+          aria-label={t('Dismiss provider authentication alert')}
           onClick={() => onDismissAuthFailures(incidents)}
           className="shrink-0 rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
@@ -75,10 +76,10 @@ export function ProviderBanner({
   )
   const uncertain = normalized.providers.some((row) => row.status === 'unknown')
   const message = credentialsExist
-    ? 'No agent provider is enabled.'
+    ? t('No agent provider is enabled.')
     : uncertain
-      ? 'No connected provider could be verified.'
-      : 'No agent provider credentials were found.'
+      ? t('No connected provider could be verified.')
+      : t('No agent provider credentials were found.')
 
   return (
     <div
@@ -92,7 +93,7 @@ export function ProviderBanner({
         to="/settings/agents#providers"
         className="ml-auto shrink-0 font-medium text-foreground underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        Configure providers
+        {t('Configure providers')}
       </Link>
     </div>
   )

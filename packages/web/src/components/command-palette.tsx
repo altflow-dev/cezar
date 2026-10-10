@@ -25,6 +25,7 @@ import { orderSkillsByUsage } from '@/lib/skills'
 import { runTitle } from '@/lib/task-groups'
 import { useCommandShortcut, useKeyShortcut } from '@/lib/use-command-shortcut'
 import { useProjectOrder } from '@/lib/use-project-order'
+import { t } from '@/lib/i18n'
 
 /**
  * The ⌘K command palette (spec, "Cross-cutting"): projects, tasks, views, actions, skills —
@@ -225,8 +226,8 @@ export function CommandPalette() {
     <CommandDialog
       open={open}
       onOpenChange={setOpen}
-      title="Command palette"
-      description="Search projects, tasks, views, actions, and skills"
+      title={t('Command palette')}
+      description={t('Search projects, tasks, views, actions, and skills')}
       showCloseButton={false}
       filter={paletteScore}
       // Two overrides of the shared dialog, both for this surface only — every other dialog in
@@ -392,7 +393,7 @@ function PaletteContent({ close }: { close: () => void }) {
   return (
     <>
       <CommandInput
-        placeholder="Search projects, tasks, views, actions, skills…"
+        placeholder={t('Search projects, tasks, views, actions, skills…')}
         value={search}
         onValueChange={setSearch}
       />
@@ -401,7 +402,7 @@ function PaletteContent({ close }: { close: () => void }) {
           `min-h` keeps a short result set from collapsing the box to nothing, which would move
           the bottom edge as violently as the old centring moved the top. */}
       <CommandList className="max-h-[55vh] min-h-[14rem] sm:max-h-[60vh] lg:max-h-[68vh]">
-        <CommandEmpty>Nothing matches.</CommandEmpty>
+        <CommandEmpty>{t('Nothing matches.')}</CommandEmpty>
 
         {/* First, headless, and the row an empty query pre-selects: opening ⌘K and pressing
             Enter starts a task. It used to sit ninth in Views with a duplicate down in Actions;
@@ -414,7 +415,7 @@ function PaletteContent({ close }: { close: () => void }) {
             onSelect={() => go('/new')}
           >
             <PlusIcon aria-hidden="true" />
-            New task
+            {t('New task')}
             <CommandShortcut>C</CommandShortcut>
           </CommandItem>
         </CommandGroup>
@@ -423,7 +424,7 @@ function PaletteContent({ close }: { close: () => void }) {
             floats a section of near-misses above the exact match you are looking for, purely
             because that section renders first. Searching gets one ranked Tasks list. */}
         {!searching && recentlyFinished.length > 0 ? (
-          <CommandGroup heading="Recently finished">
+          <CommandGroup heading={t('Recently finished')}>
             {recentlyFinished.map((task) => (
               <TaskItem
                 key={taskKey(task)}
@@ -437,7 +438,7 @@ function PaletteContent({ close }: { close: () => void }) {
           </CommandGroup>
         ) : null}
 
-        <CommandGroup heading="Views">
+        <CommandGroup heading={t('Views')}>
           {/* The one GLOBAL view, listed first because it is the only row here that is not
               about the project you are standing in. Multi-project only, matching the sidebar:
               with one project it would be that project's own Tasks page under another name. */}
@@ -449,7 +450,7 @@ function PaletteContent({ close }: { close: () => void }) {
               onSelect={() => goGlobal('/tasks')}
             >
               <LayersIcon aria-hidden="true" />
-              All tasks
+              {t('All tasks')}
             </CommandItem>
           ) : null}
           {visibleNavItems({
@@ -477,7 +478,7 @@ function PaletteContent({ close }: { close: () => void }) {
         </CommandGroup>
 
         {orderedProjects.length > 0 ? (
-          <CommandGroup heading="Projects">
+          <CommandGroup heading={t('Projects')}>
             {orderedProjects.map((project) => {
               const active = project.id === activeProjectId
               // Nothing to open: the folder is gone. The row stays listed (Settings → Projects
@@ -501,7 +502,7 @@ function PaletteContent({ close }: { close: () => void }) {
                   <FolderOpenIcon aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate">{project.name}</span>
                   {missing ? (
-                    <span className="shrink-0 text-xs text-soft-foreground">folder not found</span>
+                    <span className="shrink-0 text-xs text-soft-foreground">{t('folder not found')}</span>
                   ) : project.branch !== undefined ? (
                     <span className="shrink-0 font-mono text-xs text-soft-foreground">
                       {project.branch}
@@ -517,7 +518,7 @@ function PaletteContent({ close }: { close: () => void }) {
         ) : null}
 
         {otherTasks.length > 0 ? (
-          <CommandGroup heading="Tasks">
+          <CommandGroup heading={t('Tasks')}>
             {otherTasks.map((task) => (
               <TaskItem
                 key={taskKey(task)}
@@ -531,7 +532,7 @@ function PaletteContent({ close }: { close: () => void }) {
           </CommandGroup>
         ) : null}
 
-        <CommandGroup heading="Actions">
+        <CommandGroup heading={t('Actions')}>
           <CommandItem
             value="action toggle theme"
             data-slot="palette-action"
@@ -542,7 +543,7 @@ function PaletteContent({ close }: { close: () => void }) {
             }}
           >
             <MoonIcon aria-hidden="true" />
-            Toggle theme
+            {t('Toggle theme')}
             <CommandShortcut className="tracking-normal">
               {theme} → {nextTheme}
             </CommandShortcut>
@@ -550,7 +551,7 @@ function PaletteContent({ close }: { close: () => void }) {
         </CommandGroup>
 
         {orderedSkills.length > 0 ? (
-          <CommandGroup heading="Skills">
+          <CommandGroup heading={t('Skills')}>
             {orderedSkills.map((skill) => (
               <CommandItem
                 key={skill.path}

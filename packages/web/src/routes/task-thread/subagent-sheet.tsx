@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import type { SubagentSummary } from './subagent-dock'
 import type { ThreadAsk, ThreadEntry } from './thread-state'
 import { SessionTranscript, agentTranscriptSections } from './session-transcript'
+import { t } from '@/lib/i18n'
 
 /**
  * The sub-agent drill-down (spec `.ai/specs/2026-07-20-grouped-subagent-display.md`
@@ -76,7 +77,7 @@ function SheetBody({
         <SheetDescription data-slot="subagent-meta" className="flex items-center gap-2 text-xs">
           <StatusPill status={agent.status} />
           <span className="tabular-nums">
-            {agent.toolCalls} {agent.toolCalls === 1 ? 'tool call' : 'tool calls'}
+            {agent.toolCalls} {agent.toolCalls === 1 ? t('tool call') : t('tool calls')}
           </span>
         </SheetDescription>
       </SheetHeader>
@@ -88,7 +89,7 @@ function SheetBody({
         renderAsk={renderAsk}
         empty={
           <div data-slot="subagent-empty" className="py-2 text-[13px] text-muted-foreground">
-            No attributed output — see the thread card for this agent&apos;s result.
+            {t('No attributed output — see the thread card for this agent\'s result.')}
           </div>
         }
       />
@@ -100,14 +101,14 @@ function SheetBody({
 function StatusPill({ status }: { status: SubagentSummary['status'] }) {
   const label =
     status === 'completed'
-      ? 'Completed'
+      ? t('Completed')
       : status === 'failed'
-        ? 'Failed'
+        ? t('Failed')
         : status === 'declined'
-          ? 'Declined'
+          ? t('Declined')
           : status === 'pending'
-            ? 'Pending'
-            : 'Running'
+            ? t('Pending')
+            : t('Running')
   return (
     <span
       data-slot="subagent-status"

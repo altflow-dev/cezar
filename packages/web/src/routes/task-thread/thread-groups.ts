@@ -1,6 +1,7 @@
 import type { UiToolItem } from '@open-mercato/cezar-api-client'
 
 import type { ThreadEntry } from './thread-state'
+import { t, tp } from '@/lib/i18n'
 
 /**
  * Pure display grouping over one turn's reduced entries (spec §"Task thread"; the opencode
@@ -62,19 +63,17 @@ const isTool = (entry: ThreadEntry): entry is UiToolItem => entry.kind === 'tool
 const isGroupable = (item: UiToolItem): boolean =>
   (item.toolKind === 'read' || item.toolKind === 'search') && item.status === 'completed'
 
-const plural = (n: number, noun: string, nouns: string): string => `${n} ${n === 1 ? noun : nouns}`
-
 /** "Explored 2 files · 1 search" — the mockup's ctx-group line. */
 export function contextGroupLabel(files: number, searches: number): string {
   const parts: string[] = []
-  if (files > 0) parts.push(plural(files, 'file', 'files'))
-  if (searches > 0) parts.push(plural(searches, 'search', 'searches'))
-  return `Explored ${parts.join(' · ')}`
+  if (files > 0) parts.push(tp(files, '{count} file', '{count} files'))
+  if (searches > 0) parts.push(tp(searches, '{count} search', '{count} searches'))
+  return t('Explored {parts}', { parts: parts.join(' · ') })
 }
 
 /** "3 earlier tool calls" — the legacy streak toggle line (chevron is the component's). */
 export function streakLabel(count: number): string {
-  return `${count} earlier tool call${count === 1 ? '' : 's'}`
+  return tp(count, '{count} earlier tool call', '{count} earlier tool calls')
 }
 
 /**

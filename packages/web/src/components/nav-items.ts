@@ -13,6 +13,7 @@ import type { TrackerKind } from '@open-mercato/cezar-api-client'
 
 import { TRACKER_PROVIDERS } from '@/lib/tracker-providers'
 import { GithubIcon } from '@/components/icons'
+import { t } from '@/lib/i18n'
 
 export type NavItem = {
   /** Where the item navigates. Also its identity — `activeNavPath` returns this. */
@@ -46,15 +47,15 @@ export type NavItem = {
  *  compare (`/compare/:groupId`) is open.
  */
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Tasks', icon: ListChecksIcon, match: ['/', '/tasks', '/compare'], badge: 'tasks-unread' },
-  { to: '/inbox', label: 'Inbox', icon: InboxIcon, match: ['/inbox'], badge: 'inbox-count', inbox: true },
-  { to: '/git', label: 'Git', icon: GitBranchIcon, match: ['/git'] },
-  { to: '/github', label: 'GitHub', icon: GithubIcon, match: ['/github'], forge: true },
-  { to: '/tracker', label: 'Tracker', icon: TicketIcon, match: ['/tracker'], tracker: true },
-  { to: '/automations', label: 'Automations', icon: ZapIcon, match: ['/automations'], automations: true },
-  { to: '/skills', label: 'Skills', icon: SparklesIcon, match: ['/skills'], badge: 'skills-update' },
-  { to: '/workflows', label: 'Workflows', icon: WorkflowIcon, match: ['/workflows'] },
-  { to: '/settings', label: 'Settings', icon: SettingsIcon, match: ['/settings'] },
+  { to: '/', label: t('Tasks'), icon: ListChecksIcon, match: ['/', '/tasks', '/compare'], badge: 'tasks-unread' },
+  { to: '/inbox', label: t('Inbox'), icon: InboxIcon, match: ['/inbox'], badge: 'inbox-count', inbox: true },
+  { to: '/git', label: t('Git'), icon: GitBranchIcon, match: ['/git'] },
+  { to: '/github', label: t('GitHub'), icon: GithubIcon, match: ['/github'], forge: true },
+  { to: '/tracker', label: t('Tracker'), icon: TicketIcon, match: ['/tracker'], tracker: true },
+  { to: '/automations', label: t('Automations'), icon: ZapIcon, match: ['/automations'], automations: true },
+  { to: '/skills', label: t('Skills'), icon: SparklesIcon, match: ['/skills'], badge: 'skills-update' },
+  { to: '/workflows', label: t('Workflows'), icon: WorkflowIcon, match: ['/workflows'] },
+  { to: '/settings', label: t('Settings'), icon: SettingsIcon, match: ['/settings'] },
 ]
 
 /** What `/api/health` says exists. All default to `false` — see `visibleNavItems`. */

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils'
 
 import { GITHUB_EVENTS, POLL_MINUTES, clamp, needsChangedLabels, type DraftFilters } from './editor-draft'
+import { t } from '@/lib/i18n'
 
 /**
  * The "When GitHub changes" half of the When section (spec 2026-09-14-automations-redesign
@@ -41,7 +42,7 @@ export function EditorGithubFields({
 
   return (
     <div data-slot="editor-github" className="flex flex-col gap-3.5">
-      <div role="group" aria-label="GitHub events" className="flex flex-wrap gap-1.5">
+      <div role="group" aria-label={t('GitHub events')} className="flex flex-wrap gap-1.5">
         {GITHUB_EVENTS.map((event) => (
           <Chip
             key={event}
@@ -55,18 +56,18 @@ export function EditorGithubFields({
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
-        poll every
+        {t('poll every')}
         <Select value={String(Math.round(intervalSeconds / 60))} onValueChange={(value) => onChange({ intervalSeconds: Number(value) * 60 })}>
-          <SelectTrigger size="sm" aria-label="Poll interval" className="text-[13px]">
+          <SelectTrigger size="sm" aria-label={t('Poll interval')} className="text-[13px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {POLL_MINUTES.map((minutes) => (
-              <SelectItem key={minutes} value={String(minutes)}>{minutes} min</SelectItem>
+              <SelectItem key={minutes} value={String(minutes)}>{minutes}{t(' min')}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <span>· last {filters.lookbackDays} days · maximum {filters.maxRecords} records</span>
+        <span>{t('· last ')}{filters.lookbackDays}{t(' days · maximum ')}{filters.maxRecords}{t(' records')}</span>
       </div>
       <Collapsible open={open} onOpenChange={setOpen}>
         <CollapsibleTrigger asChild>
@@ -75,27 +76,27 @@ export function EditorGithubFields({
             className="inline-flex h-6 items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
           >
             <ChevronDownIcon aria-hidden="true" className={cn('size-3 transition-transform', open ? '' : '-rotate-90')} />
-            Filters
-            {changedMissing ? <span className="text-danger">· changed labels required</span> : null}
+            {t('Filters')}
+            {changedMissing ? <span className="text-danger">{t('· changed labels required')}</span> : null}
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div data-slot="editor-github-filters" className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2">
-            <FilterField id="filter-authors" label="Authors" value={filters.authors} onChange={(value) => setFilter('authors', value)} />
-            <FilterField id="filter-assignees" label="Assignees" value={filters.assignees} onChange={(value) => setFilter('assignees', value)} />
-            <FilterField id="filter-any-labels" label="Any of labels" value={filters.anyLabels} onChange={(value) => setFilter('anyLabels', value)} />
-            <FilterField id="filter-all-labels" label="All of labels" value={filters.allLabels} onChange={(value) => setFilter('allLabels', value)} />
-            <FilterField id="filter-exclude-labels" label="Exclude labels" value={filters.excludeLabels} onChange={(value) => setFilter('excludeLabels', value)} />
+            <FilterField id="filter-authors" label={t('Authors')} value={filters.authors} onChange={(value) => setFilter('authors', value)} />
+            <FilterField id="filter-assignees" label={t('Assignees')} value={filters.assignees} onChange={(value) => setFilter('assignees', value)} />
+            <FilterField id="filter-any-labels" label={t('Any of labels')} value={filters.anyLabels} onChange={(value) => setFilter('anyLabels', value)} />
+            <FilterField id="filter-all-labels" label={t('All of labels')} value={filters.allLabels} onChange={(value) => setFilter('allLabels', value)} />
+            <FilterField id="filter-exclude-labels" label={t('Exclude labels')} value={filters.excludeLabels} onChange={(value) => setFilter('excludeLabels', value)} />
             <FilterField
               id="filter-changed-labels"
-              label={changedRequired ? 'Changed labels (required)' : 'Changed labels'}
+              label={changedRequired ? t('Changed labels (required)') : t('Changed labels')}
               value={filters.changedLabels}
               invalid={changedMissing}
               onChange={(value) => setFilter('changedLabels', value)}
             />
-            <FilterField id="filter-reviewers" label="Reviewers" value={filters.reviewers} onChange={(value) => setFilter('reviewers', value)} />
-            <NumberField id="filter-lookback" label="Lookback days (1–90)" value={filters.lookbackDays} min={1} max={90} onChange={(value) => setFilter('lookbackDays', value)} />
-            <NumberField id="filter-max-records" label="Max records (1–100)" value={filters.maxRecords} min={1} max={100} onChange={(value) => setFilter('maxRecords', value)} />
+            <FilterField id="filter-reviewers" label={t('Reviewers')} value={filters.reviewers} onChange={(value) => setFilter('reviewers', value)} />
+            <NumberField id="filter-lookback" label={t('Lookback days (1–90)')} value={filters.lookbackDays} min={1} max={90} onChange={(value) => setFilter('lookbackDays', value)} />
+            <NumberField id="filter-max-records" label={t('Max records (1–100)')} value={filters.maxRecords} min={1} max={100} onChange={(value) => setFilter('maxRecords', value)} />
           </div>
         </CollapsibleContent>
       </Collapsible>

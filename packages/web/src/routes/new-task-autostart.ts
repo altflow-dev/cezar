@@ -2,6 +2,7 @@ import type { CreateRunInput, Runner } from '@open-mercato/cezar-api-client'
 
 import { buildCreateRunBody, type TaskSource } from './new-task-form'
 import type { NewTaskParams } from './new-task-params'
+import { t } from '@/lib/i18n'
 
 /**
  * Bookmarklet auto-start (spec 011) — the React half of `handleDeepLink()` in web/app.js,
@@ -63,18 +64,18 @@ export function deepLinkToast(
   unknownSkill: string,
 ): { message: string; tone: 'default' | 'danger' } {
   if (notice.kind === 'failed') {
-    return { message: `Auto-start failed: ${notice.message} — review and press Start`, tone: 'danger' }
+    return { message: t('Auto-start failed: {message} — review and press Start', { message: notice.message }), tone: 'danger' }
   }
   if (notice.kind === 'blocked') {
-    return { message: 'Auto-start blocked (bad key) — review and press Start', tone: 'danger' }
+    return { message: t('Auto-start blocked (bad key) — review and press Start'), tone: 'danger' }
   }
   if (unknownSkill !== '') {
     return {
-      message: `Unknown skill "${unknownSkill}" — prefilled for quick-task; review and press Start`,
+      message: t('Unknown skill "{unknownSkill}" — prefilled for quick-task; review and press Start', { unknownSkill }),
       tone: 'danger',
     }
   }
-  return { message: 'Prefilled from link — review and press Start', tone: 'default' }
+  return { message: t('Prefilled from link — review and press Start'), tone: 'default' }
 }
 
 /** Legacy's prefill for a skill the picker cannot select: the intent goes into the task text

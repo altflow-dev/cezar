@@ -3,6 +3,7 @@ import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { collectDashboardExport, dashboardCsv, printableDashboard } from './export'
+import { t } from '@/lib/i18n'
 
 export function DashboardExportMenu({
   dashboard,
@@ -90,29 +91,29 @@ export function DashboardExportMenu({
       <PopoverTrigger asChild>
         <Button variant="outline" className="min-h-11" disabled={busy}>
           <Download className="size-4" />
-          {busy ? 'Preparing report…' : 'Export'}
+          {busy ? t('Preparing report…') : t('Export')}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="max-w-[calc(100vw-2rem)] space-y-3">
-        <p className="text-sm font-medium">Export current dashboard</p>
+        <p className="text-sm font-medium">{t('Export current dashboard')}</p>
         <p className="text-xs text-muted-foreground">
-          Visible modules, current filters and loaded rows. Hidden metrics are excluded.
+          {t('Visible modules, current filters and loaded rows. Hidden metrics are excluded.')}
         </p>
         <label className="block space-y-1 text-xs text-muted-foreground">
-          Report title (optional)
+          {t('Report title (optional)')}
           <input
             className="min-h-11 w-full rounded-md border bg-background px-3 text-sm text-foreground"
-            placeholder="e.g. Fleet review for leadership"
+            placeholder={t('e.g. Fleet review for leadership')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
         </label>
         <Button className="min-h-11 w-full" onClick={() => exportView('pdf')}>
-          PDF report…
+          {t('PDF report…')}
         </Button>
-        <p className="text-xs text-muted-foreground">Choose Save as PDF in the print dialog.</p>
+        <p className="text-xs text-muted-foreground">{t('Choose Save as PDF in the print dialog.')}</p>
         <Button variant="outline" className="min-h-11 w-full" onClick={() => exportView('csv')}>
-          Download CSV
+          {t('Download CSV')}
         </Button>
         {error && (
           <p role="alert" className="text-sm">

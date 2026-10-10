@@ -2,6 +2,7 @@ import type { AutomationListEntry, AutomationsResponse } from '@open-mercato/cez
 import { vi } from 'vitest'
 
 import type { AutomationActions } from './use-automations'
+import { t } from '@/lib/i18n'
 
 /**
  * Test fixtures for the Automations list, rail and calendars — the kit's `data.js` sample
@@ -32,7 +33,7 @@ export function entry(overrides: Partial<AutomationListEntry> & Pick<AutomationL
 
 export const NIGHTLY = entry({
   id: 'a1',
-  name: 'Nightly dependency bump',
+  name: t('Nightly dependency bump'),
   kind: 'schedule',
   schedule: { type: 'daily', hour: 4, minute: 0 },
   task: {
@@ -50,7 +51,7 @@ export const NIGHTLY = entry({
 
 export const TRIAGE = entry({
   id: 'a2',
-  name: 'Triage new issues',
+  name: t('Triage new issues'),
   kind: 'github',
   events: ['issue.opened'],
   intervalSeconds: 300,
@@ -63,7 +64,7 @@ export const TRIAGE = entry({
 
 export const CI_SWEEP = entry({
   id: 'a3',
-  name: 'Weekday morning CI sweep',
+  name: t('Weekday morning CI sweep'),
   kind: 'schedule',
   schedule: { type: 'weekdays', hour: 7, minute: 30 },
   task: {
@@ -80,7 +81,7 @@ export const CI_SWEEP = entry({
 
 export const STALE_PR = entry({
   id: 'a4',
-  name: 'Stale PR nudge',
+  name: t('Stale PR nudge'),
   kind: 'schedule',
   schedule: { type: 'hours', every: 6 },
   task: { prompt: 'For every open PR with no activity in 48h, post a short comment.', workflow: 'quick-task', runner: 'claude', autonomous: true },
@@ -91,7 +92,7 @@ export const STALE_PR = entry({
 
 export const CHANGELOG = entry({
   id: 'a5',
-  name: 'Weekly changelog draft',
+  name: t('Weekly changelog draft'),
   kind: 'schedule',
   schedule: { type: 'weekly', day: 5, hour: 16, minute: 0 },
   task: { prompt: 'Collect merged PRs since last Friday 16:00.', workflow: 'fix-and-verify', runner: 'claude', autonomous: false },
@@ -102,7 +103,7 @@ export const CHANGELOG = entry({
 
 export const FLAKY = entry({
   id: 'a6',
-  name: 'Flaky test hunt',
+  name: t('Flaky test hunt'),
   kind: 'schedule',
   enabled: false,
   schedule: { type: 'weekly', day: 2, hour: 2, minute: 0 },
@@ -119,7 +120,7 @@ export const FLAKY = entry({
 
 export const REVIEW_PRS = entry({
   id: 'a7',
-  name: 'Review open PRs',
+  name: t('Review open PRs'),
   kind: 'github',
   events: ['pull_request.opened'],
   intervalSeconds: 600,

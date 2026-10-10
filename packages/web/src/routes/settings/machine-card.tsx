@@ -12,6 +12,7 @@ import { effectiveHostView, formatCpuCores } from '@/lib/host-effective'
 import { formatMem } from '@/lib/tasks-table'
 import { useIsDesktop } from '@/lib/use-desktop'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 /**
  * The Machine card - live host totals, and the effective capacity of THIS process's cgroup when it
@@ -110,42 +111,41 @@ export function MachineCard() {
       <header className="flex min-w-0 items-center gap-2">
         <StatusDot tone={live ? 'success' : 'neutral'} pulse={live} />
         <h2 id="machine-card-title" className="text-sm font-semibold">
-          Machine
+          {t('Machine')}
         </h2>
         <span data-slot="machine-card-mode" className="text-[11px] text-soft-foreground">
-          {live ? 'live' : 'last known'}
+          {live ? t('live') : t('last known')}
         </span>
         <span
           data-slot="machine-card-freshness"
           className="ml-auto shrink-0 text-[11px] tabular-nums text-soft-foreground"
         >
-          {ageSeconds === undefined ? 'waiting…' : `updated ${ageSeconds} s ago`}
+          {ageSeconds === undefined ? t('waiting…') : t('updated {ageSeconds} s ago', { ageSeconds })}
         </span>
       </header>
 
       {view?.hasContainer === true ? (
         <p data-slot="machine-card-limits" className="mt-2 text-[11.5px] text-soft-foreground">
-          cgroup limits detected · {view.source}
+          {t('cgroup limits detected · ')}{view.source}
         </p>
       ) : null}
 
       {topicUnavailable ? (
         <p data-slot="machine-card-transport" className="mt-2 text-[11.5px] text-soft-foreground">
-          Live updates unavailable - the server refused this origin's host topic, so the card reads
-          the authenticated route instead.
+          {t('Live updates unavailable - the server refused this origin\'s host topic, so the card reads the authenticated route instead.')}
         </p>
       ) : null}
 
       {isError && sample === undefined ? (
         <p data-slot="machine-card-error" className="mt-3 text-[12.5px] text-soft-foreground">
-          Host totals are unavailable right now.
+          {t('Host totals are unavailable right now.')}
         </p>
       ) : null}
 
       <div className="mt-3 grid gap-3">
         <div data-slot="machine-card-cpu" className="grid grid-cols-[86px_1fr] items-start gap-3">
           <span className="pt-0.5 text-[12.5px] text-soft-foreground">
-            CPU{view?.cpuIsEffective === true ? ' (effective)' : ''}
+            {t('CPU')}{view?.cpuIsEffective === true ? t(' (effective)') : ''}
           </span>
           <div className="min-w-0">
             <div className="flex items-center gap-3">
@@ -172,7 +172,7 @@ export function MachineCard() {
                 viewBox={`0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}`}
                 preserveAspectRatio="none"
                 role="img"
-                aria-label={`CPU over the last up to ${history.length * 2} seconds`}
+                aria-label={t('CPU over the last up to {v0} seconds', { v0: history.length * 2 })}
               >
                 <polyline
                   points={points}
@@ -193,7 +193,7 @@ export function MachineCard() {
               className="grid grid-cols-[86px_1fr] items-center gap-3"
             >
               <span className="text-[12.5px] text-soft-foreground">
-                Memory{view.memIsEffective ? ' (effective)' : ''}
+                {t('Memory')}{view.memIsEffective ? t(' (effective)') : ''}
               </span>
               <div className="flex min-w-0 items-center gap-3">
                 <span
@@ -214,7 +214,7 @@ export function MachineCard() {
                 data-slot="machine-card-swap"
                 className="grid grid-cols-[86px_1fr] items-center gap-3"
               >
-                <span className="text-[12.5px] text-soft-foreground">Swap</span>
+                <span className="text-[12.5px] text-soft-foreground">{t('Swap')}</span>
                 <span className="text-[13px] tabular-nums">
                   {formatMem(sample.swapUsedBytes)} / {formatMem(sample.swapTotalBytes)}
                 </span>
@@ -226,7 +226,7 @@ export function MachineCard() {
                 data-slot="machine-card-load"
                 className="grid grid-cols-[86px_1fr] items-center gap-3"
               >
-                <span className="text-[12.5px] text-soft-foreground">Load average</span>
+                <span className="text-[12.5px] text-soft-foreground">{t('Load average')}</span>
                 <span className="flex items-center gap-2 text-[13px] tabular-nums">
                   {sample.loadAvg.one.toFixed(2)} · {sample.loadAvg.five.toFixed(2)} ·{' '}
                   {sample.loadAvg.fifteen.toFixed(2)}
@@ -237,8 +237,8 @@ export function MachineCard() {
                     className="rounded-md border border-border px-1.5 py-0.5 text-[11px] text-soft-foreground"
                   >
                     {view.hasContainer && view.hostCpuCount !== undefined
-                      ? `host ${view.hostCpuCount} cores`
-                      : `${sample.cpuCount} cores`}
+                      ? t('host {hostCpuCount} cores', { hostCpuCount: view.hostCpuCount })
+                      : t('{cpuCount} cores', { cpuCount: sample.cpuCount })}
                   </span>
                 </span>
               </div>
@@ -249,7 +249,7 @@ export function MachineCard() {
                 data-slot="machine-card-host-context"
                 className="text-[11.5px] tabular-nums text-soft-foreground"
               >
-                host {formatCpuCores(view.hostCpuCount)} · {formatMem(sample?.memTotalBytes ?? 0)} RAM
+                {t('host ')}{formatCpuCores(view.hostCpuCount)} · {formatMem(sample?.memTotalBytes ?? 0)}{t(' RAM')}
               </p>
             ) : null}
           </>
@@ -261,10 +261,10 @@ export function MachineCard() {
         className="mt-3 border-t border-border pt-2 text-[11px] text-soft-foreground"
       >
         {view?.hasContainer === true
-          ? 'Effective values come from this process\u2019s own cgroup; host totals are labelled.'
+          ? t('Effective values come from this process’s own cgroup; host totals are labelled.')
           : view?.cgroupUnknown === true
-            ? 'No cgroup information available for this process - host totals only.'
-            : 'Host totals - no cgroup limit tighter than the host detected for this process.'}
+            ? t('No cgroup information available for this process - host totals only.')
+            : t('Host totals - no cgroup limit tighter than the host detected for this process.')}
       </p>
     </section>
   )

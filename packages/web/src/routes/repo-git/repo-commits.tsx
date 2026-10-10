@@ -15,6 +15,7 @@ import { useIsDesktop } from '@/lib/use-desktop'
 
 import { CommitList } from '../task-git/commit-list'
 import { DiffViewToggles } from '../task-git/diff-controls'
+import { t } from '@/lib/i18n'
 
 /**
  * The repo view's Commits segment (R5 Step 1.7): the recent-commit log the existing
@@ -32,8 +33,8 @@ export function RepoCommitsSection({ log }: { log: LogEntry[] }) {
         icon={<GitCommitHorizontalIcon />}
         tone="neutral"
         heading="h2"
-        title="No commits yet"
-        subtitle="The log is empty — this repository has no commits to show."
+        title={t('No commits yet')}
+        subtitle={t('The log is empty — this repository has no commits to show.')}
       />
     )
   }
@@ -70,7 +71,7 @@ function CommitDiffView({ sha }: { sha: string }) {
         <Button asChild variant="ghost" size="sm" data-slot="commit-back">
           <Link to="/git/commits">
             <ArrowLeftIcon aria-hidden="true" />
-            All commits
+            {t('All commits')}
           </Link>
         </Button>
         {commit.data ? <DiffStatLabel stat={commit.data.stat} /> : null}
@@ -81,14 +82,14 @@ function CommitDiffView({ sha }: { sha: string }) {
 
       {commit.isPending ? (
         <p data-slot="commit-loading" className="px-4 py-6 text-center text-xs text-soft-foreground md:px-6">
-          Loading commit…
+          {t('Loading commit…')}
         </p>
       ) : commit.isError ? (
         <CenteredState
           icon={refused ? <SearchXIcon /> : <TriangleAlertIcon />}
           tone={refused ? 'neutral' : 'danger'}
           heading="h2"
-          title={refused ? 'Commit not found' : 'Could not load the commit'}
+          title={refused ? t('Commit not found') : t('Could not load the commit')}
           subtitle={commit.error.message}
         />
       ) : (
@@ -105,8 +106,8 @@ function CommitDiffView({ sha }: { sha: string }) {
               icon={<GitCommitHorizontalIcon />}
               tone="neutral"
               heading="h2"
-              title="No file changes"
-              subtitle="This commit carries no diff of its own — a merge commit's changes live on the commits it merged."
+              title={t('No file changes')}
+              subtitle={t('This commit carries no diff of its own — a merge commit\'s changes live on the commits it merged.')}
             />
           ) : (
             <div className="px-4 py-4 [--diff-sticky-top:7rem] md:px-6">

@@ -58,6 +58,7 @@ import {
   type ThreadAsk,
   type ThreadState,
 } from './thread-state'
+import { t } from '@/lib/i18n'
 
 /**
  * `/tasks/:id` — the Session tab (spec, "Task thread"): the run header (title/meta/tabs/
@@ -131,15 +132,15 @@ export function TaskThreadRoute() {
         <CenteredState
           icon={notFound ? <SearchXIcon /> : <MessageSquareTextIcon />}
           tone={notFound ? 'neutral' : 'danger'}
-          title={notFound ? 'Task not found' : 'Could not load this task'}
+          title={notFound ? t('Task not found') : t('Could not load this task')}
           subtitle={
             notFound
-              ? 'No run has this id. It may have been deleted, or the link is from another machine.'
+              ? t('No run has this id. It may have been deleted, or the link is from another machine.')
               : run.error.message
           }
           actions={
             <Button asChild variant="outline">
-              <Link to="/">Back to tasks</Link>
+              <Link to="/">{t('Back to tasks')}</Link>
             </Button>
           }
         />
@@ -280,7 +281,7 @@ export function ThreadView({
     const actions: Record<string, TranscriptMessageActions> = {
       // `draftSurface` (#939) is what makes an unsaved edit survive leaving the task: the bubble
       // writes it to the run's draft store and re-opens holding it on return.
-      task: { onEdit: edit.onEditTask, editLabel: 'Edit the prompt', draftSurface: 'task-prompt' },
+      task: { onEdit: edit.onEditTask, editLabel: t('Edit the prompt'), draftSurface: 'task-prompt' },
     }
     for (const message of run.queuedMessages ?? []) {
       actions[`queued:${message.id}`] = {
@@ -349,7 +350,7 @@ export function ThreadView({
             <QueuedPlaceholder run={run} />
           ) : (
             <p data-slot="thread-empty" className="py-6 text-center text-xs text-soft-foreground">
-              No session events yet.
+              {t('No session events yet.')}
             </p>
           )
         ) : null}
@@ -384,7 +385,7 @@ export function ThreadView({
                 rel="noopener noreferrer"
                 className="font-medium text-foreground underline-offset-2 hover:underline"
               >
-                PR ↗
+                {t('PR ↗')}
               </a>
             ) : null}
             {/* #526: an issue-subject run (om-prepare-issue) links the issue it created — it
@@ -397,7 +398,7 @@ export function ThreadView({
                 rel="noopener noreferrer"
                 className="font-medium text-foreground underline-offset-2 hover:underline"
               >
-                Issue ↗
+                {t('Issue ↗')}
               </a>
             ) : null}
           </div>
@@ -459,7 +460,7 @@ export function ThreadView({
             className="flex items-center gap-2 px-1 text-xs text-muted-foreground"
           >
             <StatusDot tone="pending" pulse />
-            Budget reached — spent ${budget.spent.toFixed(2)} of ${budget.ceiling.toFixed(2)}; send a message to continue.
+            {t('Budget reached — spent $')}{budget.spent.toFixed(2)}{t(' of $')}{budget.ceiling.toFixed(2)}{t('; send a message to continue.')}
           </div>
         ) : run.status === 'waiting' ? (
           <div
@@ -467,7 +468,7 @@ export function ThreadView({
             className="flex items-center gap-2 px-1 text-xs text-muted-foreground"
           >
             <StatusDot tone="pending" pulse />
-            The agent is paused, waiting for your reply
+            {t('The agent is paused, waiting for your reply')}
           </div>
         ) : null}
 
@@ -477,7 +478,7 @@ export function ThreadView({
             className="flex items-center gap-2 px-1 text-xs text-muted-foreground"
           >
             <StatusDot tone="pending" />
-            Messages you add now are folded into the prompt before the run starts.
+            {t('Messages you add now are folded into the prompt before the run starts.')}
           </div>
         ) : null}
 
@@ -511,7 +512,7 @@ function HistoryBoundary({
   if (fallback) {
     return (
       <p data-slot="history-fallback" className="text-center text-xs text-soft-foreground" role="status">
-        Progressive history is unavailable; showing the complete session.
+        {t('Progressive history is unavailable; showing the complete session.')}
       </p>
     )
   }
@@ -519,7 +520,7 @@ function HistoryBoundary({
     return (
       <div data-slot="history-start" className="flex items-center gap-3 text-[11px] text-soft-foreground">
         <span aria-hidden className="h-px flex-1 bg-border" />
-        Start of session
+        {t('Start of session')}
         <span aria-hidden className="h-px flex-1 bg-border" />
       </div>
     )
@@ -538,13 +539,13 @@ function HistoryBoundary({
         className="rounded-md px-3 py-1.5 font-medium hover:bg-muted disabled:cursor-wait"
       >
         {loading ?
-          'Loading 100 earlier items…'
+          t('Loading 100 earlier items…')
         : error ?
-          'Couldn’t load earlier items · Retry'
-        : 'Load 100 earlier items'}
+          t('Couldn’t load earlier items · Retry')
+        : t('Load 100 earlier items')}
       </button>
       <span className="sr-only" aria-live="polite">
-        {loading ? 'Loading earlier session history' : error ? error : ''}
+        {loading ? t('Loading earlier session history') : error ? error : ''}
       </span>
     </div>
   )
@@ -570,10 +571,10 @@ function QueuedPlaceholder({ run }: { run: ApiRun }) {
     <div data-slot="queued-state" className="flex flex-col items-center gap-1.5 py-10 text-center">
       <StatusDot tone="pending" pulse />
       <p className="text-[13px] font-medium">
-        Waiting for a free agent slot{position !== undefined ? ` — #${position} in queue` : ''}
+        {t('Waiting for a free agent slot')}{position !== undefined ? t(' — #{position} in queue', { position }) : ''}
       </p>
       <p className="text-xs text-soft-foreground">
-        {run.workflow} · starts automatically when a slot frees up
+        {run.workflow}{t(' · starts automatically when a slot frees up')}
       </p>
     </div>
   )

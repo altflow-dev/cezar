@@ -6,6 +6,7 @@ import { queryKeys, useRunDrafts } from '@/api/queries'
 import { DRAFT_TEXT_MAX, type RunDraftsResponse } from '@open-mercato/cezar-api-client'
 import { COMMENT_MAX, describeLines, type DiffLineComment, type DiffLineEnd, type DiffNewLineComment } from '@/components/diff'
 import { toast } from '@/components/ui/toaster'
+import { t } from '@/lib/i18n'
 
 /**
  * Diff line comments — the self-review flow. On the Changes tab the user leaves notes on lines of
@@ -443,7 +444,7 @@ export function useDiffComments(runId: string): DiffComments {
   const write = useCallback(
     (next: DiffComment[], dropped: readonly string[] = []): boolean => {
       if (serialize(next).length > DRAFT_TEXT_MAX) {
-        toast('Too many comments to keep as a draft — send the ones you have first.', { tone: 'danger' })
+        toast(t('Too many comments to keep as a draft — send the ones you have first.'), { tone: 'danger' })
         return false
       }
       if (dropped.length > 0) {

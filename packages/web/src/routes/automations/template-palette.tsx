@@ -14,6 +14,7 @@ import { useActiveProjectId } from '@/lib/project-router'
 import { cn } from '@/lib/utils'
 
 import { templatePick, type TemplatePick } from './editor-draft'
+import { t } from '@/lib/i18n'
 
 type Tab = 'builtin' | 'mine'
 
@@ -52,20 +53,20 @@ export function TemplatePalette({ onPick }: { onPick: (template: TemplatePick) =
   return (
     <Card flush data-slot="template-palette" className="pb-3">
       <div className="flex items-end gap-3 border-b border-border px-4 pt-2.5">
-        <div role="tablist" aria-label="Template source" className="flex shrink-0">
-          <PaletteTab active={tab === 'builtin'} onClick={() => setTab('builtin')}>Built-in</PaletteTab>
-          <PaletteTab active={tab === 'mine'} onClick={() => setTab('mine')}>From your other projects</PaletteTab>
+        <div role="tablist" aria-label={t('Template source')} className="flex shrink-0">
+          <PaletteTab active={tab === 'builtin'} onClick={() => setTab('builtin')}>{t('Built-in')}</PaletteTab>
+          <PaletteTab active={tab === 'mine'} onClick={() => setTab('mine')}>{t('From your other projects')}</PaletteTab>
         </div>
         <span className="ml-auto min-w-0 overflow-hidden pb-2 text-xs text-ellipsis whitespace-nowrap text-soft-foreground">
-          {tab === 'builtin' ? 'Built-in' : 'Registered in ~/.cezar/config.json'}
+          {tab === 'builtin' ? t('Built-in') : t('Registered in ~/.cezar/config.json')}
         </span>
       </div>
       {tab === 'mine' && others.isPending ? (
-        <p className="px-4 pt-3 text-xs text-soft-foreground">Loading…</p>
+        <p className="px-4 pt-3 text-xs text-soft-foreground">{t('Loading…')}</p>
       ) : tab === 'mine' && others.isError ? (
         <p role="alert" className="px-4 pt-3 text-xs text-danger">{others.error.message}</p>
       ) : items.length === 0 ? (
-        <p className="px-4 pt-3 text-xs text-soft-foreground">No automations in your other projects yet.</p>
+        <p className="px-4 pt-3 text-xs text-soft-foreground">{t('No automations in your other projects yet.')}</p>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-2.5 px-4 pt-3">
           {items.map((item) => (
@@ -87,10 +88,10 @@ export function TemplatePalette({ onPick }: { onPick: (template: TemplatePick) =
                 variant="outline"
                 size="sm"
                 className="mt-0.5 self-start"
-                aria-label={`Use this: ${item.name}`}
+                aria-label={t('Use this: {name}', { name: item.name })}
                 onClick={() => onPick(item)}
               >
-                Use this
+                {t('Use this')}
               </Button>
             </div>
           ))}

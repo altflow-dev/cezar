@@ -6,6 +6,7 @@ import { OpenInMenu, cliTargetRunner } from '@/components/open-in-menu'
 import { toast } from '@/components/ui/toaster'
 import { useActiveProjectId } from '@/lib/project-router'
 import { SettingsField } from './settings-field'
+import { t } from '@/lib/i18n'
 
 /**
  * "Where is this project?" — the active project's absolute root, inside project settings.
@@ -40,7 +41,7 @@ export function useActiveProjectRoot(): string | null {
 function copyPath(root: string) {
   void navigator.clipboard
     .writeText(root)
-    .then(() => toast('Project folder copied'))
+    .then(() => toast(t('Project folder copied')))
     .catch(() => toast(root))
 }
 
@@ -49,8 +50,8 @@ export function ProjectFolderField() {
   if (root === null) return null
   return (
     <SettingsField
-      title="Project folder"
-      hint="Where this project lives on disk. Every task worktree, git command and agent run resolves against it."
+      title={t('Project folder')}
+      hint={t('Where this project lives on disk. Every task worktree, git command and agent run resolves against it.')}
     >
       <div
         data-slot="project-location"
@@ -69,11 +70,11 @@ export function ProjectFolderField() {
           <button
             type="button"
             data-action="project-location-copy"
-            title="Copy the project folder path"
+            title={t('Copy the project folder path')}
             onClick={() => copyPath(root)}
             className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            Copy
+            {t('Copy')}
           </button>
           <OpenWithMenu root={root} />
         </div>
@@ -87,11 +88,11 @@ export function ProjectLocationNav() {
   if (root === null) return null
   return (
     <div data-slot="project-location" data-variant="nav" className="mt-auto px-2.5 pt-3">
-      <p className="text-[11px] text-soft-foreground">Project folder</p>
+      <p className="text-[11px] text-soft-foreground">{t('Project folder')}</p>
       <button
         type="button"
         data-action="project-location-copy"
-        title={`${root} — click to copy`}
+        title={t('{root} — click to copy', { root })}
         onClick={() => copyPath(root)}
         className="block w-full truncate text-left font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground"
       >
@@ -126,7 +127,7 @@ function OpenWithMenu({ root }: { root: string }) {
   return (
     <OpenInMenu
       slot="project-location-open"
-      label="Open with"
+      label={t('Open with')}
       triggerVariant="outline"
       title={root}
       disabled={open.isPending}
@@ -136,7 +137,7 @@ function OpenWithMenu({ root }: { root: string }) {
       onPick={(target) =>
         open.mutate(target, {
           onSuccess: () =>
-            toast(`Opening the project folder in ${choices.find((c) => c.target.id === target)?.target.label ?? target}`),
+            toast(t('Opening the project folder in {v0}', { v0: choices.find((c) => c.target.id === target)?.target.label ?? target })),
         })
       }
     />

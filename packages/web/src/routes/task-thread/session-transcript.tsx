@@ -33,6 +33,7 @@ import type {
   ThreadProviderAuthRequired,
   ThreadState,
 } from './thread-state'
+import { t } from '@/lib/i18n'
 
 export interface TranscriptUserMessage {
   text: string
@@ -271,7 +272,7 @@ export function SessionTranscript({
       {mode === 'panel' ? (
         <div
           data-slot="transcript-viewport"
-          aria-label="Agent transcript"
+          aria-label={t('Agent transcript')}
           role="region"
           tabIndex={0}
           className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
@@ -446,7 +447,7 @@ function ThreadEntryRenderer({
         renderAsk(entry)
       ) : (
         <div data-slot="ask-card" className="rounded-lg border border-border bg-card px-4 py-3 text-sm">
-          The agent asked a question. Open the main session to answer it.
+          {t('The agent asked a question. Open the main session to answer it.')}
         </div>
       )
     case 'provider-auth-required':
