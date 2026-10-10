@@ -1,4 +1,5 @@
 import type { AutomationDispatch, AutomationEvent, AutomationSchedule } from '@open-mercato/cezar-api-client'
+import { t } from '@/lib/i18n'
 
 /**
  * The editor's built-in automation templates (spec 2026-09-14-automations-redesign § UI/UX 4,
@@ -23,14 +24,14 @@ export interface AutomationTemplateDraft {
 
 export const BUILTIN_AUTOMATION_TEMPLATES: readonly AutomationTemplateDraft[] = [
   {
-    name: 'Nightly dependency bump',
+    name: t('Nightly dependency bump'),
     when: 'Every day at 04:00',
     kind: 'schedule',
     schedule: { type: 'daily', hour: 4, minute: 0 },
     prompt: 'Run npm outdated, bump patch and minor versions, run the test suite, open a draft PR if anything changed.',
   },
   {
-    name: 'Triage new issues',
+    name: t('Triage new issues'),
     when: 'On issue.opened · every 5 min',
     kind: 'github',
     events: ['issue.opened'],
@@ -38,21 +39,21 @@ export const BUILTIN_AUTOMATION_TEMPLATES: readonly AutomationTemplateDraft[] = 
     prompt: 'Read {{github.url}}. Label it, add a repro or a clarification request. Never close it.',
   },
   {
-    name: 'Weekly changelog draft',
+    name: t('Weekly changelog draft'),
     when: 'Fridays at 16:00',
     kind: 'schedule',
     schedule: { type: 'weekly', day: 5, hour: 16, minute: 0 },
     prompt: 'Collect merged PRs since last week, write CHANGELOG entries, open a draft PR.',
   },
   {
-    name: 'Stale PR nudge',
+    name: t('Stale PR nudge'),
     when: 'Every 6 hours',
     kind: 'schedule',
     schedule: { type: 'hours', every: 6 },
     prompt: 'Comment on PRs idle for 48h with what is blocking them.',
   },
   {
-    name: 'Flaky test hunt',
+    name: t('Flaky test hunt'),
     when: 'Tuesdays at 02:00',
     kind: 'schedule',
     schedule: { type: 'weekly', day: 2, hour: 2, minute: 0 },
@@ -60,7 +61,7 @@ export const BUILTIN_AUTOMATION_TEMPLATES: readonly AutomationTemplateDraft[] = 
     dispatch: { maxSubtasks: 8, reviewChild: true },
   },
   {
-    name: 'Security advisories',
+    name: t('Security advisories'),
     when: 'Every day at 06:00',
     kind: 'schedule',
     schedule: { type: 'daily', hour: 6, minute: 0 },

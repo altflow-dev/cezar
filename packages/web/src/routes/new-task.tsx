@@ -93,6 +93,7 @@ import {
   type TaskSource,
 } from './new-task-form'
 import { parseNewTaskParams } from './new-task-params'
+import { t } from '@/lib/i18n'
 
 /**
  * `/new` — the full-screen new-task hero (spec §"New task (full-screen, #386)"; visual
@@ -458,15 +459,15 @@ export function NewTaskRoute() {
     if (!providersReady || runner === null) {
       throw new Error(
         providers.isPending
-          ? 'Checking agent providers…'
+          ? t('Checking agent providers…')
           : providers.isError
-            ? 'Provider authentication could not be verified.'
-            : 'Connect an agent provider before starting a task.',
+            ? t('Provider authentication could not be verified.')
+            : t('Connect an agent provider before starting a task.'),
       )
     }
     if (!sourcesReady) {
       // Rejection restores the draft — nothing typed is lost to a race with the pickers.
-      throw new Error('Still loading workflows and skills — try again in a second.')
+      throw new Error(t('Still loading workflows and skills — try again in a second.'))
     }
     const created = await createRun(
       buildCreateRunBody({
@@ -530,9 +531,9 @@ export function NewTaskRoute() {
       >
         <TwinkleBackdrop />
         <div data-slot="auto-starting" role="status" className="text-center">
-          <h1 className="animate-pulse text-lg font-semibold tracking-tight">Starting task…</h1>
+          <h1 className="animate-pulse text-lg font-semibold tracking-tight">{t('Starting task…')}</h1>
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">
-            Launched from a bookmarklet — taking you to the run.
+            {t('Launched from a bookmarklet — taking you to the run.')}
           </p>
         </div>
       </div>
@@ -550,7 +551,7 @@ export function NewTaskRoute() {
       <div className="w-full max-w-[720px]">
         <header className="mb-6 text-center max-md:mb-4">
           <h1 className="text-lg font-semibold tracking-tight max-md:text-base">
-            What should the agent work on?
+            {t('What should the agent work on?')}
           </h1>
           {/* Follows the resolved run mode (#793). Printing the isolation promise
               unconditionally made this line false for every run the user opted out of — and
@@ -573,16 +574,16 @@ export function NewTaskRoute() {
           images={images}
           onImagesChange={setImages}
           autoFocus
-          placeholder="Describe a task for the agent — / for skills…"
-          ariaLabel="Describe a task for the agent"
-          sendAriaLabel="Start task"
+          placeholder={t('Describe a task for the agent — / for skills…')}
+          ariaLabel={t('Describe a task for the agent')}
+          sendAriaLabel={t('Start task')}
           disabled={!providersReady}
           disabledReason={
             providers.isPending
-              ? 'Checking agent providers…'
+              ? t('Checking agent providers…')
               : providers.isError
-                ? 'Provider authentication could not be verified.'
-                : 'Connect an agent provider before starting a task.'
+                ? t('Provider authentication could not be verified.')
+                : t('Connect an agent provider before starting a task.')
           }
           autocompleteSkills
           footerStart={
@@ -615,7 +616,7 @@ export function NewTaskRoute() {
                         )?.name ?? urlProjectId
                       const destinationName = projectList.find((project) => project.id === next)?.name ?? next
                       toast(
-                        `Kept your draft in ${departingName}; ${destinationName} already has an unsent draft.`,
+                        t('Kept your draft in {departingName}; {destinationName} already has an unsent draft.', { departingName, destinationName }),
                         { tone: 'danger' },
                       )
                     }
@@ -655,14 +656,14 @@ export function NewTaskRoute() {
               ) : null}
               <PickerPill
                 slot="model-pill"
-                ariaLabel="Model"
+                ariaLabel={t('Model')}
                 label={models.find((m) => m.id === model)?.label ?? 'auto'}
                 value={model}
                 disabled={!providersReady}
                 readOnly={modelsLocked}
                 disabledHint={
                   modelsLocked
-                    ? 'Model selection is locked to native coding-agent settings.'
+                    ? t('Model selection is locked to native coding-agent settings.')
                     : undefined
                 }
                 onPick={(next) => update({ model: next })}
@@ -671,17 +672,17 @@ export function NewTaskRoute() {
               />
               <PickerPill
                 slot="variants-pill"
-                ariaLabel="Parallel variants"
-                label={variants > 1 ? `×${variants} variants` : '×1'}
+                ariaLabel={t('Parallel variants')}
+                label={variants > 1 ? t('×{variants} variants', { variants }) : '×1'}
                 value={String(variants)}
                 onPick={(next) => update({ variants: Number(next) })}
                 disabled={!hasGit}
-                hint="How many times to run this task in parallel — each variant gets its own worktree, and you pick the diff you keep. ×1 runs it once."
-                disabledHint="Parallel variants need a git repository — each variant runs in its own worktree."
+                hint={t('How many times to run this task in parallel — each variant gets its own worktree, and you pick the diff you keep. ×1 runs it once.')}
+                disabledHint={t('Parallel variants need a git repository — each variant runs in its own worktree.')}
                 options={[
-                  { value: '1', label: '×1', desc: 'One run' },
-                  { value: '2', label: '×2 variants', desc: 'Two competing runs — pick the diff you keep' },
-                  { value: '3', label: '×3 variants', desc: 'Three competing runs — pick the diff you keep' },
+                  { value: '1', label: '×1', desc: t('One run') },
+                  { value: '2', label: t('×2 variants'), desc: t('Two competing runs — pick the diff you keep') },
+                  { value: '3', label: t('×3 variants'), desc: t('Three competing runs — pick the diff you keep') },
                 ]}
               />
               {/* The row reads in clusters: WHAT runs (project, source, runner, model,
@@ -695,8 +696,8 @@ export function NewTaskRoute() {
                   disabled={worktreeForced}
                   disabledReason={
                     dispatchOn
-                      ? "Dispatch forks this task's commits — subtasks need a worktree"
-                      : 'Parallel variants always use isolated worktrees'
+                      ? t('Dispatch forks this task\'s commits — subtasks need a worktree')
+                      : t('Parallel variants always use isolated worktrees')
                   }
                   onChange={(on) => update({ worktree: on })}
                 />
@@ -735,7 +736,7 @@ export function NewTaskRoute() {
               {repo.data ? <BaseBranchPill repo={repo.data} /> : null}
               {selectedSkill?.interactive && (draft.autonomous === null || draft.worktree === null) ? (
                 <p className="basis-full text-xs text-muted-foreground" data-slot="interactive-skill-hint">
-                  This skill recommends an interactive run in the current checkout. You can change either setting.
+                  {t('This skill recommends an interactive run in the current checkout. You can change either setting.')}
                 </p>
               ) : null}
             </>
@@ -747,7 +748,7 @@ export function NewTaskRoute() {
                   to="/settings/agents#providers"
                   className="text-xs font-medium text-foreground underline underline-offset-4"
                 >
-                  Configure providers
+                  {t('Configure providers')}
                 </Link>
               ) : null}
               <kbd
@@ -765,9 +766,7 @@ export function NewTaskRoute() {
             data-slot="dispatch-hint"
             className="mt-2 rounded-md border border-primary/25 bg-primary/[0.07] px-3 py-1.5 text-xs text-muted-foreground"
           >
-            <strong className="font-semibold text-foreground">Dispatch is on.</strong> Splits this
-            task into subtasks it runs as separate tasks. Worktree stays on. Long-press the icon
-            for limits.
+            <strong className="font-semibold text-foreground">{t('Dispatch is on.')}</strong>{t(' Splits this task into subtasks it runs as separate tasks. Worktree stays on. Long-press the icon for limits.')}
           </p>
         ) : null}
 
@@ -808,8 +807,8 @@ function WorktreeToggle({
         disabled
           ? disabledReason
           : on
-          ? 'Runs in an isolated worktree — uncheck to run in the repo working tree'
-          : 'Runs in the repo working tree — check to isolate in a worktree'
+          ? t('Runs in an isolated worktree — uncheck to run in the repo working tree')
+          : t('Runs in the repo working tree — check to isolate in a worktree')
       }
       className={cn(chipClass, on && 'border-primary/60 text-foreground')}
     >
@@ -818,7 +817,7 @@ function WorktreeToggle({
       ) : (
         <SquareIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
       )}
-      Worktree
+      {t('Worktree')}
     </button>
   )
 }
@@ -844,10 +843,10 @@ function AutonomousToggle({
       onClick={() => onChange(!on)}
       title={
         disabled
-          ? 'Plan-first runs are interactive — autonomous is unavailable'
+          ? t('Plan-first runs are interactive — autonomous is unavailable')
           : on
-            ? 'Autonomous — the agent runs to completion without pausing for you'
-            : 'Runs interactively — check to let the agent finish without pausing for you'
+            ? t('Autonomous — the agent runs to completion without pausing for you')
+            : t('Runs interactively — check to let the agent finish without pausing for you')
       }
       className={cn(chipClass, on && !disabled && 'border-primary/60 text-foreground')}
     >
@@ -856,7 +855,7 @@ function AutonomousToggle({
       ) : (
         <SquareIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
       )}
-      Autonomous
+      {t('Autonomous')}
     </button>
   )
 }
@@ -879,8 +878,8 @@ function GenerateFollowupsToggle({
       onClick={() => onChange(!on)}
       title={
         on
-          ? 'Agents can add newly discovered follow-up work to the task inbox'
-          : 'Follow-up generation is off; agents still maintain the handoff journal'
+          ? t('Agents can add newly discovered follow-up work to the task inbox')
+          : t('Follow-up generation is off; agents still maintain the handoff journal')
       }
       className={cn(chipClass, on && 'border-primary/60 text-foreground')}
     >
@@ -889,7 +888,7 @@ function GenerateFollowupsToggle({
       ) : (
         <SquareIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
       )}
-      Follow-ups
+      {t('Follow-ups')}
     </button>
   )
 }
@@ -962,8 +961,8 @@ function ProjectPill({
         <button
           type="button"
           data-slot="project-pill"
-          aria-label="Project"
-          title="Which project this task runs in — its skills, workflows, settings and draft"
+          aria-label={t('Project')}
+          title={t('Which project this task runs in — its skills, workflows, settings and draft')}
           className={cn(chipClass, 'border-foreground/60 font-semibold text-foreground')}
         >
           <FolderOpenIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
@@ -979,13 +978,13 @@ function ProjectPill({
         className="w-[300px] max-w-[calc(100vw-2rem)] p-0"
       >
         <Command shouldFilter={false}>
-          <CommandInput placeholder="search projects…" value={search} onValueChange={setSearch} />
+          <CommandInput placeholder={t('search projects…')} value={search} onValueChange={setSearch} />
           {/* Same 3rem headroom rule as the source picker: the list must not eat the search box. */}
           <CommandList
             data-slot="project-menu"
             className="max-h-[min(18rem,calc(var(--radix-popover-content-available-height)-3rem))]"
           >
-            {matched.length === 0 ? <CommandEmpty>Nothing matches.</CommandEmpty> : null}
+            {matched.length === 0 ? <CommandEmpty>{t('Nothing matches.')}</CommandEmpty> : null}
             {matched.map((project) => (
               <CommandItem
                 key={project.id}
@@ -1004,7 +1003,7 @@ function ProjectPill({
               >
                 <span className="min-w-0 flex-1 truncate text-xs font-medium">{project.name}</span>
                 {project.status === 'missing' ? (
-                  <span className="shrink-0 text-[11px] text-soft-foreground">folder not found</span>
+                  <span className="shrink-0 text-[11px] text-soft-foreground">{t('folder not found')}</span>
                 ) : project.branch !== undefined ? (
                   <span className="shrink-0 font-mono text-[11px] text-soft-foreground">
                     {project.branch}
@@ -1019,7 +1018,7 @@ function ProjectPill({
           {/* The mockup's `dd-note`. Worth the two lines: picking here does far more than
               relabel a pill, and nothing else on screen says so. */}
           <p className="border-t border-border px-3 py-2 text-[11px] leading-snug text-soft-foreground">
-            Skills, workflows, settings and the draft re-resolve against the selected project.
+            {t('Skills, workflows, settings and the draft re-resolve against the selected project.')}
           </p>
         </Command>
       </PopoverContent>
@@ -1038,8 +1037,8 @@ function BaseBranchPill({ repo }: { repo: RepoResponse }) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.repo })
       toast(
         result.baseBranch
-          ? `New tasks will branch off "${result.baseBranch}" (PRs target it too).`
-          : 'Base branch cleared — new tasks fork from the checked-out branch.',
+          ? t('New tasks will branch off "{baseBranch}" (PRs target it too).', { baseBranch: result.baseBranch })
+          : t('Base branch cleared — new tasks fork from the checked-out branch.'),
       )
     },
     onError: (error: Error) => toast(error.message, { tone: 'danger' }),
@@ -1049,13 +1048,13 @@ function BaseBranchPill({ repo }: { repo: RepoResponse }) {
   return (
     <PickerPill
       slot="base-pill"
-      ariaLabel="Base branch"
-      label={<span className="font-mono text-[11.5px]">base: {current}</span>}
+      ariaLabel={t('Base branch')}
+      label={<span className="font-mono text-[11.5px]">{t('base: ')}{current}</span>}
       value={repo.baseBranch ?? ''}
       onPick={(value) => mutation.mutate(value === '' ? null : value)}
-      searchPlaceholder="Search branches…"
+      searchPlaceholder={t('Search branches…')}
       options={[
-        { value: '', label: `follow checked-out branch (${repo.info.branch})`, desc: 'New task worktrees fork from whatever branch is checked out' },
+        { value: '', label: t('follow checked-out branch ({branch})', { branch: repo.info.branch }), desc: t('New task worktrees fork from whatever branch is checked out') },
         ...repo.branches.map((branch) => ({ value: branch, label: branch })),
       ]}
     />
@@ -1065,9 +1064,9 @@ function BaseBranchPill({ repo }: { repo: RepoResponse }) {
 /** Honest static starters (the mockup's ghost chips): they only fill the textarea — the user
  *  still aims and submits. */
 const SUGGESTIONS = [
-  'Fix a failing or flaky test',
-  'Summarize recent commits on this branch',
-  'Update the README for recent changes',
+  t('Fix a failing or flaky test'),
+  t('Summarize recent commits on this branch'),
+  t('Update the README for recent changes'),
 ]
 
 function SuggestedChips({ onPick }: { onPick: (text: string) => void }) {

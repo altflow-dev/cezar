@@ -11,6 +11,7 @@
  * saved verbatim" are indistinguishable in effect but the former costs nothing to ship.
  */
 import { DISPATCH_MAX_IN_FLIGHT, PROMPT_TEMPLATE_TEXT_MAX } from '@open-mercato/cezar-api-client'
+import { t } from '@/lib/i18n'
 
 export interface PromptTemplate {
   id: string
@@ -38,28 +39,28 @@ const SKILLS_MAX = 50
 export const DEFAULT_PROMPT_TEMPLATES: readonly PromptTemplate[] = [
   {
     id: 'add-tests',
-    label: 'Add tests',
-    text: 'Also add or update tests covering this change.',
+    label: t('Add tests'),
+    text: t('Also add or update tests covering this change.'),
   },
   {
     id: 'explain-change',
-    label: 'Explain the change',
-    text: 'Explain what changed and why before finishing.',
+    label: t('Explain the change'),
+    text: t('Explain what changed and why before finishing.'),
   },
   {
     id: 'keep-minimal',
-    label: 'Keep it minimal',
-    text: 'Keep the change as small and targeted as possible — no unrelated refactors.',
+    label: t('Keep it minimal'),
+    text: t('Keep the change as small and targeted as possible — no unrelated refactors.'),
   },
   {
     id: 'update-docs',
-    label: 'Update docs',
-    text: 'Also update any relevant documentation or comments.',
+    label: t('Update docs'),
+    text: t('Also update any relevant documentation or comments.'),
   },
   {
     id: 'check-edge-cases',
-    label: 'Double-check edge cases',
-    text: 'Double-check edge cases and error handling before finishing.',
+    label: t('Double-check edge cases'),
+    text: t('Double-check edge cases and error handling before finishing.'),
   },
   // The one built-in that DISPATCHES (spec `.ai/specs/2026-09-10-dispatch.md`): every template
   // above tells one task how to do its own work, and this one is the worked example of a task
@@ -68,7 +69,7 @@ export const DEFAULT_PROMPT_TEMPLATES: readonly PromptTemplate[] = [
   // `availablePromptTemplates` keeps it out of the composers (`DISPATCH_TEMPLATE_IDS`).
   {
     id: 'review-open-prs',
-    label: 'Review open PRs',
+    label: t('Review open PRs'),
     text:
       "Check this repository's open pull requests that still need a review "
       + '(use `gh pr list --state open --json number,title,headRefName,isDraft,reviewDecision` '
@@ -90,7 +91,7 @@ export const DEFAULT_PROMPT_TEMPLATES: readonly PromptTemplate[] = [
   // refusal.
   {
     id: 'create-automation',
-    label: 'Create an automation',
+    label: t('Create an automation'),
     skills: ['create-cezar-automation'],
     text:
       'Create an automation for this repository.\n'

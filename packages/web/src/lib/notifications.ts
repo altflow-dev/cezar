@@ -1,5 +1,6 @@
 import type { RunRecord, RunStatus } from '@open-mercato/cezar-api-client'
 import { deriveAttention, wantsAttention } from './attention'
+import { t } from '@/lib/i18n'
 
 /* Browser notifications (R6 Step 1.7, spec §"Cross-cutting"): the pure half.
  *
@@ -124,7 +125,7 @@ export function describeRunNotification(run: RunRecord): RunNotificationContent 
   const label = deriveAttention(run).label
   return {
     title: run.titleSummary ?? run.title,
-    body: `Task ${label}`,
+    body: t('Task {label}', { label }),
     tag: `cezar-run-${run.id}`,
   }
 }

@@ -1,6 +1,7 @@
 import { SparklesIcon } from 'lucide-react'
 
 import type { SkillSummary } from './subagent-dock'
+import { t } from '@/lib/i18n'
 
 /**
  * The Skills dock (#1202): which skill is governing this run, pinned above the composer as a
@@ -30,7 +31,7 @@ export function SkillsDock({ skills }: { skills: SkillSummary[] }) {
       className="flex min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-border bg-card px-3.5 py-2 text-[13px] shadow-xs"
     >
       <SparklesIcon aria-hidden className="size-3.5 shrink-0 text-soft-foreground" />
-      <span className="shrink-0 font-semibold">{skills.length === 1 ? 'Skill' : 'Skills'}</span>
+      <span className="shrink-0 font-semibold">{skills.length === 1 ? t('Skill') : t('Skills')}</span>
       <span data-slot="skills-names" className="min-w-0 truncate text-muted-foreground">
         · {skills.map((skill) => skill.name).join(' · ')}
       </span>

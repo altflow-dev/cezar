@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 
 import { ImagePreview, shouldPreviewImage } from './image-preview'
 import type { DiffFileChange, DiffProps } from './types'
+import { t } from '@/lib/i18n'
 
 /**
  * `<Diff>` — the ONE diff surface of the cockpit (spec §"Session git view" #390; R5 1.4).
@@ -47,7 +48,7 @@ export function Diff(props: DiffProps) {
   if (props.files.length === 0) {
     return (
       <p data-slot="diff-empty" className={cn('px-1 text-xs text-soft-foreground', props.className)}>
-        No changes.
+        {t('No changes.')}
       </p>
     )
   }
@@ -55,7 +56,7 @@ export function Diff(props: DiffProps) {
   if (engine === null) {
     return (
       <p data-slot="diff-loading" className={cn('px-1 text-xs text-soft-foreground', props.className)}>
-        Loading diff…
+        {t('Loading diff…')}
       </p>
     )
   }
@@ -95,7 +96,7 @@ export function DiffFallback({ files, wrap = false, imageSrc, onOpenInApp, viewR
     <div ref={root} data-slot="diff" data-fallback="true" className={cn('flex min-w-0 flex-col gap-3', className)}>
       <p data-slot="diff-totals" className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
         <span>
-          {stat.files} {stat.files === 1 ? 'file' : 'files'} changed
+          {stat.files} {stat.files === 1 ? t('file') : t('files')}{t(' changed')}
         </span>
         <DiffStatLabel stat={stat} />
       </p>
@@ -136,9 +137,9 @@ function FallbackFile({
       {shouldPreviewImage(file) ? (
         <ImagePreview file={file} imageSrc={imageSrc} onOpenInApp={onOpenInApp} />
       ) : file.binary ? (
-        <p className="px-4 py-2.5 text-xs text-soft-foreground">Binary file — no text diff.</p>
+        <p className="px-4 py-2.5 text-xs text-soft-foreground">{t('Binary file — no text diff.')}</p>
       ) : file.patch === '' ? (
-        <p className="px-4 py-2.5 text-xs text-soft-foreground">No content changes (metadata only).</p>
+        <p className="px-4 py-2.5 text-xs text-soft-foreground">{t('No content changes (metadata only).')}</p>
       ) : (
         <pre
           className={cn(

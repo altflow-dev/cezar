@@ -4,6 +4,7 @@ import {
   isImageMediaType,
   type AttachmentInput,
 } from '@open-mercato/cezar-api-client'
+import { t } from '@/lib/i18n'
 
 /**
  * The composer's attachment intake — paperclip, ⌘V paste, and drag-drop all funnel here, exactly
@@ -76,7 +77,7 @@ export type AttachmentsChangeReason = 'edit' | 'submit'
  * and filed in the library under (`toAttachmentInput`). One function so the two cannot drift.
  */
 export function fallbackAttachmentName(mediaType: string, isImage: boolean): string {
-  return isImage ? 'pasted image' : `pasted.${attachmentExtension(mediaType)}`
+  return isImage ? t('pasted image') : `pasted.${attachmentExtension(mediaType)}`
 }
 
 /** File → base64 (chunked — `String.fromCharCode(...5MB)` would blow the arg limit). */
@@ -133,16 +134,16 @@ export function screenFiles(files: readonly File[], alreadyAttached: number): At
     const label = file.name || 'attachment'
     if (attachmentMediaType(file) === null) {
       rejected.push(
-        `${label} is not a supported attachment (images, PDF and plain-text files such as TXT or MD)`,
+        t('{label} is not a supported attachment (images, PDF and plain-text files such as TXT or MD)', { label }),
       )
       continue
     }
     if (file.size > MAX_ATTACHMENT_BYTES) {
-      rejected.push(`${label} is too large (max 5 MB)`)
+      rejected.push(t('{label} is too large (max 5 MB)', { label }))
       continue
     }
     if (count >= MAX_ATTACHMENTS) {
-      rejected.push(`${label} skipped — max ${MAX_ATTACHMENTS} attachments per message`)
+      rejected.push(t('{label} skipped — max {MAX_ATTACHMENTS} attachments per message', { label, MAX_ATTACHMENTS }))
       continue
     }
     accepted.push(file)

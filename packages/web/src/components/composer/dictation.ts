@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { t } from '@/lib/i18n'
 
 /**
  * Dictation (spec §composer intelligence; the paseo pattern, `paseo-ui.md` §5): STT-only,
@@ -135,14 +136,14 @@ export function useDictation(onError: (message: string) => void): Dictation {
       }
       recognition.onerror = (event) => {
         // `no-speech` etc. — surface the browser's own word, then back to idle honestly.
-        onError(`Dictation failed${event.error ? ` — ${event.error}` : ''}`)
+        onError(event.error ? t('Dictation failed — {error}', { error: event.error }) : t('Dictation failed'))
         teardown()
       }
       recognition.start()
       recognitionRef.current = recognition
       setRecording({ transcript: '', startedAt })
     } catch {
-      onError('Dictation failed — the microphone could not be started')
+      onError(t('Dictation failed — the microphone could not be started'))
       teardown()
     }
   }, [onError, teardown])

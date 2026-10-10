@@ -22,6 +22,7 @@ import {
 } from '@open-mercato/cezar-api-client'
 
 import { PageState } from './automations-route'
+import { t } from '@/lib/i18n'
 
 /**
  * `/automations/:id/log` — one automation's execution log (spec 2026-09-14-automations-redesign
@@ -71,34 +72,34 @@ export function AutomationLog({ automationId, automation, timeZone, onBack }: {
   return (
     <div data-route="automations" data-slot="automation-log" className="flex min-h-full flex-col">
       <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5">
-        <Button variant="ghost" size="icon-sm" aria-label="Back" onClick={onBack}>
+        <Button variant="ghost" size="icon-sm" aria-label={t('Back')} onClick={onBack}>
           <ArrowLeftIcon className="size-[15px]" />
         </Button>
-        <h1 className="m-0 text-base font-semibold">{automation ? automation.name : 'Automation'}</h1>
-        <span className="text-[13px] text-muted-foreground">· execution log</span>
+        <h1 className="m-0 text-base font-semibold">{automation ? automation.name : t('Automation')}</h1>
+        <span className="text-[13px] text-muted-foreground">{t('· execution log')}</span>
         <div className="flex flex-1 items-center justify-end gap-2">
           <Select value={result} onValueChange={(next) => setResult(next as AutomationLogResult | 'all')}>
-            <SelectTrigger size="sm" aria-label="Filter by result" className="text-[12.5px]">
-              <SelectValue placeholder="All results" />
+            <SelectTrigger size="sm" aria-label={t('Filter by result')} className="text-[12.5px]">
+              <SelectValue placeholder={t('All results')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All results</SelectItem>
+              <SelectItem value="all">{t('All results')}</SelectItem>
               {RESULTS.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={event} onValueChange={(next) => setEvent(next as AutomationEvent | 'all')}>
-            <SelectTrigger size="sm" aria-label="Filter by event" className="text-[12.5px]">
-              <SelectValue placeholder="All events" />
+            <SelectTrigger size="sm" aria-label={t('Filter by event')} className="text-[12.5px]">
+              <SelectValue placeholder={t('All events')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All events</SelectItem>
+              <SelectItem value="all">{t('All events')}</SelectItem>
               {EVENTS.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <Button variant="outline" size="sm" onClick={() => navigate(`/automations/${encodeURIComponent(automationId)}`)}>
           <PencilIcon className="size-[13px]" />
-          Edit
+          {t('Edit')}
         </Button>
       </header>
 
@@ -106,9 +107,9 @@ export function AutomationLog({ automationId, automation, timeZone, onBack }: {
         {query.isError ? (
           <div className="w-full max-w-[820px]"><PageState text={query.error instanceof Error ? query.error.message : String(query.error)} /></div>
         ) : records === undefined ? (
-          <div className="w-full max-w-[820px]"><PageState text="Loading execution log…" /></div>
+          <div className="w-full max-w-[820px]"><PageState text={t('Loading execution log…')} /></div>
         ) : records.length === 0 ? (
-          <div className="w-full max-w-[820px]"><PageState text="No checks have run yet." /></div>
+          <div className="w-full max-w-[820px]"><PageState text={t('No checks have run yet.')} /></div>
         ) : (
           <Card flush className="w-full max-w-[820px]">
             {records.map((record, index) => (
@@ -174,14 +175,14 @@ function LogRow({ record, run, last, timeZone, retrying, onRetry }: {
       {record.runId !== undefined ? (
         <Button variant="ghost" size="sm" asChild>
           <Link to={`/tasks/${encodeURIComponent(record.runId)}`}>
-            Open task
+            {t('Open task')}
             <ArrowUpRightIcon className="size-3" />
           </Link>
         </Button>
       ) : retryable !== undefined ? (
         <Button variant="ghost" size="sm" disabled={retrying} onClick={() => onRetry(retryable)}>
           <RotateCcwIcon className="size-3" />
-          Retry task
+          {t('Retry task')}
         </Button>
       ) : (
         <span />
@@ -191,7 +192,7 @@ function LogRow({ record, run, last, timeZone, retrying, onRetry }: {
           {children.map((child) => (
             <div key={child.runId} data-slot="log-child" className={`grid ${AUTOMATION_COST_VISIBLE ? 'grid-cols-[14px_70px_1fr_auto_auto]' : 'grid-cols-[14px_70px_1fr_auto]'} items-center gap-2.5 text-[12.5px]`}>
               <span className="font-mono text-[11px] text-soft-foreground">└</span>
-              <span className="w-fit rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground">{child.kind ?? 'implement'}</span>
+              <span className="w-fit rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground">{child.kind ?? t('implement')}</span>
               <span className="flex min-w-0 items-center gap-2">
                 <StatusDot tone={statusTone(child.status)} />
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap">{child.title}</span>
@@ -199,7 +200,7 @@ function LogRow({ record, run, last, timeZone, retrying, onRetry }: {
               {AUTOMATION_COST_VISIBLE ? <span className="font-mono text-[11.5px] text-soft-foreground">{child.costUsd === undefined ? '—' : usd(child.costUsd)}</span> : null}
               <Button variant="ghost" size="sm" className="h-6" asChild>
                 <Link to={`/tasks/${encodeURIComponent(child.runId)}`}>
-                  Open
+                  {t('Open')}
                   <ArrowUpRightIcon className="size-[11px]" />
                 </Link>
               </Button>

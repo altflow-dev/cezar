@@ -3,6 +3,7 @@ import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-react'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import type { Theme } from '@/lib/theme'
+import { t } from '@/lib/i18n'
 
 /* A proper icon button (fixes #378 — the legacy text toggle clipped in the sidebar footer).
  * It cycles rather than opening a menu: three states, one target, no popover to hit on mobile.
@@ -27,8 +28,8 @@ export function ThemeToggle({ className }: { className?: string }) {
       className={className}
       data-slot="theme-toggle"
       data-theme-pref={theme}
-      title={`Theme: ${LABEL[theme]}`}
-      aria-label={`Theme: ${LABEL[theme]}. Switch to ${LABEL[next]}.`}
+      title={t('Theme: {v0}', { v0: LABEL[theme] })}
+      aria-label={t('Theme: {v0}. Switch to {v1}.', { v0: LABEL[theme], v1: LABEL[next] })}
       onClick={() => setTheme(next)}
     >
       <Icon aria-hidden="true" />

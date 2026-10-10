@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { t } from '@/lib/i18n'
 
 /** One formatter per shape, built once: hundreds of thread rows format on every paint. */
 const CLOCK = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
@@ -75,8 +76,8 @@ export function dayLabel(ts: string | undefined, now: Date = new Date()): string
   const at = parse(ts)
   if (at === undefined) return undefined
   const key = keyOf(at)
-  if (key === keyOf(now)) return 'Today'
-  if (key === keyOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return 'Yesterday'
+  if (key === keyOf(now)) return t('Today')
+  if (key === keyOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return t('Yesterday')
   return (at.getFullYear() === now.getFullYear() ? DAY : DAY_WITH_YEAR).format(at)
 }
 
@@ -155,7 +156,7 @@ export function TurnTime({ startedAt, completedAt }: { startedAt?: string; compl
       <time dateTime={completedAt} title={exactLabel(completedAt)}>
         {label}
       </time>
-      {duration !== undefined ? <span title={`Replied in ${duration}`}>· {duration}</span> : null}
+      {duration !== undefined ? <span title={t('Replied in {duration}', { duration })}>· {duration}</span> : null}
     </div>
   )
 }
@@ -173,7 +174,7 @@ export function DaySeparator({ ts }: { ts: string }) {
   const at = parse(ts)
   if (label === undefined || at === undefined) return null
   const exact = FULL_DAY.format(at)
-  const relative = label === 'Today' || label === 'Yesterday'
+  const relative = label === t('Today') || label === t('Yesterday')
   return (
     <div
       data-slot="day-separator"

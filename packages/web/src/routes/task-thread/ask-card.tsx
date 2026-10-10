@@ -9,6 +9,7 @@ import { useAskAnswer } from './ask-answer'
 import { type AskSelections, forgetAskSelections, readAskSelections, writeAskSelections } from './ask-selections'
 import type { ThreadAsk } from './thread-state'
 import type { UiAskQuestion } from '@open-mercato/cezar-api-client'
+import { t } from '@/lib/i18n'
 
 /** Format one answered question the way the agent reads it back. */
 function formatAnswer(question: UiAskQuestion, labels: string[]): string {
@@ -45,7 +46,7 @@ export function AskCard({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
         data-resolved="true"
         className="rounded-lg border border-border bg-card px-3.5 py-2.5 text-xs text-muted-foreground"
       >
-        <span className="text-soft-foreground">Answered</span>
+        <span className="text-soft-foreground">{t('Answered')}</span>
         {ask.answer ? (
           <span className="ml-1.5 break-words whitespace-pre-line text-foreground">{ask.answer}</span>
         ) : null}
@@ -100,7 +101,7 @@ function PendingAsk({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
     >
       <div className="mb-2.5 flex items-center gap-2">
         <span className="text-xs font-medium text-primary">
-          {ask.fromWorkflow ? 'The workflow is asking' : 'The agent is asking'}
+          {ask.fromWorkflow ? t('The workflow is asking') : t('The agent is asking')}
         </span>
       </div>
       <div className="flex flex-col gap-4">
@@ -121,13 +122,13 @@ function PendingAsk({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
       {oneTap ? (
         resuming ? (
           <p data-slot="ask-resume-hint" className="mt-3 text-[11.5px] text-soft-foreground">
-            The session has ended — your answer reopens it and goes to the agent.
+            {t('The session has ended — your answer reopens it and goes to the agent.')}
           </p>
         ) : null
       ) : (
         <div className="mt-3 flex items-center gap-2.5">
           <Button size="sm" disabled={delivery.isPending || blocked || !allAnswered} onClick={sendAll}>
-            {resuming ? 'Send answer & reopen' : 'Send answer'}
+            {resuming ? t('Send answer & reopen') : t('Send answer')}
           </Button>
           {/* The slot names the resume state, so a selector for it can never match the ordinary
               "pick one or more" hint a live run shows. */}
@@ -136,8 +137,8 @@ function PendingAsk({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
             className="text-[11.5px] text-soft-foreground"
           >
             {resuming
-              ? 'the session has ended — sending reopens it'
-              : `${questions.length > 1 ? 'answer each question' : 'pick one or more'} — or type a reply below`}
+              ? t('the session has ended — sending reopens it')
+              : (questions.length > 1 ? t('answer each question — or type a reply below') : t('pick one or more — or type a reply below'))}
           </span>
         </div>
       )}
@@ -145,14 +146,14 @@ function PendingAsk({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
           long card scrolls its earlier questions out of sight (#1247). */}
       {!oneTap && unanswered.length > 0 ? (
         <p data-slot="ask-unanswered" className="mt-2 text-[11.5px] text-soft-foreground">
-          unanswered: {unanswered.join(', ')}
+          {t('unanswered: ')}{unanswered.join(', ')}
         </p>
       ) : null}
       {delivery.blockedBy === 'provider' ? (
         <div data-slot="ask-provider-gate" className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           <span>{delivery.reason}</span>
           <Link to="/settings/agents#providers" className="font-medium text-foreground underline underline-offset-4">
-            Configure providers
+            {t('Configure providers')}
           </Link>
         </div>
       ) : null}
@@ -201,7 +202,7 @@ function AskQuestionBlock({
           {question.header}
         </span>
         {multiSelect ? (
-          <span className="ml-auto text-[10.5px] text-soft-foreground">select all that apply</span>
+          <span className="ml-auto text-[10.5px] text-soft-foreground">{t('select all that apply')}</span>
         ) : null}
       </div>
       <p className="mb-2.5 break-words text-sm font-semibold text-foreground">{question.question}</p>

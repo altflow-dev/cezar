@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 /**
  * The ONE inline-rename state machine (#389, spec step 15). Two surfaces flip a title into an
@@ -80,7 +81,7 @@ export function TitleEditInput({ editor, className }: { editor: TitleEditor; cla
   return (
     <input
       data-slot="title-input"
-      aria-label="Task title"
+      aria-label={t('Task title')}
       // eslint-disable-next-line jsx-a11y/no-autofocus — the user just asked to edit this field
       autoFocus
       value={editor.draft}

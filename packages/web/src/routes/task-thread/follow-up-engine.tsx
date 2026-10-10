@@ -14,6 +14,7 @@ import {
 } from '@/routes/new-task-form'
 import { useContinuationProvider } from './continuation-provider'
 import { runActionFlags } from './run-actions'
+import { t } from '@/lib/i18n'
 
 /** What the thread needs to offer Continue from its composer. */
 export interface ContinueAction {
@@ -102,7 +103,7 @@ export function useContinueAction(run: ApiRun): ContinueAction {
   const mutation = useMutation({
     mutationFn: ({ text, images }: { text: string; images: AttachmentInput[] }) => {
       if (!canContinue) {
-        return Promise.reject(new Error(continuation.reason ?? 'Connect an agent provider to continue.'))
+        return Promise.reject(new Error(continuation.reason ?? t('Connect an agent provider to continue.')))
       }
       return continueRun(run.id, {
         // An empty draft posts no `text` at all, so the server's default opening prompt
@@ -155,11 +156,11 @@ export function useContinueAction(run: ApiRun): ContinueAction {
         ) : null}
         <PickerPill
           slot="follow-up-model-pill"
-          ariaLabel="Model"
+          ariaLabel={t('Model')}
           label={models.find((m) => m.id === model)?.label ?? 'auto'}
           value={model}
           readOnly={modelsLocked}
-          disabledHint="Model selection is locked to native coding-agent settings."
+          disabledHint={t('Model selection is locked to native coding-agent settings.')}
           onPick={(next) => setPickedModel(next)}
           options={models.map((m) => ({ value: m.id, label: m.label, desc: m.desc }))}
           status={modelCatalogStatus(runner, catalog.data, catalog.isError)}

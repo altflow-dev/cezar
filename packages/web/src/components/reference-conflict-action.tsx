@@ -10,6 +10,7 @@ import { runTitle } from '@/lib/task-groups'
 import { prioritizeTaskReferences, taskReferences } from '@/lib/tasks-table'
 import { useAskAnswer } from '@/routes/task-thread/ask-answer'
 import { resolveConflictsPrompt } from '@/routes/task-thread/run-actions'
+import { t } from '@/lib/i18n'
 
 /**
  * "Resolve conflicts" — the one thing every surface hands to a conflicting chip's panel.
@@ -59,9 +60,7 @@ export function ResolveConflictsButton({
       if (failure) toast(failure, { tone: 'danger' })
       else {
         toast(
-          `${reopened ? 'Task reopened' : 'Sent to the task'} — resolving conflicts${
-            prNumber ? ` in PR #${prNumber}` : ''
-          }`,
+          `${reopened ? t('Task reopened — resolving conflicts') : t('Sent to the task — resolving conflicts')}${prNumber ? t(' in PR #{prNumber}', { prNumber }) : ''}`,
         )
         close()
       }
@@ -83,7 +82,7 @@ export function ResolveConflictsButton({
         onClick={() => void press()}
         className="h-7 w-full text-xs"
       >
-        {pending ? 'Sending…' : 'Resolve conflicts'}
+        {pending ? t('Sending…') : t('Resolve conflicts')}
       </Button>
       {/* Only the REFUSAL is spelled out. What the button will do is the button's own words —
           quoting the prompt underneath said the same thing twice, at four times the length. */}
@@ -114,7 +113,7 @@ export function ResolveConflictsForRun({
   if (!run.data) {
     return (
       <Button type="button" size="sm" disabled className="h-7 w-full text-xs">
-        {run.isError ? 'Unavailable' : 'Loading…'}
+        {run.isError ? t('Unavailable') : t('Loading…')}
       </Button>
     )
   }

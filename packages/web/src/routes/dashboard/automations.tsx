@@ -9,6 +9,7 @@ import { dayTime, relativeIn } from '@/lib/automation-format'
 import { enabledAutomations, useDashboardAutomations } from './automations-data'
 import { ExportRows } from './export-rows'
 import { DisclosureChevron, disclosureSummary, Freshness, widgetHeader, widgetHeading } from './presentation'
+import { t } from '@/lib/i18n'
 
 export function DashboardAutomations() {
   const gate = useAutomationsGate()
@@ -28,12 +29,12 @@ export function DashboardAutomations() {
     >
       <div className={widgetHeader}>
         <h2 className={`flex items-center ${widgetHeading}`}>
-          Automations
+          {t('Automations')}
           <CalendarClock className="ml-2 size-3.5 text-soft-foreground" aria-hidden="true" />
         </h2>
         {!gate.off && query.data && (
           <span className="font-mono text-[11px] text-soft-foreground">
-            {rows.length} enabled{failed ? ' · partial' : ''}
+            {rows.length}{t(' enabled')}{failed ? t(' · partial') : ''}
           </span>
         )}
       </div>
@@ -46,7 +47,7 @@ export function DashboardAutomations() {
                 metric: 'enabled',
                 value: rows.length,
                 unit: 'automations',
-                note: failed ? 'Partial project coverage' : 'Loaded projects',
+                note: failed ? t('Partial project coverage') : t('Loaded projects'),
               },
             ]}
           />
@@ -59,39 +60,39 @@ export function DashboardAutomations() {
       )}
       {gate.off ? (
         <p className="p-4 text-sm text-muted-foreground">
-          Automations are disabled in this workspace.
+          {t('Automations are disabled in this workspace.')}
         </p>
       ) : (
         <>
-          {pending && <p className="p-4 text-sm text-muted-foreground">Loading automations…</p>}
+          {pending && <p className="p-4 text-sm text-muted-foreground">{t('Loading automations…')}</p>}
           {failed && (
             <div role="alert" className="p-4 text-sm">
-              <p>Some automation data could not be refreshed. Available results are shown.</p>
+              <p>{t('Some automation data could not be refreshed. Available results are shown.')}</p>
               {errors.map((p) => (
                 <p key={p.id}>
                   {p.name}: {p.error}
                 </p>
               ))}
               <Button variant="ghost" onClick={query.retry}>
-                Retry automations
+                {t('Retry automations')}
               </Button>
             </div>
           )}
           {!pending && !failed && rows.length === 0 && (
             <p className="p-4 text-sm text-muted-foreground">
-              No enabled automations. Enable one in a project's Automations page.
+              {t('No enabled automations. Enable one in a project\'s Automations page.')}
             </p>
           )}
           {visible.map(({ project, automation: a, at }) => {
             const warning =
-              (a.state?.consecutiveFailures ?? 0) > 0 ? 'Recent checks failed' : undefined
+              (a.state?.consecutiveFailures ?? 0) > 0 ? t('Recent checks failed') : undefined
             const timing =
               at === null
-                ? 'Next time not available'
+                ? t('Next time not available')
                 : at <= now
-                  ? 'Due — awaiting scheduler'
+                  ? t('Due — awaiting scheduler')
                   : relativeIn(at, now)
-            const action = a.kind !== 'schedule' ? 'Next check' : 'Next run'
+            const action = a.kind !== 'schedule' ? t('Next check') : t('Next run')
             return (
               <div
                 key={`${project.id}:${a.id}`}
@@ -116,7 +117,7 @@ export function DashboardAutomations() {
                 )}
                 {a.kind !== 'schedule' && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Checks for matching events; a task may not be started.
+                    {t('Checks for matching events; a task may not be started.')}
                   </p>
                 )}
                 {warning && <p className="mt-1 text-xs text-warning">{warning}</p>}
@@ -142,7 +143,7 @@ export function DashboardAutomations() {
           })}
           {rows.length > 3 && (
             <Button variant="ghost" className="m-2 min-h-11" onClick={() => setAll(!all)}>
-              {all ? 'Show fewer' : `Show all ${rows.length} enabled`}
+              {all ? t('Show fewer') : t('Show all {length} enabled', { length: rows.length })}
             </Button>
           )}
           {!pending && (
@@ -152,7 +153,7 @@ export function DashboardAutomations() {
                 data-export-heading="Project automations"
               >
                 <DisclosureChevron />
-                Manage automations by project
+                {t('Manage automations by project')}
               </summary>
               {query.data?.map((p) => (
                 <Link

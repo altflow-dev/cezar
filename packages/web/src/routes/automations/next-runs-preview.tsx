@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { occurrencesBetween, type AutomationKind, type AutomationSchedule } from '@open-mercato/cezar-api-client'
 import { Card } from '@/components/ui/card'
 import { dayTime, relativeIn } from '@/lib/automation-format'
+import { t } from '@/lib/i18n'
 
 const DAY = 86_400_000
 
@@ -39,16 +40,16 @@ export function NextRunsPreview({
   return (
     <Card flush data-slot="next-runs-preview" className="pt-3 pb-2">
       <div className="px-3.5 pb-2 text-[11px] font-semibold tracking-[.05em] uppercase text-soft-foreground">
-        {kind !== 'schedule' ? 'How it polls' : 'Next 5 runs'}
+        {kind !== 'schedule' ? t('How it polls') : t('Next 5 runs')}
       </div>
       {kind !== 'schedule' ? (
         <p className="m-0 px-3.5 pb-1.5 text-[12.5px] leading-[1.5] text-muted-foreground">
           {kind === 'tracker'
-            ? <>Checks the project tracker every {Math.round(intervalSeconds / 60)} min while this cockpit is open. No webhook or public URL required.</>
-            : <>Checks GitHub every {Math.round(intervalSeconds / 60)} min while this cockpit is open, through your <code className="text-xs">gh</code>. No webhook or public URL required.</>}
+            ? <>{t('Checks the project tracker every ')}{Math.round(intervalSeconds / 60)}{t(' min while this cockpit is open. No webhook or public URL required.')}</>
+            : <>{t('Checks GitHub every ')}{Math.round(intervalSeconds / 60)}{t(' min while this cockpit is open, through your ')}<code className="text-xs">gh</code>{t('. No webhook or public URL required.')}</>}
         </p>
       ) : runs.length === 0 ? (
-        <p className="m-0 px-3.5 pb-1.5 text-[12.5px] leading-[1.5] text-muted-foreground">Nothing in the next nine days.</p>
+        <p className="m-0 px-3.5 pb-1.5 text-[12.5px] leading-[1.5] text-muted-foreground">{t('Nothing in the next nine days.')}</p>
       ) : (
         runs.map((ms) => (
           <div key={ms} data-slot="next-run" className="flex gap-2.5 px-3.5 py-[5px] text-[13px]">

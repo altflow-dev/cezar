@@ -1,5 +1,6 @@
 import { PinIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 /**
  * The pin control (#935) — one button, shared by every surface that lists a task: the sidebar
@@ -32,8 +33,8 @@ export function PinToggle({
       data-pinned={pinned ? 'true' : undefined}
       // A toggle, so `aria-pressed` — the same call `ViewTab` and the column headers make.
       aria-pressed={pinned}
-      aria-label={pinned ? 'Unpin task' : 'Pin task'}
-      title={pinned ? 'Unpin from the top of the list' : 'Pin to the top of the list'}
+      aria-label={pinned ? t('Unpin task') : t('Pin task')}
+      title={pinned ? t('Unpin from the top of the list') : t('Pin to the top of the list')}
       // Deliberately never disabled while the mutation is in flight: `usePinRun` invalidates
       // rather than patching optimistically, so a row's `run.pinned` is stale until the refetch
       // lands, and a second click would only re-send an idempotent `{pinned: true}`. Greying the

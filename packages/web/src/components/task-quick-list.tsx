@@ -32,6 +32,7 @@ import { formatCost, taskReference, taskReferences } from '@/lib/tasks-table'
 import { usageMetricVisibility } from '@/lib/token-metrics'
 import { useNow } from '@/lib/use-now'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 /**
  * The sidebar's task quick-list (spec, "App shell & navigation"): Active/Archived tabs, then the
@@ -78,21 +79,21 @@ export function TaskQuickList({
       <div className="sticky top-0 z-10 bg-sidebar pt-2 pb-1">
         <div className="inline-flex w-full gap-0.5 rounded-md bg-muted p-[3px]">
           <ViewTab view="active" current={view} onSelect={onViewChange} count={counts.active}>
-            Active
+            {t('Active')}
             {/* The one reason to look at a tab you are not on. */}
             {counts.waiting > 0 && view !== 'active' ? (
-              <StatusDot tone="pending" pulse data-slot="waiting-dot" aria-label="needs you" />
+              <StatusDot tone="pending" pulse data-slot="waiting-dot" aria-label={t('needs you')} />
             ) : null}
           </ViewTab>
           <ViewTab view="archived" current={view} onSelect={onViewChange} count={counts.archived}>
-            Archived
+            {t('Archived')}
           </ViewTab>
         </div>
       </div>
 
       {buckets.length === 0 ? (
         <p className="px-3 py-3.5 text-xs text-soft-foreground">
-          {view === 'archived' ? 'Nothing archived yet.' : 'No tasks yet — describe one.'}
+          {view === 'archived' ? t('Nothing archived yet.') : t('No tasks yet — describe one.')}
         </p>
       ) : (
         <QuickListBuckets
@@ -146,7 +147,7 @@ export function QuickListBuckets({
       {buckets.map((bucket) => (
         <div key={bucket.label} data-slot="quick-list-bucket" data-bucket={bucket.label}>
           <h2 className="px-3 pt-2.5 pb-1 text-[11px] font-semibold tracking-[0.04em] text-soft-foreground uppercase">
-            {bucket.label}
+            {t(bucket.label)}
           </h2>
           {nestRows(bucket.rows).map((node) => (
             <Row
@@ -298,8 +299,8 @@ function Row({
         <Link
           to={scopeTo(scope, `/compare/${row.groupId}`)}
           data-slot="group-compare"
-          title="Compare the variants"
-          aria-label={`Compare the variants of ${row.title}`}
+          title={t('Compare the variants')}
+          aria-label={t('Compare the variants of {title}', { title: row.title })}
           className="mr-1.5 inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-soft-foreground hover:bg-violet/10 hover:text-violet"
         >
           <ScaleIcon className="size-3.5" aria-hidden="true" />

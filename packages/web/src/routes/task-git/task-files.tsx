@@ -12,6 +12,7 @@ import { RunHeader } from '../task-thread/run-header'
 import { FilePreview } from './file-preview'
 import { FilesTree } from './files-tree'
 import { GitTabLoadError, GitTabLoading } from './git-tab-loading'
+import { t } from '@/lib/i18n'
 
 /**
  * `/tasks/:id/files` — the session git view's read-only worktree browser (spec §"Session git
@@ -49,14 +50,14 @@ function FilesView({ run }: { run: ApiRun }) {
 
       {root.isPending ? (
         <p data-slot="files-loading" className="px-4 py-6 text-center text-xs text-soft-foreground md:px-6">
-          Loading files…
+          {t('Loading files…')}
         </p>
       ) : root.isError ? (
         <CenteredState
           icon={refused ? <FolderTreeIcon /> : <TriangleAlertIcon />}
           tone={refused ? 'neutral' : 'danger'}
           heading="h2"
-          title={refused ? 'No files to browse' : 'Could not load the files'}
+          title={refused ? t('No files to browse') : t('Could not load the files')}
           subtitle={root.error.message}
         />
       ) : (
@@ -77,7 +78,7 @@ function FilesView({ run }: { run: ApiRun }) {
               pattern as the transcript viewport (`role="region"` + label + tab stop). */}
           <div
             data-slot="file-preview-pane"
-            {...(desktop ? { role: 'region', 'aria-label': 'File preview', tabIndex: 0 } : {})}
+            {...(desktop ? { role: 'region', 'aria-label': t('File preview'), tabIndex: 0 } : {})}
             className="min-w-0 flex-1 md:overflow-y-auto md:overscroll-contain"
           >
             {/* Padding on this wrapper, not on the scroller: sticky offsets count from the

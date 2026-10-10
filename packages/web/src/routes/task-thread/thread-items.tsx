@@ -32,6 +32,7 @@ import { useThreadCardCache } from './thread-open-cards'
 import { isNearBottom } from './thread-scroll'
 import { MessageTime, clockLabel, elapsedSince, exactLabel, useNow } from './thread-time'
 import type { ThreadEntry, ThreadImage, ThreadNote, ThreadProviderAuthRequired } from './thread-state'
+import { t } from '@/lib/i18n'
 
 // The stick rule lives with the rest of the scroll math now; re-exported because this is
 // where the live tail below consumes it.
@@ -65,8 +66,8 @@ export function UserBubble({
   ts,
   onEdit,
   onRemove,
-  editLabel = 'Edit message',
-  removeLabel = 'Remove message',
+  editLabel = t('Edit message'),
+  removeLabel = t('Remove message'),
   draftRunId,
   draftSurface,
 }: {
@@ -145,7 +146,7 @@ export function UserBubble({
       await store.submit(() => onEdit?.(next) ?? Promise.resolve())
       setEditing(false)
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Could not save the message')
+      setActionError(error instanceof Error ? error.message : t('Could not save the message'))
     } finally {
       setBusy(false)
     }
@@ -165,7 +166,7 @@ export function UserBubble({
       // the store with nothing left to restore it into.
       store.clear()
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Could not remove the message')
+      setActionError(error instanceof Error ? error.message : t('Could not remove the message'))
     } finally {
       setBusy(false)
     }
@@ -180,7 +181,7 @@ export function UserBubble({
       >
         <textarea
           autoFocus
-          aria-label="Edit the message"
+          aria-label={t('Edit the message')}
           value={draft}
           onChange={(e) => edit(e.target.value)}
           onKeyDown={(e) => {
@@ -203,7 +204,7 @@ export function UserBubble({
             disabled={busy}
             className="rounded-sm px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
           >
-            Cancel
+            {t('Cancel')}
           </button>
           <button
             type="button"
@@ -211,7 +212,7 @@ export function UserBubble({
             disabled={busy}
             className="rounded-sm bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground hover:brightness-[0.96] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
           >
-            {busy ? <LoaderCircleIcon className="size-3.5 animate-spin" /> : 'Save'}
+            {busy ? <LoaderCircleIcon className="size-3.5 animate-spin" /> : t('Save')}
           </button>
         </span>
         {actionError ? <p role="alert" className="mt-1.5 text-xs text-danger">{actionError}</p> : null}
@@ -285,7 +286,7 @@ export function UserBubble({
       ) : null}
       {missing > 0 ? (
         <span className="mt-1 block text-xs text-soft-foreground">
-          {missing} image{missing > 1 ? 's' : ''} attached
+          {missing}{t(' image')}{missing > 1 ? 's' : ''}{t(' attached')}
         </span>
       ) : null}
       {ts !== undefined ? (
@@ -360,16 +361,16 @@ export function ProviderAuthRequiredCard({
       className="rounded-md border border-danger/30 bg-danger/5 px-3.5 py-3"
     >
       <p className="text-[13px] font-semibold text-foreground">
-        This run needed {label} authorization
+        {t('This run needed ')}{label}{t(' authorization')}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        Review {label} settings before retrying.
+        {t('Review ')}{label}{t(' settings before retrying.')}
       </p>
       <Link
         to="/settings/agents#providers"
         className="mt-2 inline-flex text-xs font-medium text-foreground underline-offset-2 hover:underline"
       >
-        Open provider settings
+        {t('Open provider settings')}
       </Link>
     </div>
   )
@@ -396,7 +397,7 @@ export function ReasoningItem({ text }: { text: string }) {
           aria-hidden
           className="size-3.5 shrink-0 transition-transform group-data-[state=open]/reasoning:rotate-90"
         />
-        <span className="shrink-0">Thinking — </span>
+        <span className="shrink-0">{t('Thinking — ')}</span>
         <div className="min-w-0 truncate text-muted-foreground">
           <Markdown inline>{firstLine}</Markdown>
         </div>
@@ -440,16 +441,16 @@ export function WorkingIndicator({ since, lastActivityAt }: { since?: string; la
       // Wraps rather than overflows: with both stamps the line outgrows a 320px phone column.
       className="flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1 text-[13px] text-soft-foreground"
     >
-      <LoaderCircleIcon role="status" aria-label="Working" className="size-3.5 shrink-0 animate-spin" />
-      <span className="shimmer font-medium">Working…</span>
+      <LoaderCircleIcon role="status" aria-label={t('Working')} className="size-3.5 shrink-0 animate-spin" />
+      <span className="shimmer font-medium">{t('Working…')}</span>
       {elapsed !== undefined ? (
-        <span data-slot="working-elapsed" title={`Started ${exactLabel(since)}`} className="font-mono text-xs tabular-nums">
+        <span data-slot="working-elapsed" title={t('Started {v0}', { v0: exactLabel(since) })} className="font-mono text-xs tabular-nums">
           {elapsed}
         </span>
       ) : null}
       {quiet !== undefined && lastClock !== undefined ? (
         <span data-slot="working-last-activity" title={exactLabel(lastActivityAt)} className="text-xs">
-          · last activity {lastClock} ({quiet} ago)
+          {t('· last activity ')}{lastClock} ({quiet}{t(' ago)')}
         </span>
       ) : null}
     </div>
@@ -530,7 +531,7 @@ function ToolOutput({ text, streaming }: { text: string; streaming: boolean }) {
           onClick={() => setExpanded((value) => !value)}
           className="block w-full border-t border-border/50 px-4 py-1.5 text-left text-[11px] font-medium text-soft-foreground hover:text-foreground"
         >
-          {expanded ? 'Show less' : `Show all ${lines} lines`}
+          {expanded ? t('Show less') : t('Show all {lines} lines', { lines })}
         </button>
       ) : null}
     </div>
@@ -680,10 +681,10 @@ export function ToolCard({
         ) : null}
         <span className="ml-auto flex shrink-0 items-center gap-2 pl-2">
           {busy ? (
-            <LoaderCircleIcon role="status" aria-label="Running" className="size-3.5 animate-spin text-soft-foreground" />
+            <LoaderCircleIcon role="status" aria-label={t('Running')} className="size-3.5 animate-spin text-soft-foreground" />
           ) : null}
-          {item.status === 'failed' ? <span className="text-xs text-muted-foreground">failed</span> : null}
-          {item.status === 'declined' ? <span className="text-xs text-soft-foreground">declined</span> : null}
+          {item.status === 'failed' ? <span className="text-xs text-muted-foreground">{t('failed')}</span> : null}
+          {item.status === 'declined' ? <span className="text-xs text-soft-foreground">{t('declined')}</span> : null}
           {item.toolKind === 'execute' && typeof item.exitCode === 'number' ? (
             <span
               data-slot="tool-exit"
@@ -767,7 +768,7 @@ export function ImageItem({ image }: { image: ThreadImage }) {
     <ZoomableImage
       data-slot="thread-image"
       src={image.url}
-      alt={image.name ?? 'image from the agent session'}
+      alt={image.name ?? t('image from the agent session')}
       className="max-h-72 max-w-full self-start rounded-lg border border-border"
     />
   )

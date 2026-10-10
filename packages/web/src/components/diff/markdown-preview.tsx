@@ -5,6 +5,7 @@ import { Markdown } from '@/routes/task-thread/markdown'
 
 import { parsePatch } from './parse-patch'
 import type { DiffFileChange } from './types'
+import { t } from '@/lib/i18n'
 
 /**
  * A Markdown file's new side rendered as a document — the `preview` branch of a diff card.
@@ -57,14 +58,14 @@ export function MarkdownPreview({
   // up until the new one lands — swapping in "Loading…" on every poll would jump the page.
   const current = loaded?.path === file.path ? loaded : null
   if (canLoad && current === null) {
-    return <p className="px-4 py-2.5 text-xs text-soft-foreground">Loading preview…</p>
+    return <p className="px-4 py-2.5 text-xs text-soft-foreground">{t('Loading preview…')}</p>
   }
   const full = current?.text ?? null
   const partial = full === null && !fromPatch.complete
   return (
     <div data-slot="diff-markdown-preview" className="px-6 py-6">
       {partial ? (
-        <p className="mx-auto mb-4 max-w-[72ch] text-xs text-soft-foreground">Showing the changed sections only.</p>
+        <p className="mx-auto mb-4 max-w-[72ch] text-xs text-soft-foreground">{t('Showing the changed sections only.')}</p>
       ) : null}
       <Markdown variant="document" urlTransform={urlTransform}>
         {full ?? fromPatch.text}

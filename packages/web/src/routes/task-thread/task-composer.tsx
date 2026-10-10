@@ -19,6 +19,7 @@ import {
 } from './diff-comments'
 import type { ContinueAction } from './follow-up-engine'
 import type { Draft } from './thread-draft'
+import { t } from '@/lib/i18n'
 
 /**
  * The task's reply composer — ONE component for the Session tab's dock and the Changes tab's
@@ -104,7 +105,7 @@ export function TaskComposer({
         try {
           return await draft.submit<unknown>(() => {
             if (hasDiffComments && !commentsRideWith(text, skillNames)) {
-              toast(`Diff comments kept — /${slashCommandOf(text)} is a command, so they go with your next message.`)
+              toast(t('Diff comments kept — /{v0} is a command, so they go with your next message.', { v0: slashCommandOf(text) }))
               return deliverPrompt(text, images)
             }
             return diffComments.submit(async (held) => deliverPrompt(messageWithReview(text, held), images))
@@ -126,25 +127,25 @@ export function TaskComposer({
       disabled={providerBlocked || (!sessionOpen && !queued && !continuable)}
       // Only reachable now by a closed run with NO session to resume — which is exactly the one
       // case where Continue is not on offer either.
-      disabledReason={providerBlocked ? providerReason : 'Session closed — no session to resume.'}
+      disabledReason={providerBlocked ? providerReason : t('Session closed — no session to resume.')}
       // The engine pills ride the enabled footer, so the picked runner/model and the typed prompt
       // reach `POST /continue` in one request.
       footerEnd={
         providerBlocked && !continueAction.providerPending ? (
           <Link to="/settings/agents#providers" className="text-xs font-medium text-foreground underline underline-offset-4">
-            Configure providers
+            {t('Configure providers')}
           </Link>
         ) : continuable ? continueAction.pills : undefined
       }
       // Continuing with nothing typed is the legacy one-click Continue, and pending diff comments
       // are a message on their own.
       allowEmptySubmit={continuable || hasDiffComments}
-      sendAriaLabel={continuable ? 'Continue' : 'Send'}
+      sendAriaLabel={continuable ? t('Continue') : t('Send')}
       placeholder={
-        queued ? 'Add to the prompt — sent when the run starts…'
-        : continuable ? 'Continue — add a prompt, or send to just reopen the session…'
-        : run.status === 'waiting' ? 'Reply — / for skills, @ for files…'
-        : 'Message the agent — / for skills, @ for files…'
+        queued ? t('Add to the prompt — sent when the run starts…')
+        : continuable ? t('Continue — add a prompt, or send to just reopen the session…')
+        : run.status === 'waiting' ? t('Reply — / for skills, @ for files…')
+        : t('Message the agent — / for skills, @ for files…')
       }
       autocompleteSkills
       quickReplies

@@ -1,6 +1,7 @@
 import type { ApiRun, ProviderStatusResponse, Runner } from '@open-mercato/cezar-api-client'
 import { useProviderStatus } from '@/api/queries'
 import { providerStatusFor } from '@/lib/provider-status'
+import { t } from '@/lib/i18n'
 
 const PROVIDER_LABEL: Record<Runner, string> = {
   claude: 'Claude Code',
@@ -40,14 +41,14 @@ function providerAvailability(
     return {
       provider,
       usable: false,
-      reason: `${PROVIDER_LABEL[provider]} is disabled. Enable it in Settings → Agents → Providers.`,
+      reason: t('{v0} is disabled. Enable it in Settings → Agents → Providers.', { v0: PROVIDER_LABEL[provider] }),
     }
   }
   if (row?.status !== 'connected') {
     return {
       provider,
       usable: false,
-      reason: `${PROVIDER_LABEL[provider]} credentials are unavailable. Authorize it in Settings → Agents → Providers.`,
+      reason: t('{v0} credentials are unavailable. Authorize it in Settings → Agents → Providers.', { v0: PROVIDER_LABEL[provider] }),
     }
   }
   return { provider, usable: true }
@@ -88,12 +89,12 @@ export function useExistingProviderAvailability(run: ApiRun) {
     return {
       provider,
       usable: false,
-      reason: 'Provider authentication could not be verified.',
+      reason: t('Provider authentication could not be verified.'),
     }
   }
   return {
     provider,
     usable: false,
-    reason: 'Checking agent providers…',
+    reason: t('Checking agent providers…'),
   }
 }

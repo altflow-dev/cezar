@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { shortAge } from '@/lib/format'
+import { t } from '@/lib/i18n'
 
 // The landing's eyebrow: mono caps behind a violet `//` (`section-mark`, styles/index.css).
 // A pseudo-element keeps it out of textContent (tests, the export's module titles); its empty
@@ -86,7 +87,7 @@ export function MetricContent({
 export function Freshness({ at }: { at: string }) {
   return (
     <time dateTime={at} title={new Date(at).toLocaleString()}>
-      Updated {shortAge(at)} ago
+      {t('Updated ')}{shortAge(at)}{t(' ago')}
     </time>
   )
 }

@@ -1,5 +1,6 @@
 import { compactTokens } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 interface DirectionalUsageProps {
   inputTokens?: number
@@ -16,7 +17,7 @@ function exactTokens(value: number | undefined): string {
 }
 
 export function directionalUsageLabel(inputTokens?: number, outputTokens?: number): string {
-  return `Input tokens: ${exactTokens(inputTokens)}; output tokens: ${exactTokens(outputTokens)}`
+  return t('Input tokens: {v0}; output tokens: {v1}', { v0: exactTokens(inputTokens), v1: exactTokens(outputTokens) })
 }
 
 export function directionalUsageText(

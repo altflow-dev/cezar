@@ -5,6 +5,7 @@ import { Link } from '@/lib/project-router'
 import { effectiveHostView, formatCpuCores, formatMemPair } from '@/lib/host-effective'
 import { useIsDesktop } from '@/lib/use-desktop'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 /**
  * The sidebar glance: two labelled meters - effective CPU and RAM, each a bar and a percentage -
@@ -121,7 +122,7 @@ function HostUsageWidgetRow() {
       data-state={stale ? 'stale' : 'live'}
       // How many frames the store holds - the e2e proof that the root writer keeps feeding it.
       data-frames={history.length}
-      aria-label={`Machine usage: ${summary}. Open Settings, Resources.`}
+      aria-label={t('Machine usage: {summary}. Open Settings, Resources.', { summary })}
       title={summary}
       className={cn(
         // Six columns on ONE 14px line: label · bar · value, twice. The two `minmax(0,1fr)`

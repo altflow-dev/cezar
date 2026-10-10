@@ -20,6 +20,7 @@ import { RUNNERS } from '@/routes/new-task-form'
 /** The mockup's `.chip` — defined once in `components/chip.tsx` (spec 2026-09-14-automations-redesign
  *  § Primitives) and re-exported here for the composer's existing importers. */
 import { chipChevron as chevron, chipClass } from '@/components/chip'
+import { t } from '@/lib/i18n'
 
 export { chevron, chipClass }
 
@@ -159,7 +160,7 @@ export function PickerPill({
           ))}
         </DropdownMenuRadioGroup>
         {searchPlaceholder && visibleOptions.length === 0 ? (
-          <p className="px-2 py-5 text-center text-xs text-muted-foreground">No branches found.</p>
+          <p className="px-2 py-5 text-center text-xs text-muted-foreground">{t('No branches found.')}</p>
         ) : null}
         {status ? (
           <DropdownMenuItem disabled className="border-t border-border text-[11.5px] text-muted-foreground">
@@ -258,7 +259,7 @@ export function RunnerPill({
   return (
     <PickerPill
       slot="runner-pill"
-      ariaLabel="Runner"
+      ariaLabel={t('Runner')}
       label={options.find((option) => option.value === value_)?.label ?? value}
       value={value_}
       disabled={disabled}

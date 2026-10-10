@@ -29,6 +29,7 @@ import { ResourcesSection } from './resources-section'
 import { SkillsSection } from './skills-section'
 import { WorktreesSection } from './worktrees-section'
 import { TrackerSection } from './tracker-section'
+import { t } from '@/lib/i18n'
 
 /**
  * The Settings section registry (R6 Step 1.3, spec §"Settings"): the ONE place a section is
@@ -85,7 +86,7 @@ function comingSoon(title: string, Icon: ComponentType<SVGProps<SVGSVGElement>>)
         icon={<Icon />}
         tone="neutral"
         title={title}
-        subtitle="This section arrives in a later phase of the redesign."
+        subtitle={t('This section arrives in a later phase of the redesign.')}
         heading="h2"
       />
     )
@@ -96,48 +97,48 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   // ---- project scope (`/p/<projectId>/settings/…`) — settings that describe THIS repo -------
   {
     id: 'tracker',
-    title: 'Issue tracker',
-    description: 'Connect this project to Jira, Linear or YouTrack.',
+    title: t('Issue tracker'),
+    description: t('Connect this project to Jira, Linear or YouTrack.'),
     icon: TicketIcon,
     component: TrackerSection,
     scope: 'project',
   },
   {
     id: 'agents',
-    title: 'Agents',
-    description: 'Default runner, models and system prompt.',
+    title: t('Agents'),
+    description: t('Default runner, models and system prompt.'),
     icon: BotIcon,
     component: AgentsSection,
     scope: 'project',
   },
   {
     id: 'agent-config',
-    title: 'Agent config',
-    description: 'Edit the coding agents’ own config files, per scope.',
+    title: t('Agent config'),
+    description: t('Edit the coding agents’ own config files, per scope.'),
     icon: FileCogIcon,
     component: AgentConfigSection,
     scope: 'project',
   },
   {
     id: 'worktrees',
-    title: 'Worktrees',
-    description: 'How many finished task worktrees this project keeps on disk.',
+    title: t('Worktrees'),
+    description: t('How many finished task worktrees this project keeps on disk.'),
     icon: FolderGit2Icon,
     component: WorktreesSection,
     scope: 'project',
   },
   {
     id: 'bookmarklets',
-    title: 'Bookmarklets',
-    description: 'Launch skills from a GitHub PR or issue.',
+    title: t('Bookmarklets'),
+    description: t('Launch skills from a GitHub PR or issue.'),
     icon: BookmarkIcon,
     component: BookmarkletsSection,
     scope: 'project',
   },
   {
     id: 'prompt-templates',
-    title: 'Prompt templates',
-    description: 'Reusable snippets for follow-up instructions.',
+    title: t('Prompt templates'),
+    description: t('Reusable snippets for follow-up instructions.'),
     icon: NotebookPenIcon,
     component: PromptTemplatesSection,
     scope: 'project',
@@ -145,58 +146,58 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   // ---- global scope (`/settings/global/…`) — the user and the machine, in mockup order -----
   {
     id: 'appearance',
-    title: 'Appearance',
-    description: 'Theme, accent and density.',
+    title: t('Appearance'),
+    description: t('Theme, language, accent and density.'),
     icon: PaletteIcon,
     component: AppearanceSection,
     scope: 'global',
   },
   {
     id: 'notifications',
-    title: 'Notifications',
-    description: 'Browser notifications when an agent needs you.',
+    title: t('Notifications'),
+    description: t('Browser notifications when an agent needs you.'),
     icon: BellIcon,
     component: NotificationsSection,
     scope: 'global',
   },
   {
     id: 'resources',
-    title: 'Resources',
-    description: 'Parallel tasks and per-task memory limit, across every project.',
+    title: t('Resources'),
+    description: t('Parallel tasks and per-task memory limit, across every project.'),
     icon: GaugeIcon,
     component: ResourcesSection,
     scope: 'global',
   },
   {
     id: 'skills',
-    title: 'Skills',
-    description: 'Updates for skills installed on this machine.',
+    title: t('Skills'),
+    description: t('Updates for skills installed on this machine.'),
     icon: PackageCheckIcon,
     component: SkillsSection,
     scope: 'global',
   },
   {
     id: 'accounts',
-    title: 'Agent accounts',
-    description: 'Second logins, and the agent and models a project uses when it has chosen none.',
+    title: t('Agent accounts'),
+    description: t('Second logins, and the agent and models a project uses when it has chosen none.'),
     icon: IdCardIcon,
     component: AccountsSection,
     scope: 'global',
   },
   {
     id: 'projects',
-    title: 'Projects',
-    description: 'The workspace registry and where GitHub checkouts land.',
+    title: t('Projects'),
+    description: t('The workspace registry and where GitHub checkouts land.'),
     icon: FoldersIcon,
     component: ProjectsSection,
     scope: 'global',
   },
   {
     id: 'keyboard',
-    title: 'Keyboard',
-    description: 'Shortcuts.',
+    title: t('Keyboard'),
+    description: t('Shortcuts.'),
     icon: KeyboardIcon,
-    component: comingSoon('Keyboard', KeyboardIcon),
+    component: comingSoon(t('Keyboard'), KeyboardIcon),
     scope: 'global',
     hidden: true,
   },

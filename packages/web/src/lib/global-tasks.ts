@@ -3,6 +3,7 @@ import type { ProjectListEntry, RunIndexEntry } from '@open-mercato/cezar-api-cl
 import { allProjectTags } from '@/lib/project-tags'
 import { runTitle } from '@/lib/task-groups'
 import { automationIdOf, matchesOrigin, type TaskOrigin } from '@/lib/task-origin'
+import { t } from '@/lib/i18n'
 
 /**
  * The pure half of the global Tasks page (`/tasks`): joining the cross-project run index to the
@@ -67,10 +68,10 @@ export type GroupBy = 'none' | 'project' | 'tag' | 'status' | 'workflow'
  * grouping is mandatory when it is not.
  */
 export const GROUP_BY_OPTIONS: readonly { value: Exclude<GroupBy, 'none'>; label: string }[] = [
-  { value: 'project', label: 'Project' },
-  { value: 'tag', label: 'Tag' },
-  { value: 'status', label: 'Status' },
-  { value: 'workflow', label: 'Workflow' },
+  { value: 'project', label: t('Project') },
+  { value: 'tag', label: t('Tag') },
+  { value: 'status', label: t('Status') },
+  { value: 'workflow', label: t('Workflow') },
 ]
 
 /** What pressing `picked` does to the current grouping: turns it on, or — when it is already the
@@ -336,7 +337,7 @@ export function groupGlobalTasks(tasks: readonly GlobalTask[], groupBy: GroupBy)
     } else if (groupBy === 'workflow') {
       push(task.run.workflow, task.run.workflow, task)
     } else if (task.tags.length === 0) {
-      push(UNTAGGED, 'Untagged', task)
+      push(UNTAGGED, t('Untagged'), task)
     } else {
       for (const tag of task.tags) push(tag.toLowerCase(), tag, task)
     }

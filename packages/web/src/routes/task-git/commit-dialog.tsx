@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toaster'
 import { runTitle } from '@/lib/task-groups'
 import { isSubmitShortcut } from '@/lib/use-submit-shortcut'
+import { t } from '@/lib/i18n'
 
 /**
  * The Commit dialog (spec #390: "message box prefilled with auto-summary; commit -A").
@@ -50,7 +51,7 @@ export function CommitDialog({
   const commit = useMutation({
     mutationFn: (text: string) => commitRun(run.id, text),
     onSuccess: (result) => {
-      toast(`Committed ${result.sha.slice(0, 7)}`)
+      toast(t('Committed {v0}', { v0: result.sha.slice(0, 7) }))
       onOpenChange(false)
       // The diff is anchored at the merge-base, so the files stay visible — but the record's
       // diffStat and the repo commit log moved; refetch what claims to know them.
@@ -70,15 +71,15 @@ export function CommitDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-slot="commit-dialog">
         <DialogHeader>
-          <DialogTitle>Commit changes</DialogTitle>
+          <DialogTitle>{t('Commit changes')}</DialogTitle>
           <DialogDescription>
-            Stages everything in the task&apos;s worktree (git add -A) and commits to{' '}
-            {run.branch ? <span className="font-mono">{run.branch}</span> : 'its branch'}.
+            {t('Stages everything in the task\'s worktree (git add -A) and commits to')}{' '}
+            {run.branch ? <span className="font-mono">{run.branch}</span> : t('its branch')}.
           </DialogDescription>
         </DialogHeader>
         <Textarea
           data-slot="commit-message"
-          aria-label="Commit message"
+          aria-label={t('Commit message')}
           rows={3}
           value={message}
           onChange={(event) => setMessage(event.target.value)}
@@ -102,14 +103,14 @@ export function CommitDialog({
         />
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             data-slot="commit-confirm"
             disabled={message.trim().length === 0 || commit.isPending}
             onClick={submit}
           >
-            {commit.isPending ? 'Committing…' : 'Commit'}
+            {commit.isPending ? t('Committing…') : t('Commit')}
           </Button>
         </DialogFooter>
       </DialogContent>

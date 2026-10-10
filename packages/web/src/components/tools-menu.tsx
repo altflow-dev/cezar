@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { t } from '@/lib/i18n'
 
 /**
  * The sidebar footer's Tools dropdown (spec, "App shell & navigation" footer): one compact
@@ -44,12 +45,12 @@ const isRunner = (check: BackendCheck): boolean => Object.hasOwn(RUNNER_NAMES, c
 export function toolsBlocker(health: HealthResponse): string | null {
   const runners = health.checks.filter(isRunner)
   if (runners.length && !runners.some((check) => check.available)) {
-    return 'no agent CLI found — install one to run tasks'
+    return t('no agent CLI found — install one to run tasks')
   }
   // Absent from `checks[]` (an older server) means unprobed, not broken: nothing to claim.
   const preferred = runners.find((check) => check.name === health.defaultRunner)
   if (preferred && !preferred.available) {
-    return `default runner (${health.defaultRunner}) not found`
+    return t('default runner ({defaultRunner}) not found', { defaultRunner: health.defaultRunner })
   }
   return null
 }
@@ -61,7 +62,7 @@ export function toolsTooltip(health: HealthResponse): string {
   const blocker = toolsBlocker(health)
   if (blocker) return `${base} · ${blocker}`
   const missing = health.checks.filter((check) => !check.available).map((check) => check.name)
-  return missing.length ? `${base} · optional: ${missing.join(', ')} not installed` : base
+  return missing.length ? t('{base} · optional: {missing} not installed', { base, missing: missing.join(', ') }) : base
 }
 
 /**
@@ -74,7 +75,7 @@ export function forgeNote(health: HealthResponse): string | null {
   if (!health.forge) {
     return 'No GitHub remote detected — the GitHub tab is hidden. Every plain-git feature still works.'
   }
-  return `GitHub is unreachable — ${health.forge.reason ?? 'unknown reason'}. The GitHub tab is hidden until it comes back.`
+  return t('GitHub is unreachable — {reason}. The GitHub tab is hidden until it comes back.', { reason: health.forge.reason ?? t('unknown reason') })
 }
 
 export function ToolsMenu({ health }: { health: HealthResponse | undefined }) {
@@ -94,7 +95,7 @@ export function ToolsMenu({ health }: { health: HealthResponse | undefined }) {
           className="flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <StatusDot tone={blocker ? 'pending' : 'success'} />
-          Tools
+          {t('Tools')}
           <ChevronDownIcon className="size-[11px]" aria-hidden="true" />
         </button>
       </DropdownMenuTrigger>
@@ -107,7 +108,7 @@ export function ToolsMenu({ health }: { health: HealthResponse | undefined }) {
         className="w-[240px]"
       >
         <DropdownMenuLabel className="text-[11px] font-semibold tracking-[.04em] text-soft-foreground uppercase">
-          Installed tools
+          {t('Installed tools')}
         </DropdownMenuLabel>
         {health.checks.map((check) =>
           check.available ? <AvailableToolRow key={check.name} check={check} /> : <UnavailableToolRow key={check.name} check={check} />
@@ -128,7 +129,7 @@ export function ToolsMenu({ health }: { health: HealthResponse | undefined }) {
             className="gap-2 text-[12.5px] text-muted-foreground"
           >
             <SettingsIcon className="size-3.5" aria-hidden="true" />
-            Tool settings
+            {t('Tool settings')}
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -152,7 +153,7 @@ function AvailableToolRow({ check }: { check: BackendCheck }) {
         data-slot="tool-version"
         className="ml-auto font-mono text-[11.5px] font-medium text-muted-foreground tabular-nums"
       >
-        {check.version ?? 'not found'}
+        {check.version ?? t('not found')}
       </span>
     </div>
   )
@@ -180,7 +181,7 @@ function UnavailableToolRow({ check }: { check: BackendCheck }) {
             data-slot="tool-version"
             className="ml-auto font-mono text-[11.5px] font-medium text-muted-foreground"
           >
-            not found
+            {t('not found')}
           </span>
         </span>
         <span className="flex items-end justify-between gap-3 pl-[15px]">
@@ -190,7 +191,7 @@ function UnavailableToolRow({ check }: { check: BackendCheck }) {
             </span>
           ) : null}
           <span data-slot="tool-setup" className="ml-auto shrink-0 text-[11.5px] font-semibold text-violet">
-            Set up →
+            {t('Set up →')}
           </span>
         </span>
       </Link>

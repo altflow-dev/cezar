@@ -11,6 +11,7 @@ import { taskReferences } from '@/lib/tasks-table'
 import { shortAge } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import { DisclosureChevron, disclosureSummary } from './presentation'
+import { t } from '@/lib/i18n'
 export const taskKey = (row: DashboardTaskRow) => `${row.projectId}:${row.id}`
 export function TaskRow({
   row,
@@ -52,7 +53,7 @@ export function TaskRow({
             section: 'task',
             entity: taskKey(row),
             metric: 'status',
-            value: inactive ? 'Not currently actionable' : row.status,
+            value: inactive ? t('Not currently actionable') : row.status,
           },
           { section: 'task', entity: taskKey(row), metric: 'createdAt', value: row.createdAt },
         ]}
@@ -80,19 +81,19 @@ export function TaskRow({
             <span className="font-mono text-[11px] text-soft-foreground">{row.projectId}</span>
             <span>
               {checkFailed
-                ? 'Could not check current state'
+                ? t('Could not check current state')
                 : !reconciled
-                  ? 'Checking current state…'
+                  ? t('Checking current state…')
                   : removed
                     ? queue && truth !== null
-                      ? 'No longer needs you'
-                      : 'Task removed'
+                      ? t('No longer needs you')
+                      : t('Task removed')
                     : obsolete
-                      ? 'No longer needs you'
+                      ? t('No longer needs you')
                       : attention.label}
             </span>
             <span>{shortAge(row.createdAt)}</span>
-            {row.dispatch && <span>Subtask</span>}
+            {row.dispatch && <span>{t('Subtask')}</span>}
             {!inactive &&
               taskReferences(row).map((ref) => (
                 <ReferenceChip
@@ -124,28 +125,28 @@ export function Coverage({
     <div className="rounded-lg border border-pending/40 bg-card-2 p-3 text-sm" role="status">
       <p>
         {count !== undefined
-          ? `${count} tasks need you in the available data. Complete coverage: ${coverage.projects.length - unavailable.length} of ${coverage.projects.length} projects. `
+          ? t('{count} tasks need you in the available data. Complete coverage: {v1} of {length} projects. ', { count, v1: coverage.projects.length - unavailable.length, length: coverage.projects.length })
           : ''}
         {unavailable.length === 1
           ? unavailable[0]!.state === 'unavailable'
-            ? 'One project is unavailable.'
-            : 'One project has incomplete coverage.'
-          : `${unavailable.length} projects have incomplete coverage.`}
+            ? t('One project is unavailable.')
+            : t('One project has incomplete coverage.')
+          : t('{length} projects have incomplete coverage.', { length: unavailable.length })}
       </p>
       <details className="mt-2">
         <summary className={`${disclosureSummary} min-h-11`}>
           <DisclosureChevron />
-          View unavailable {unavailable.length === 1 ? 'project' : 'projects'}
+          {t('View unavailable ')}{unavailable.length === 1 ? t('project') : t('projects')}
         </summary>
         {unavailable.map((p) => (
           <p key={p.projectId}>
             {p.projectId}: {p.reason ?? p.state}
-            {p.omittedRuns > 0 ? ` · ${p.omittedRuns} omitted tasks` : ''}
+            {p.omittedRuns > 0 ? t(' · {omittedRuns} omitted tasks', { omittedRuns: p.omittedRuns }) : ''}
           </p>
         ))}
       </details>
       <Button variant="outline" onClick={retry} className="min-h-11">
-        Retry
+        {t('Retry')}
       </Button>
     </div>
   )

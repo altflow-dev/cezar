@@ -2,6 +2,7 @@ import type { ToolStatus, UiItem, UiToolItem } from '@open-mercato/cezar-api-cli
 
 import { splitToolTitle } from './thread-groups'
 import type { ThreadEntry, ThreadTurn } from './thread-state'
+import { t } from '@/lib/i18n'
 
 /**
  * The Agents dock's data (spec `.ai/specs/2026-07-20-grouped-subagent-display.md` §Collector,
@@ -270,7 +271,7 @@ export function subagentCounts(agents: SubagentSummary[]): { done: number; total
  * starting — the run ended under it, and the transcript will never move again.
  */
 export function subagentActivityText(agent: SubagentSummary): string {
-  return agent.activity ?? (agent.stalled === true ? 'never finished' : 'starting…')
+  return agent.activity ?? (agent.stalled === true ? t('never finished') : 'starting…')
 }
 
 /**

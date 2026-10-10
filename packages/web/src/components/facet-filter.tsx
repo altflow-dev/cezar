@@ -12,6 +12,7 @@ import {
 import { Segmented } from '@/components/segmented'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 /**
  * A multi-select filter pill: a chip that opens a searchable, tickable list.
@@ -48,7 +49,7 @@ export function FacetFilter({
   onToggle,
   onClear,
   searchPlaceholder,
-  emptyLabel = 'Nothing to filter by',
+  emptyLabel = t('Nothing to filter by'),
 }: {
   /** `data-slot` suffix, and the id prefix for tests. */
   slot: string
@@ -78,7 +79,7 @@ export function FacetFilter({
           type="button"
           data-slot={`facet-${slot}`}
           data-active={active ? 'true' : undefined}
-          aria-label={`Filter by ${label.toLowerCase()}`}
+          aria-label={t('Filter by {v0}', { v0: label.toLowerCase() })}
           className={cn(
             'inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
             active && 'border-violet/40 bg-violet/10 text-foreground',
@@ -94,7 +95,7 @@ export function FacetFilter({
           {/* Past a handful of options the list is only usable if it can be typed at; below that
               the input costs one row and is ignored. Shown unconditionally so the control does
               not change shape as a workspace grows. */}
-          <CommandInput placeholder={searchPlaceholder ?? `Search ${label.toLowerCase()}…`} />
+          <CommandInput placeholder={searchPlaceholder ?? t('Search {v0}…', { v0: label.toLowerCase() })} />
           <CommandList>
             <CommandEmpty>{emptyLabel}</CommandEmpty>
             <CommandGroup>
@@ -139,7 +140,7 @@ export function FacetFilter({
               onClick={() => onClear()}
               className="w-full rounded-sm px-2 py-1.5 text-left text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
             >
-              Clear {label.toLowerCase()}
+              {t('Clear ')}{label.toLowerCase()}
             </button>
           </div>
         ) : null}

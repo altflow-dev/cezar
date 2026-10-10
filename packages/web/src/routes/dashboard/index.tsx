@@ -43,11 +43,12 @@ import {
   useStagedRows,
 } from './state'
 import { useDashboardPage, useDisplacedRows } from './pages'
+import { t } from '@/lib/i18n'
 
 const views = [
-  ['overview', 'Overview'],
-  ['costs', 'Usage & cost'],
-  ['automations', 'Automations'],
+  ['overview', t('Overview')],
+  ['costs', t('Usage & cost')],
+  ['automations', t('Automations')],
 ] as const
 
 export function DashboardRoute() {
@@ -224,15 +225,15 @@ function DashboardView({ entryKey }: { entryKey: string }) {
         >
           <header className="flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">{t('Dashboard')}</h1>
               <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                Across your workspace · Includes subtasks
+                {t('Across your workspace · Includes subtasks')}
                 <span
                   data-export-exclude
                   className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.1em]"
                 >
                   <StatusDot tone={live.connected ? 'success' : 'neutral'} pulse={live.connected} />
-                  {live.connected ? 'Live' : 'Offline'}
+                  {live.connected ? t('Live') : t('Offline')}
                 </span>
               </p>
             </div>
@@ -242,14 +243,14 @@ function DashboardView({ entryKey }: { entryKey: string }) {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="min-h-11">
                     <SlidersHorizontalIcon className="size-4" />
-                    Customize
+                    {t('Customize')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
                   align="end"
                   className="max-h-[min(32rem,80dvh)] max-w-[calc(100vw-2rem)] overflow-y-auto"
                 >
-                  <p className="mb-3 text-sm font-medium">Optional modules in this view</p>
+                  <p className="mb-3 text-sm font-medium">{t('Optional modules in this view')}</p>
                   {viewTiles.map((key) => (
                     <label key={key} className="flex min-h-11 items-center gap-3 text-sm">
                       <input
@@ -262,19 +263,18 @@ function DashboardView({ entryKey }: { entryKey: string }) {
                       />
                       {
                         {
-                          automations: 'Automations',
-                          fleet: 'Queue & scheduling',
-                          needsYou: 'Needs you',
-                          recent: 'Recent results & GitHub',
-                          usage: 'Usage & cost',
-                          trends: 'Trends',
+                          automations: t('Automations'),
+                          fleet: t('Queue & scheduling'),
+                          needsYou: t('Needs you'),
+                          recent: t('Recent results & GitHub'),
+                          usage: t('Usage & cost'),
+                          trends: t('Trends'),
                         }[key]
                       }
                     </label>
                   ))}
                   <p className="mt-3 text-xs text-muted-foreground">
-                    Drag a module by its handle. With keyboard: Space, arrow keys, Space. Escape
-                    cancels.
+                    {t('Drag a module by its handle. With keyboard: Space, arrow keys, Space. Escape cancels.')}
                   </p>
                   {preferences.order.some((id, index) => id !== resetOrder[index]) && (
                     <Button
@@ -282,11 +282,11 @@ function DashboardView({ entryKey }: { entryKey: string }) {
                       className="min-h-11"
                       onClick={() => preferences.setOrder(resetOrder)}
                     >
-                      Reset {viewLabel} order
+                      {t('Reset ')}{viewLabel}{t(' order')}
                     </Button>
                   )}
                   <p className="my-3 text-xs text-muted-foreground">
-                    Shared across browsers using this workspace
+                    {t('Shared across browsers using this workspace')}
                   </p>
                   {viewTiles.some((key) => !savedTiles[key]) && (
                     <Button
@@ -298,14 +298,14 @@ function DashboardView({ entryKey }: { entryKey: string }) {
                         setCustomizeOpen(false)
                       }}
                     >
-                      Show all in {viewLabel}
+                      {t('Show all in ')}{viewLabel}
                     </Button>
                   )}
                 </PopoverContent>
               </Popover>
             </div>
           </header>
-          <nav aria-label="Dashboard views" className="-mt-2 flex flex-wrap gap-5 border-b">
+          <nav aria-label={t('Dashboard views')} className="-mt-2 flex flex-wrap gap-5 border-b">
             {views.map(([id, label]) => {
               const next = new URLSearchParams(search)
               next.set('view', id)
@@ -331,28 +331,28 @@ function DashboardView({ entryKey }: { entryKey: string }) {
           </nav>
           {preferences.failed && (
             <p role="alert" className="text-sm">
-              Layout changed for this session, but could not be saved.{' '}
+              {t('Layout changed for this session, but could not be saved.')}{' '}
               <Button variant="ghost" className="min-h-11" onClick={preferences.retry}>
-                Retry saving
+                {t('Retry saving')}
               </Button>
             </p>
           )}
           {needsSnapshot && !live.connected && query.data && (
             <p role="status" className="text-xs text-muted-foreground">
-              Tasks disconnected · Last updated {shortAge(query.data.asOf)} ago
+              {t('Tasks disconnected · Last updated ')}{shortAge(query.data.asOf)}{t(' ago')}
             </p>
           )}
           {needsSnapshot && query.isError && (
             <p role="alert" className="rounded-md border p-4 text-sm">
-              Could not refresh dashboard.{' '}
-              {query.data ? 'Showing the last available task state.' : ''}{' '}
+              {t('Could not refresh dashboard.')}{' '}
+              {query.data ? t('Showing the last available task state.') : ''}{' '}
               <Button
                 className="min-h-11"
                 onClick={() => {
                   void query.refetch()
                 }}
               >
-                Retry
+                {t('Retry')}
               </Button>
             </p>
           )}
@@ -361,14 +361,14 @@ function DashboardView({ entryKey }: { entryKey: string }) {
           {view === 'costs' && !Object.values(tiles).some(Boolean) ? (
             <p role="status" className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <LayoutDashboardIcon className="size-4" aria-hidden="true" />
-              Optional modules in this view are hidden.
+              {t('Optional modules in this view are hidden.')}
               <Button variant="outline" className="min-h-11" onClick={() => showViewTiles()}>
-                Show all in {viewLabel}
+                {t('Show all in ')}{viewLabel}
               </Button>
             </p>
           ) : null}
           {query.isPending && (tiles.fleet || tiles.needsYou) && (
-            <p className="text-sm">Loading dashboard…</p>
+            <p className="text-sm">{t('Loading dashboard…')}</p>
           )}
           {needsSnapshot && query.data && (
             <Coverage
@@ -404,17 +404,17 @@ function DashboardView({ entryKey }: { entryKey: string }) {
                             }))}
                           />
                           <div className={widgetHeader}>
-                            <h2 className={widgetHeading}>Queue & scheduling</h2>
+                            <h2 className={widgetHeading}>{t('Queue & scheduling')}</h2>
                             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                               <StatusDot tone={live.connected ? 'success' : 'neutral'} />
-                              {live.connected ? 'Tasks connected' : 'Tasks disconnected'}
+                              {live.connected ? t('Tasks connected') : t('Tasks disconnected')}
                             </span>
                           </div>
                           <div className="grid grid-cols-2 divide-x">
                             {(
                               [
-                                ['queued', 'Queued', query.data.counts.queued],
-                                ['scheduled', 'Scheduled', query.data.counts.scheduled],
+                                ['queued', t('Queued'), query.data.counts.queued],
+                                ['scheduled', t('Scheduled'), query.data.counts.scheduled],
                               ] as const
                             ).map(([group, label, total]) => (
                               <button
@@ -440,13 +440,13 @@ function DashboardView({ entryKey }: { entryKey: string }) {
                           >
                             <summary className={`${disclosureSummary} py-2`}>
                               <DisclosureChevron />
-                              Technical details
+                              {t('Technical details')}
                             </summary>
                             <div className="flex flex-wrap gap-x-5 gap-y-2">
                               <span>
-                                {query.data.counts.monitoring} monitoring (included in Running)
+                                {query.data.counts.monitoring}{t(' monitoring (included in Running)')}
                               </span>
-                              <span>Agent processes</span>
+                              <span>{t('Agent processes')}</span>
                               {technicalOpen && (
                                 <FleetTelemetry running={query.data.counts.running} />
                               )}
@@ -506,33 +506,33 @@ function DashboardView({ entryKey }: { entryKey: string }) {
               <SheetHeader>
                 <SheetTitle>
                   {panel === 'needs-you'
-                    ? 'Needs you'
+                    ? t('Needs you')
                     : panel
                       ? panel[0]!.toUpperCase() + panel.slice(1)
-                      : 'Tasks'}
+                      : t('Tasks')}
                   {query.data && panel
                     ? ` · ${panel === 'needs-you' ? count : query.data.counts[panel as 'running' | 'queued' | 'scheduled']}`
                     : ''}
                 </SheetTitle>
                 <SheetDescription>
-                  Includes subtasks. Open a task to continue in its project.
+                  {t('Includes subtasks. Open a task to continue in its project.')}
                 </SheetDescription>
               </SheetHeader>
               {!query.data && query.isPending && (
                 <p className="p-4" role="status">
-                  Loading tasks…
+                  {t('Loading tasks…')}
                 </p>
               )}
               {!query.data && query.isError && (
                 <p className="p-4" role="alert">
-                  Could not load tasks.{' '}
+                  {t('Could not load tasks.')}{' '}
                   <Button
                     className="min-h-11"
                     onClick={() => {
                       void query.refetch()
                     }}
                   >
-                    Retry
+                    {t('Retry')}
                   </Button>
                 </p>
               )}
@@ -561,7 +561,7 @@ function FleetTelemetry({ running }: { running: number }) {
             unit: '%',
             reportedTasks: cpus.length,
             totalTasks: running,
-            note: 'Sum of sampled processes; may exceed 100%',
+            note: t('Sum of sampled processes; may exceed 100%'),
           },
           {
             section: 'telemetry',
@@ -574,20 +574,20 @@ function FleetTelemetry({ running }: { running: number }) {
         ]}
       />
       <span>
-        CPU{' '}
+        {t('CPU')}{' '}
         {cpus.length
           ? `${Math.round(cpus.reduce((n, s) => n + (s.cpuPct ?? 0), 0))}%`
-          : 'unavailable'}{' '}
-        · {cpus.length}/{running} measured
+          : t('unavailable')}{' '}
+        · {cpus.length}/{running}{t(' measured')}
       </span>
       <span>
-        RSS{' '}
+        {t('RSS')}{' '}
         {fresh.length
-          ? `${(fresh.reduce((n, s) => n + s.rssBytes, 0) / 1024 ** 3).toFixed(1)} GiB`
-          : 'unavailable'}{' '}
-        · {fresh.length}/{running} measured
+          ? t('{v0} GiB', { v0: (fresh.reduce((n, s) => n + s.rssBytes, 0) / 1024 ** 3).toFixed(1) })
+          : t('unavailable')}{' '}
+        · {fresh.length}/{running}{t(' measured')}
       </span>
-      <span>RSS sums process resident memory; CPU may exceed 100%.</span>
+      <span>{t('RSS sums process resident memory; CPU may exceed 100%.')}</span>
     </>
   )
 }
@@ -638,12 +638,12 @@ function TaskPanel({
   return (
     <div ref={container}>
       <h3 ref={heading} tabIndex={-1} className="sr-only">
-        Tasks
+        {t('Tasks')}
       </h3>
-      {query.isPending && <p className="p-4">Loading tasks…</p>}
+      {query.isPending && <p className="p-4">{t('Loading tasks…')}</p>}
       {(query.isError || displaced.isError) && (
         <p className="p-4" role="alert">
-          Could not check current task state.{' '}
+          {t('Could not check current task state.')}{' '}
           <Button
             className="min-h-11"
             onClick={() => {
@@ -651,7 +651,7 @@ function TaskPanel({
               void displaced.refetch()
             }}
           >
-            Retry
+            {t('Retry')}
           </Button>
         </p>
       )}
@@ -663,7 +663,7 @@ function TaskPanel({
             heading.current?.focus()
           }}
         >
-          {staged.updates} updates — Show
+          {staged.updates}{t(' updates — Show')}
         </Button>
       )}
       {staged.rows.map(({ row, removed }) => (
@@ -685,7 +685,7 @@ function TaskPanel({
           disabled={query.isFetching}
           onClick={() => setCount((n) => n + 20)}
         >
-          Show {Math.min(20, total - count)} more tasks
+          {t('Show ')}{Math.min(20, total - count)}{t(' more tasks')}
         </Button>
       )}
     </div>

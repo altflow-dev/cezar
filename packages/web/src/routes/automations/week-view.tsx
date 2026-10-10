@@ -5,8 +5,9 @@ import { useNow } from '@/lib/use-now'
 import { cn } from '@/lib/utils'
 
 import { EventBlock, HOUR_H, HourGutter, HourLines, NowLine, PollBand, dayStart, minuteOf, occurrencesIn, stacked } from './calendar-parts'
+import { t } from '@/lib/i18n'
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
+const DAYS = [t('Mon'), t('Tue'), t('Wed'), t('Thu'), t('Fri'), t('Sat'), t('Sun')] as const
 
 /**
  * The Week calendar (spec 2026-09-14-automations-redesign § UI/UX 2, `design-04`): this week,
@@ -29,7 +30,7 @@ export function WeekView({ data }: { data: AutomationsResponse }) {
     return (
       <div data-slot="week-view" className="p-5">
         <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          Cannot draw the week: unknown time zone “{timeZone}”.
+          {t('Cannot draw the week: unknown time zone “')}{timeZone}”.
         </p>
       </div>
     )

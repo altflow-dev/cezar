@@ -27,6 +27,7 @@ import {
   type ReferenceStatusTone,
 } from '@/lib/reference-status'
 import { cn, isHttpUrl } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 /** Border + text per status tone. `violet` IS the chip's own resting look, which is why a
  *  reference with no status known keeps it: nothing has been learned, so nothing changes. */
@@ -152,9 +153,9 @@ export function ReferenceChip({
   // The overridden status rides along into the tooltip whenever the conflict took the chip.
   const tooltip = statusTooltip(entry, presentation, conflicting ? statusPresentation : undefined)
   const label = number ? `${!compact && kind === 'Issue' ? 'Issue ' : ''}#${number}` : kind
-  const kindWord = kind === 'PR' ? 'pull request' : 'issue'
+  const kindWord = kind === 'PR' ? t('pull request') : t('issue')
   // The accessible name carries the status too — a screen reader gets what the color says.
-  const ariaLabel = `Open the ${kindWord} for ${taskTitle}${presentation ? ` — ${presentation.label}` : ''}`
+  const ariaLabel = `${kind === 'PR' ? t('Open the pull request for {taskTitle}', { taskTitle }) : t('Open the issue for {taskTitle}', { taskTitle })}${presentation ? ` — ${presentation.label}` : ''}`
 
   const body = (
     <>
@@ -211,7 +212,7 @@ export function ReferenceChip({
   const panel = (
     <>
       <span className="block font-medium">
-        {kind === 'PR' ? 'Pull request' : 'Issue'}
+        {kind === 'PR' ? t('Pull request') : t('Issue')}
         {number ? ` #${number}` : ''} · {tooltip.headline}
       </span>
       <span className="block">{tooltip.detail}</span>
@@ -431,7 +432,7 @@ function statusTooltip(
     if (entry.state === 'unavailable') {
       return {
         headline: label,
-        detail: `last known — GitHub is unreachable${entry.reason ? ` (${entry.reason})` : ''}`,
+        detail: `${t('last known — GitHub is unreachable')}${entry.reason ? ` (${entry.reason})` : ''}`,
         ...(also ? { also } : {}),
       }
     }
@@ -439,16 +440,16 @@ function statusTooltip(
   }
   switch (entry.state) {
     case 'loading':
-      return { headline: 'Checking GitHub…', detail: 'the status of this reference is on its way' }
+      return { headline: t('Checking GitHub…'), detail: t('the status of this reference is on its way') }
     case 'unavailable':
       return {
-        headline: 'Status unavailable',
-        detail: entry.reason ?? 'GitHub could not be reached — the chip says nothing rather than guessing',
+        headline: t('Status unavailable'),
+        detail: entry.reason ?? t('GitHub could not be reached — the chip says nothing rather than guessing'),
       }
     case 'unknown':
       return {
-        headline: 'Not found on this repository',
-        detail: 'GitHub has no such number here — the reference may point at another repo',
+        headline: t('Not found on this repository'),
+        detail: t('GitHub has no such number here — the reference may point at another repo'),
       }
     default:
       return null

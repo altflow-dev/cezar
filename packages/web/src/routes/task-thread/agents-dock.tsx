@@ -5,6 +5,7 @@ import type { ToolStatus } from '@open-mercato/cezar-api-client'
 import { cn } from '@/lib/utils'
 
 import { activeSubagent, subagentActivityText, subagentCounts, type SubagentSummary } from './subagent-dock'
+import { t } from '@/lib/i18n'
 
 /**
  * The Agents dock (spec `.ai/specs/2026-07-20-grouped-subagent-display.md` §"Agents dock",
@@ -67,7 +68,7 @@ export function AgentsDock({
         className={cn('flex w-full items-center gap-2 px-3.5 text-left text-[13px]', open ? 'pt-2 pb-1.5' : 'py-2')}
       >
         <BotIcon aria-hidden className="size-3.5 shrink-0 text-soft-foreground" />
-        <span className="shrink-0 font-semibold">Agents</span>
+        <span className="shrink-0 font-semibold">{t('Agents')}</span>
         <span data-slot="agents-count" className="shrink-0 text-muted-foreground tabular-nums">
           · {done}/{total}
         </span>
@@ -111,7 +112,7 @@ function AgentRow({ agent, onSelect }: { agent: SubagentSummary; onSelect?: (id:
         {subagentActivityText(agent)}
       </span>
       <span data-slot="agent-tools" className="shrink-0 text-muted-foreground tabular-nums">
-        {agent.toolCalls} {agent.toolCalls === 1 ? 'tool' : 'tools'}
+        {agent.toolCalls} {agent.toolCalls === 1 ? t('tool') : t('tools')}
       </span>
     </>
   )

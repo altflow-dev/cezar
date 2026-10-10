@@ -6,6 +6,7 @@ import { CenteredState } from '@/components/centered-state'
 import { Button } from '@/components/ui/button'
 
 import type { RunTab } from '../task-thread/run-header'
+import { t } from '@/lib/i18n'
 
 /**
  * The Changes/Files tabs' loading + error surfaces, in their own module for the same reason
@@ -18,8 +19,8 @@ export function GitTabLoading({ tab }: { tab: Exclude<RunTab, 'session'> }) {
       <CenteredState
         icon={<LoaderCircleIcon className="motion-safe:animate-spin" />}
         tone="neutral"
-        title={tab === 'changes' ? 'Loading changes…' : 'Loading files…'}
-        subtitle="Fetching the run record."
+        title={tab === 'changes' ? t('Loading changes…') : t('Loading files…')}
+        subtitle={t('Fetching the run record.')}
       />
     </div>
   )
@@ -34,15 +35,15 @@ export function GitTabLoadError({ tab, error }: { tab: Exclude<RunTab, 'session'
       <CenteredState
         icon={notFound ? <SearchXIcon /> : <TriangleAlertIcon />}
         tone={notFound ? 'neutral' : 'danger'}
-        title={notFound ? 'Task not found' : 'Could not load this task'}
+        title={notFound ? t('Task not found') : t('Could not load this task')}
         subtitle={
           notFound
-            ? 'No run has this id. It may have been deleted, or the link is from another machine.'
+            ? t('No run has this id. It may have been deleted, or the link is from another machine.')
             : error.message
         }
         actions={
           <Button asChild variant="outline">
-            <Link to="/">Back to tasks</Link>
+            <Link to="/">{t('Back to tasks')}</Link>
           </Button>
         }
       />

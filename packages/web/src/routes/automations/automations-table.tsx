@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 
 import { RowActions } from './row-actions'
 import type { AutomationActions } from './use-automations'
+import { t } from '@/lib/i18n'
 
 /**
  * The Automations table (spec 2026-09-14-automations-redesign § UI/UX 1): nine columns, a row
@@ -41,14 +42,14 @@ export function AutomationsTable({
       <table className="w-full border-collapse [&_tbody_tr:last-child>td]:border-b-0">
         <thead>
           <tr>
-            <th className={cn(TH, 'pl-4')}>State</th>
-            <th className={TH}>Automation</th>
-            <th className={TH}>Trigger</th>
-            <th className={cn(TH, WIDE)}>Runs as</th>
-            <th className={TH}>Next run</th>
-            <th className={TH}>Last run</th>
-            <th className={cn(TH, WIDE, 'text-right')}>Runs 7d</th>
-            {showCost ? <th className={cn(TH, WIDE, 'text-right')}>Cost 7d</th> : null}
+            <th className={cn(TH, 'pl-4')}>{t('State')}</th>
+            <th className={TH}>{t('Automation')}</th>
+            <th className={TH}>{t('Trigger')}</th>
+            <th className={cn(TH, WIDE)}>{t('Runs as')}</th>
+            <th className={TH}>{t('Next run')}</th>
+            <th className={TH}>{t('Last run')}</th>
+            <th className={cn(TH, WIDE, 'text-right')}>{t('Runs 7d')}</th>
+            {showCost ? <th className={cn(TH, WIDE, 'text-right')}>{t('Cost 7d')}</th> : null}
             <th className={cn(TH, 'pr-4')} />
           </tr>
         </thead>
@@ -104,10 +105,10 @@ function AutomationRow({
     >
       <td className={cn(TD, 'pl-4')}>
         {capabilityPaused ? (
-          <Pill dot="neutral">paused by capability</Pill>
+          <Pill dot="neutral">{t('paused by capability')}</Pill>
         ) : (
           <Pill dot={automation.enabled ? 'success' : 'neutral'} pulse={automation.enabled && github}>
-            {automation.enabled ? 'enabled' : 'paused'}
+            {automation.enabled ? t('enabled') : t('paused')}
           </Pill>
         )}
       </td>
@@ -118,7 +119,7 @@ function AutomationRow({
           {dispatch ? (
             <span
               data-slot="dispatch-badge"
-              title={`dispatch · up to ${dispatch.maxSubtasks ?? 1} subtasks`}
+              title={t('dispatch · up to {v0} subtasks', { v0: dispatch.maxSubtasks ?? 1 })}
               className="inline-flex shrink-0 items-center gap-[3px] rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground"
             >
               <GitForkIcon className="size-2.5" />×{dispatch.maxSubtasks ?? 1}
@@ -169,7 +170,7 @@ function AutomationRow({
               onClick={stop}
               className="inline-flex items-center gap-0.5 rounded-full border border-violet/40 px-1.5 py-px font-mono text-[10.5px] font-semibold text-violet"
             >
-              task
+              {t('task')}
               <ArrowUpRightIcon className="size-[9px]" />
             </Link>
           </span>

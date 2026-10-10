@@ -1,5 +1,6 @@
 import type { DiffStat } from '@open-mercato/cezar-api-client'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 /**
  * `+128 −14` — a run's aggregate diff numbers, the mockup's `.adds`/`.dels` pair
@@ -34,7 +35,7 @@ import { cn } from '@/lib/utils'
 export function DiffStatLabel({ stat, className }: { stat: DiffStat; className?: string }) {
   const counts = `+${stat.adds} −${stat.dels} across ${stat.files} ${stat.files === 1 ? 'file' : 'files'}`
   const caveat = stat.repointed
-    ? `${counts} — measured against another branch checked out in this task's worktree, as this task found it`
+    ? t('{counts} — measured against another branch checked out in this task\'s worktree, as this task found it', { counts })
     : undefined
   return (
     <span

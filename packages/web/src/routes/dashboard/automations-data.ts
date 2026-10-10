@@ -8,6 +8,7 @@ import {
 import { cez, unwrap } from '@/api/client'
 import { useProjects, workspaceQueryKeys } from '@/api/queries'
 import { onWorkspaceEvent } from '@/api/global-events'
+import { t } from '@/lib/i18n'
 
 export function nextAutomationAt(automation: DashboardAutomation) {
   const at = Date.parse(automation.nextRunAt ?? '')
@@ -55,7 +56,7 @@ export function useDashboardAutomations(enabled: boolean) {
           while (cursor < projects.length && !signal.aborted) {
             const project = projects[cursor++]!
             if (project.status === 'missing') {
-              result.push({ ...project, error: 'Project folder unavailable' })
+              result.push({ ...project, error: t('Project folder unavailable') })
               continue
             }
             try {
@@ -73,7 +74,7 @@ export function useDashboardAutomations(enabled: boolean) {
               result.push({
                 id: project.id,
                 name: project.name,
-                error: 'Could not load automations',
+                error: t('Could not load automations'),
               })
             }
           }

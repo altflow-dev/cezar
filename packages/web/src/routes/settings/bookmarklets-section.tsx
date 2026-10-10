@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { bookmarkletUrl } from '@/lib/bookmarklet'
 import { useActiveProjectId } from '@/lib/project-router'
 import { orderSkills } from '@/lib/skills'
+import { t } from '@/lib/i18n'
 
 /** Settings → Bookmarklets (spec 011): the legacy generic and per-skill launchers promoted
  *  to a first-class, discoverable Settings subpage. */
@@ -21,7 +22,7 @@ export function BookmarkletsSection() {
   if (skillsQuery.isPending) {
     return (
       <p data-slot="bookmarklets-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
-        Loading bookmarklets…
+        {t('Loading bookmarklets…')}
       </p>
     )
   }
@@ -31,7 +32,7 @@ export function BookmarkletsSection() {
         icon={<TriangleAlertIcon />}
         tone="danger"
         heading="h2"
-        title="Could not load bookmarklets"
+        title={t('Could not load bookmarklets')}
         subtitle={skillsQuery.error.message}
       />
     )
@@ -92,10 +93,9 @@ export function BookmarkletPanel({ skills }: { skills: readonly Skill[] }) {
 
   return (
     <div data-slot="bookmarklet-panel" className="mx-auto w-full max-w-2xl">
-      <h2 className="text-base font-semibold">Run from GitHub</h2>
+      <h2 className="text-base font-semibold">{t('Run from GitHub')}</h2>
       <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-        Drag a button below to your browser&apos;s bookmarks bar. On any GitHub PR or issue, click it
-        to open this cockpit directly. The cockpit must be running: <span className="font-mono">npx cezar</span>.
+        {t('Drag a button below to your browser\'s bookmarks bar. On any GitHub PR or issue, click it to open this cockpit directly. The cockpit must be running: ')}<span className="font-mono">{t('npx cezar')}</span>.
       </p>
 
       <label className="mt-4 flex items-center gap-2 text-[13px] font-medium">
@@ -106,23 +106,23 @@ export function BookmarkletPanel({ skills }: { skills: readonly Skill[] }) {
           onChange={(event) => setAuto(event.target.checked)}
           className="size-3.5"
         />
-        One-click launch (auto-submit){' '}
-        <span className="font-normal text-soft-foreground">— re-drag the buttons after changing this</span>
+        {t('One-click launch (auto-submit)')}{' '}
+        <span className="font-normal text-soft-foreground">{t('— re-drag the buttons after changing this')}</span>
       </label>
 
       <div data-slot="bm-generic" className="mt-4">
         {/* Generic launcher: no skill, auto forced off — it only prefills the form. */}
         <BookmarkletRow
-          label={repoName ? `cezar (${repoName}): this PR/issue` : 'cezar: this PR/issue'}
+          label={repoName ? t('cezar ({repoName}): this PR/issue', { repoName }) : t('cezar: this PR/issue')}
           url={bookmarkletUrl('', false, key, origin, projectId)}
-          hint="prefills the form — nothing starts by itself"
+          hint={t('prefills the form — nothing starts by itself')}
         />
       </div>
 
       <Input
         data-slot="bm-filter"
-        placeholder="Filter skills…"
-        aria-label="Filter bookmarklet skills"
+        placeholder={t('Filter skills…')}
+        aria-label={t('Filter bookmarklet skills')}
         value={filter}
         onChange={(event) => setFilter(event.target.value)}
         className="mt-5 h-8 text-[13px]"
@@ -140,8 +140,8 @@ export function BookmarkletPanel({ skills }: { skills: readonly Skill[] }) {
         ) : (
           <p className="text-xs text-soft-foreground">
             {skills.length > 0
-              ? '(no skills match)'
-              : '(no skills yet — the generic launcher above still works)'}
+              ? t('(no skills match)')
+              : t('(no skills yet — the generic launcher above still works)')}
           </p>
         )}
       </div>

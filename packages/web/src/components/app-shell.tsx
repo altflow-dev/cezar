@@ -46,6 +46,7 @@ import {
   writeStoredSidebarWidth,
 } from '@/lib/sidebar-width'
 import { cn } from '@/lib/utils'
+import { t, tp } from '@/lib/i18n'
 /** Tailwind's `md`. The drawer is the `<md` affordance, so this must stay in step with the
  *  `md:hidden` / `md:flex` classes below — they are the same breakpoint expressed twice, once
  *  for CSS and once for the state machine. */
@@ -353,11 +354,11 @@ function TitlebarUpdateButton({ latestVersion, brandName }: { latestVersion: str
         type="button"
         data-slot="titlebar-update"
         onClick={() => setOpen(true)}
-        title={`Update ${brandName} to v${latestVersion} and restart`}
+        title={t('Update {brandName} to v{latestVersion} and restart', { brandName, latestVersion })}
         className="inline-flex h-[18px] items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-primary/30"
       >
         <StatusDot tone="pending" pulse className="size-[5px] shrink-0" />
-        Update {brandName}
+        {t('Update ')}{brandName}
         <span className="font-mono font-medium text-muted-foreground">v{latestVersion}</span>
       </button>
       {open ? <SelfUpdateDialog open={open} onOpenChange={setOpen} autoApply={latestVersion} brandName={brandName} /> : null}
@@ -504,7 +505,7 @@ function SidebarResizeHandle({ width, onWidthChange }: SidebarResize) {
       data-slot="sidebar-resize-handle"
       role="separator"
       aria-orientation="vertical"
-      aria-label="Resize the sidebar"
+      aria-label={t('Resize the sidebar')}
       aria-valuenow={width}
       aria-valuemin={MIN_SIDEBAR_WIDTH}
       aria-valuemax={MAX_SIDEBAR_WIDTH}
@@ -515,7 +516,7 @@ function SidebarResizeHandle({ width, onWidthChange }: SidebarResize) {
       onPointerCancel={endDrag}
       onKeyDown={onKeyDown}
       onDoubleClick={() => onWidthChange(DEFAULT_SIDEBAR_WIDTH)}
-      title="Drag to resize the sidebar — double-click to reset"
+      title={t('Drag to resize the sidebar — double-click to reset')}
       // A 5px grab strip straddling the border, invisible until you reach for it. `touch-none`
       // is load-bearing rather than decorative: without it a touch drag is claimed by the
       // browser's own panning and scrolls the page instead of resizing the column.
@@ -546,14 +547,14 @@ const MobileNavDrawer = React.memo(function MobileNavDrawer({ onNavigate, ...pro
       aria-describedby={undefined}
     >
       {/* The dialog's accessible name. Visually redundant with the brand lockup below. */}
-      <SheetTitle className="sr-only">Navigation</SheetTitle>
+      <SheetTitle className="sr-only">{t('Navigation')}</SheetTitle>
       <SidebarContent
         {...props}
         onNavigate={onNavigate}
         headerAction={
           <SheetClose asChild>
             {/* size-11: the ≥44px touch target the spec's mobile rules require. */}
-            <Button variant="ghost" size="icon" aria-label="Close menu" className="-mr-2 size-11">
+            <Button variant="ghost" size="icon" aria-label={t('Close menu')} className="-mr-2 size-11">
               <XIcon className="size-[17px]" aria-hidden="true" />
             </Button>
           </SheetClose>
@@ -639,7 +640,7 @@ function SidebarContent({
               React composer has owned auto-start parity since R4 Step 1.3. */}
           <Link to="/new" onClick={onNavigate}>
             <PlusIcon className="size-[15px]" aria-hidden="true" />
-            New task
+            {t('New task')}
             {/* Decorative: the `c`-to-create accelerator is registered in the command palette.
                 (⌘N is also bound there, but only the desktop shell receives it — the browser
                 reserves ⌘N for a new window — so the chip advertises the one that always works.) */}
@@ -683,7 +684,7 @@ function SidebarContent({
         </>
       ) : (
         <>
-          <nav aria-label="Main" className="px-2.5 py-1.5">
+          <nav aria-label={t('Main')} className="px-2.5 py-1.5">
             {items.map((item) => {
               const isActive = item.to === activeTo
               const Icon = item.icon
@@ -719,7 +720,7 @@ function SidebarContent({
                   {item.badge === 'tasks-unread' && unreadCount ? (
                     <span
                       data-slot="nav-unread-badge"
-                      title={`${unreadCount} unread finished ${unreadCount === 1 ? 'task' : 'tasks'}`}
+                      title={tp(unreadCount, '{count} unread finished task', '{count} unread finished tasks')}
                       className="ml-auto rounded-full bg-violet px-1.5 py-px text-[10.5px] font-semibold text-violet-foreground"
                     >
                       {unreadCount}
@@ -731,7 +732,7 @@ function SidebarContent({
                       className="ml-auto flex items-center"
                     >
                       <span className="size-1.5 rounded-full bg-violet" aria-hidden="true" />
-                      <span className="sr-only">Skills update available</span>
+                      <span className="sr-only">{t('Skills update available')}</span>
                     </span>
                   ) : null}
                 </Link>
@@ -819,7 +820,7 @@ function DashboardLink({ onNavigate }: { onNavigate?: () => void }) {
       {({ isActive }) => (
         <>
           <LayoutDashboardIcon className={sidebarSectionIconClass(isActive)} aria-hidden="true" />
-          Dashboard
+          {t('Dashboard')}
         </>
       )}
     </NavLink>
@@ -850,7 +851,7 @@ function AllTasksLink({ onNavigate }: { onNavigate?: () => void }) {
       className={cn(SIDEBAR_SECTION_LINK_CLASS, isActive && 'bg-muted')}
     >
       <LayersIcon className={sidebarSectionIconClass(isActive)} aria-hidden="true" />
-      All tasks
+      {t('All tasks')}
     </RouterLink>
   )
 }
@@ -875,8 +876,8 @@ function GlobalSettingsLink({
       <RouterLink
         to="/settings/global"
         data-slot="global-settings-link"
-        aria-label="Global settings"
-        title="Global settings"
+        aria-label={t('Global settings')}
+        title={t('Global settings')}
         onClick={onNavigate}
       >
         <SettingsIcon className="size-4" aria-hidden="true" />
@@ -913,22 +914,22 @@ function AddProjectMenu() {
         <Button
           variant="outline"
           size="icon"
-          aria-label="Add project"
-          title="Add project"
+          aria-label={t('Add project')}
+          title={t('Add project')}
           className="size-11 shrink-0 md:size-9"
         >
           <FolderOpenIcon className="size-4" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuLabel className="text-xs text-soft-foreground">Add project</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-soft-foreground">{t('Add project')}</DropdownMenuLabel>
         <DropdownMenuItem data-slot="add-project-local" onSelect={() => setBrowsing(true)}>
           <FolderIcon aria-hidden="true" />
-          Open local folder…
+          {t('Open local folder…')}
         </DropdownMenuItem>
         <DropdownMenuItem data-slot="add-project-clone" onSelect={() => setCloning(true)}>
           <GithubIcon aria-hidden="true" />
-          Clone from GitHub…
+          {t('Clone from GitHub…')}
         </DropdownMenuItem>
       </DropdownMenuContent>
       {browsing ? <AddProjectDialog open onOpenChange={setBrowsing} /> : null}
@@ -957,12 +958,12 @@ function CommandPaletteHint() {
     <button
       type="button"
       data-slot="command-palette-hint"
-      title="Search — command palette (⌘K / Ctrl+K)"
+      title={t('Search — command palette (⌘K / Ctrl+K)')}
       onClick={() => openCommandPalette()}
       className="flex w-full items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2 py-1 text-left text-xs font-medium text-soft-foreground transition-colors hover:bg-muted hover:text-foreground"
     >
       <SearchIcon className="size-3.5 shrink-0" aria-hidden="true" />
-      <span className="truncate">Search…</span>
+      <span className="truncate">{t('Search…')}</span>
       <kbd
         aria-hidden="true"
         className="ml-auto shrink-0 rounded-[5px] border border-b-2 border-border bg-card px-[5px] py-px font-mono text-[10.5px] font-medium text-muted-foreground"
@@ -997,8 +998,8 @@ function VersionChip({ version, latestVersion, brandName }: { version: string; l
         type="button"
         data-slot="version-chip"
         data-update-available={updateAvailable ? 'true' : undefined}
-        title={updateAvailable ? `v${version} — update available: v${latestVersion}` : `v${version}`}
-        aria-label={updateAvailable ? `${brandName} v${version}, update to v${latestVersion} available — open updater` : `${brandName} v${version} — open updater`}
+        title={updateAvailable ? t('v{version} — update available: v{latestVersion}', { version, latestVersion }) : `v${version}`}
+        aria-label={updateAvailable ? t('{brandName} v{version}, update to v{latestVersion} available — open updater', { brandName, version, latestVersion }) : t('{brandName} v{version} — open updater', { brandName, version })}
         onClick={() => setOpen(true)}
         className="flex min-w-0 cursor-pointer items-center gap-1 rounded-full border border-border px-1.5 py-px font-mono text-[10px] font-medium text-soft-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
@@ -1034,8 +1035,8 @@ function StarChip({ count }: { count: number }) {
       href={CEZAR_REPO_URL}
       target="_blank"
       rel="noopener noreferrer"
-      title={`Star cezar on GitHub — ${count.toLocaleString()} stars`}
-      aria-label={`Star cezar on GitHub — ${count.toLocaleString()} stars`}
+      title={t('Star cezar on GitHub — {v0} stars', { v0: count.toLocaleString() })}
+      aria-label={t('Star cezar on GitHub — {v0} stars', { v0: count.toLocaleString() })}
       className="flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 py-px font-mono text-[10px] font-medium text-soft-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       <span aria-hidden="true">⭐</span>
@@ -1060,7 +1061,7 @@ function MobileTopBar({ title }: { title: string }) {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Open menu"
+            aria-label={t('Open menu')}
             // 44px: the minimum touch target, overriding the 36px desktop icon-button size.
             className="-ml-1.5 size-11"
           >

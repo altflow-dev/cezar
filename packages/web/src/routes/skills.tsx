@@ -26,6 +26,7 @@ import { Switch } from '@/components/ui/switch'
 import { toast } from '@/components/ui/toaster'
 import { filterSkills, isProjectSkill, orderSkills, skillUsedBy } from '@/lib/skills'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 type SkillCatalogItem = Skill & { enabled: boolean }
 
@@ -53,8 +54,8 @@ function skillActivation(
 
   return {
     ariaLabel: alwaysEnabled
-      ? `${skill.name} is always enabled`
-      : `${skill.enabled ? 'Disable' : 'Enable'} ${skill.name}`,
+      ? t('{name} is always enabled', { name: skill.name })
+      : `${skill.enabled ? t('Disable') : t('Enable')} ${skill.name}`,
     checked: alwaysEnabled || skill.enabled,
     disabled: alwaysEnabled || pending || importableUnavailable,
     onCheckedChange: () => onToggle(skill.name),
@@ -79,8 +80,8 @@ export function SkillsRoute() {
     <div data-route="skills" className="flex min-h-full flex-col">
       {/* Desktop header — below `md` the shell's top bar already says "Skills". */}
       <header className="sticky top-0 z-10 hidden h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5 md:flex">
-        <h1 className="text-base font-semibold">Skills</h1>
-        <p className="text-[13px] text-muted-foreground">Markdown playbooks agents can follow.</p>
+        <h1 className="text-base font-semibold">{t('Skills')}</h1>
+        <p className="text-[13px] text-muted-foreground">{t('Markdown playbooks agents can follow.')}</p>
       </header>
       <SkillsCatalog />
     </div>
@@ -134,7 +135,7 @@ function SkillsCatalog() {
     onSuccess: (catalog) => {
       // The POST answers the merged catalog — seed the shared query instead of refetching.
       queryClient.setQueryData(queryKeys.skills, catalog)
-      toast('Team skills refreshed.')
+      toast(t('Team skills refreshed.'))
     },
     onError: (error) => toast(error.message, { tone: 'danger' }),
   })
@@ -145,7 +146,7 @@ function SkillsCatalog() {
         icon={<TriangleAlertIcon />}
         tone="danger"
         heading="h2"
-        title="Could not load skills"
+        title={t('Could not load skills')}
         subtitle={skillsQuery.error.message}
       />
     )
@@ -187,8 +188,8 @@ function SkillsCatalog() {
         <div className="flex shrink-0 items-center gap-2 p-3 pb-2">
           <Input
             data-slot="skills-filter"
-            placeholder="Filter skills…"
-            aria-label="Filter skills"
+            placeholder={t('Filter skills…')}
+            aria-label={t('Filter skills')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="h-8 text-[13px]"
@@ -196,7 +197,7 @@ function SkillsCatalog() {
           <button
             type="button"
             data-slot="skills-refresh"
-            title="git fetch the team skills repos"
+            title={t('git fetch the team skills repos')}
             disabled={refresh.isPending}
             onClick={() => refresh.mutate()}
             className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-55"
@@ -205,7 +206,7 @@ function SkillsCatalog() {
               aria-hidden="true"
               className={cn('size-3', refresh.isPending && 'motion-safe:animate-spin')}
             />
-            Refresh
+            {t('Refresh')}
           </button>
         </div>
         {projectId ? (
@@ -220,7 +221,7 @@ function SkillsCatalog() {
             className="mx-3 mb-2 flex shrink-0 items-center justify-between gap-3 rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-xs text-danger"
           >
             <p className="min-w-0">
-              Could not load the Open Mercato skills catalog. Team skills may be missing until it loads.{' '}
+              {t('Could not load the Open Mercato skills catalog. Team skills may be missing until it loads.')}{' '}
               {importableQuery.error.message}
             </p>
             <Button
@@ -231,14 +232,14 @@ function SkillsCatalog() {
               disabled={importableQuery.isFetching}
               onClick={() => void importableQuery.refetch()}
             >
-              Retry
+              {t('Retry')}
             </Button>
           </div>
         ) : null}
 
         <ul data-slot="skill-rows" className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-2">
           {skillsQuery.isPending ? (
-            <li className="px-2.5 py-2 text-[13px] text-soft-foreground">Loading…</li>
+            <li className="px-2.5 py-2 text-[13px] text-soft-foreground">{t('Loading…')}</li>
           ) : shown.length > 0 ? (
             shown.map((skill) => (
               <SkillRow
@@ -256,7 +257,7 @@ function SkillsCatalog() {
             ))
           ) : (
             <li className="px-2.5 py-2 text-xs leading-relaxed text-soft-foreground">
-              {catalog.length > 0 ? '(no skills match)' : <SkillEmptyHint />}
+              {catalog.length > 0 ? t('(no skills match)') : <SkillEmptyHint />}
             </li>
           )}
         </ul>
@@ -277,7 +278,7 @@ function SkillsCatalog() {
                   className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground md:hidden"
                 >
                   <ArrowLeftIcon aria-hidden="true" className="size-3.5" />
-                  Back to skills
+                  {t('Back to skills')}
                 </Link>
               ) : null}
               <SkillDetailBody
@@ -292,8 +293,8 @@ function SkillsCatalog() {
               icon={<SparklesIcon />}
               tone="neutral"
               heading="h2"
-              title="No skill selected"
-              subtitle="Pick a skill from the catalog."
+              title={t('No skill selected')}
+              subtitle={t('Pick a skill from the catalog.')}
             />
           )}
         </div>

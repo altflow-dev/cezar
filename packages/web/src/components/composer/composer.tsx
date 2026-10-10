@@ -39,6 +39,7 @@ import {
 } from './composer-attachments'
 import { applyCompletion, detectTrigger, type TriggerState } from './composer-text'
 import { formatElapsed, useDictation } from './dictation'
+import { t } from '@/lib/i18n'
 
 /**
  * The SHARED composer (spec §"Task thread" composer + §"New task" composer intelligence —
@@ -144,12 +145,12 @@ export function Composer({
   draftItems,
   footerStart,
   footerEnd,
-  sendAriaLabel = 'Send',
+  sendAriaLabel = t('Send'),
   disabled = false,
-  disabledReason = 'Session closed — Continue to reopen.',
+  disabledReason = t('Session closed — Continue to reopen.'),
   allowEmptySubmit = false,
-  placeholder = 'Reply — / for skills, @ for files…',
-  ariaLabel = 'Reply to the agent',
+  placeholder = t('Reply — / for skills, @ for files…'),
+  ariaLabel = t('Reply to the agent'),
   autocompleteSkills = true,
   quickReplies = false,
   getMentionCandidates,
@@ -518,8 +519,8 @@ export function Composer({
                 <button
                   key={`${attachment.name}-${index}`}
                   type="button"
-                  aria-label={`Remove ${attachment.name}`}
-                  title="Click to remove"
+                  aria-label={t('Remove {name}', { name: attachment.name })}
+                  title={t('Click to remove')}
                   className={cn(
                     'group relative overflow-hidden rounded-md border border-border',
                     attachment.isImage
@@ -595,13 +596,13 @@ export function Composer({
                     variant="ghost"
                     size="sm"
                     disabled={disabled}
-                    aria-label="Start dictation"
-                    title="Dictation"
+                    aria-label={t('Start dictation')}
+                    title={t('Dictation')}
                     className="h-8 gap-1.5 px-2.5 text-xs font-medium text-muted-foreground"
                     onClick={dictation.start}
                   >
                     <MicIcon aria-hidden="true" className="size-3.5" />
-                    Dictation
+                    {t('Dictation')}
                   </Button>
                 ) : null}
                 {footerEnd ? (
@@ -651,10 +652,10 @@ export function Composer({
             {candidates.length === 0 ? (
               <p className="px-3 py-4 text-center text-xs text-muted-foreground">
                 {trigger?.trigger === '@'
-                  ? 'No files seen in this session yet — full file search arrives with the Files tab.'
+                  ? t('No files seen in this session yet — full file search arrives with the Files tab.')
                   : skills.isPending
-                    ? 'Loading skills…'
-                    : 'No matching skills.'}
+                    ? t('Loading skills…')
+                    : t('No matching skills.')}
               </p>
             ) : (
               candidates.map((candidate) => (
@@ -708,8 +709,8 @@ function AttachButton({
         type="button"
         variant="ghost"
         size="icon-sm"
-        aria-label="Attach files"
-        title="Attach an image, PDF, TXT or MD file (or paste a screenshot)"
+        aria-label={t('Attach files')}
+        title={t('Attach an image, PDF, TXT or MD file (or paste a screenshot)')}
         disabled={disabled}
         className="size-8 text-muted-foreground"
         onClick={() => inputRef.current?.click()}
@@ -757,7 +758,7 @@ function DictationBar({
     <div
       data-slot="dictation-overlay"
       role="status"
-      aria-label="Dictation in progress"
+      aria-label={t('Dictation in progress')}
       className="flex items-center gap-2.5 rounded-b-xl border-t border-border bg-muted/60 px-3 py-2"
     >
       <span
@@ -773,7 +774,7 @@ function DictationBar({
         className="min-w-0 flex-1 truncate text-sm text-foreground"
       >
         {transcript === '' ? (
-          <span className="text-muted-foreground">Listening…</span>
+          <span className="text-muted-foreground">{t('Listening…')}</span>
         ) : (
           transcript
         )}
@@ -782,7 +783,7 @@ function DictationBar({
         type="button"
         variant="ghost"
         size="icon-sm"
-        aria-label="Cancel dictation"
+        aria-label={t('Cancel dictation')}
         className="size-8 text-muted-foreground"
         onClick={onCancel}
       >
@@ -792,7 +793,7 @@ function DictationBar({
         type="button"
         variant="outline"
         size="icon-sm"
-        aria-label="Insert transcription"
+        aria-label={t('Insert transcription')}
         className="size-8"
         onClick={onInsert}
       >
@@ -801,7 +802,7 @@ function DictationBar({
       <Button
         type="button"
         size="icon-sm"
-        aria-label="Insert transcription and send"
+        aria-label={t('Insert transcription and send')}
         className="size-8"
         onClick={onInsertAndSend}
       >

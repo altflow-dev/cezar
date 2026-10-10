@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { StepState, StepStatus } from '@open-mercato/cezar-api-client'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 /**
  * The WORKFLOW step rail (spec §"Task thread" — steps ≠ plan: these are the run's own
@@ -68,7 +69,7 @@ export function StepRail({ steps }: { steps: StepState[] }) {
             </span>
           ) : null}
           <span className="ml-auto shrink-0 pl-2 text-[11.5px] text-soft-foreground tabular-nums">
-            {step.kind} · step {index + 1} of {steps.length}
+            {step.kind}{t(' · step ')}{index + 1}{t(' of ')}{steps.length}
           </span>
         </div>
       ))}
@@ -88,7 +89,7 @@ function RailIcon({ visual }: { visual: RailVisual }) {
       return (
         <LoaderCircleIcon
           role="status"
-          aria-label="Step running"
+          aria-label={t('Step running')}
           // stroke-pending, not text-*: amber is a dot & spinner color only (guardian rule).
           className={cn(base, 'animate-spin stroke-pending motion-reduce:animate-none')}
         />
@@ -160,7 +161,7 @@ export function WorkflowSteps({ runId, steps }: { runId: string; steps: StepStat
   return (
     <Collapsible data-slot="workflow-steps" open={open} onOpenChange={toggle} className="min-w-0">
       <CollapsibleTrigger
-        aria-label={`Workflow: ${current.name}, step ${index + 1} of ${steps.length}`}
+        aria-label={t('Workflow: {name}, step {v1} of {length}', { name: current.name, v1: index + 1, length: steps.length })}
         // Keep the phone header's compact 28px footprint: the negative margins absorb the
         // extra 16px of a 44px touch target without changing the surrounding row's height.
         // The step rail is the only control in this bordered section, so the expanded hit box
@@ -174,7 +175,7 @@ export function WorkflowSteps({ runId, steps }: { runId: string; steps: StepStat
         </span>
         <span className="min-w-0 max-w-[45%] shrink truncate font-semibold text-foreground">{current.name}</span>
         <span className="shrink-0 text-soft-foreground tabular-nums">
-          step {index + 1} of {steps.length}
+          {t('step ')}{index + 1}{t(' of ')}{steps.length}
         </span>
         <span data-slot="step-summary-progress" className="h-0.5 min-w-[36px] flex-1 overflow-hidden rounded-full bg-muted">
           <span className="block h-full rounded-full bg-pending" style={{ width: `${pct}%` }} />

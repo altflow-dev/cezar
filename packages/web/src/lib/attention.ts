@@ -1,4 +1,5 @@
 import type { RunRecord } from '@open-mercato/cezar-api-client'
+import { t } from '@/lib/i18n'
 
 /**
  * The one canonical attention function (spec, "Design system" → status grammar).
@@ -123,7 +124,7 @@ export function isNeedsYouStatus(run: Pick<RunRecord, 'status' | 'awaitingAnswer
  */
 export function deriveAttention(run: AttentionInput): Attention {
   if (hasPendingPermission(run)) {
-    return { bucket: 'permission', tone: 'violet', pulse: true, label: 'needs permission' }
+    return { bucket: 'permission', tone: 'violet', pulse: true, label: t('needs permission') }
   }
   // A run a provider usage limit stopped is `failed` on the record, but it is not an outcome —
   // it is a task with an appointment (spec 2026-08-03-auto-resume-after-usage-limit). Painting
@@ -139,7 +140,7 @@ export function deriveAttention(run: AttentionInput): Attention {
   // answer. Reporting it as a failure (or, before that, as done) hid a task that was waiting on
   // you; it wears the `waiting` rung instead, and the answer reopens the session.
   if (isAwaitingAnswer(run)) {
-    return { bucket: 'waiting', tone: 'pending', pulse: true, label: 'needs you' }
+    return { bucket: 'waiting', tone: 'pending', pulse: true, label: t('needs you') }
   }
   if (run.status === 'failed') {
     return { bucket: 'error', tone: 'danger', pulse: false, label: 'failed' }
@@ -149,11 +150,11 @@ export function deriveAttention(run: AttentionInput): Attention {
       bucket: 'waiting',
       tone: 'pending',
       pulse: true,
-      label: budgetStop(run)?.ceiling !== undefined ? 'budget reached' : 'needs you',
+      label: budgetStop(run)?.ceiling !== undefined ? t('budget reached') : t('needs you'),
     }
   }
   if (run.status === 'review') {
-    return { bucket: 'waiting', tone: 'violet', pulse: true, label: 'needs review' }
+    return { bucket: 'waiting', tone: 'violet', pulse: true, label: t('needs review') }
   }
   if (run.status === 'running' && run.activity === 'monitoring') {
     // Still working, but on its OWN downstream work (a sub-agent / a monitored

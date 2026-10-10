@@ -10,6 +10,7 @@ import {
   notificationSupport,
   type NotificationSupport,
 } from '@/lib/notifications'
+import { t } from '@/lib/i18n'
 
 /**
  * Settings → Notifications (R6 Step 1.7, spec §"Cross-cutting").
@@ -91,11 +92,10 @@ export function NotificationsSection() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-foreground">
-              <label htmlFor="notifications-enabled">Notify when an agent needs you</label>
+              <label htmlFor="notifications-enabled">{t('Notify when an agent needs you')}</label>
             </h2>
             <p className="text-[13px] text-muted-foreground">
-              A browser notification when a task starts waiting, asks for review, or fails —
-              only while this tab is in the background. Off by default.
+              {t('A browser notification when a task starts waiting, asks for review, or fails — only while this tab is in the background. Off by default.')}
             </p>
           </div>
           <Switch
@@ -109,15 +109,13 @@ export function NotificationsSection() {
 
         {unsupported ? (
           <p data-slot="notifications-unsupported" className="text-[13px] text-muted-foreground">
-            This browser does not support notifications, so the toggle is unavailable here.
+            {t('This browser does not support notifications, so the toggle is unavailable here.')}
           </p>
         ) : null}
 
         {!unsupported && enabled && permission === 'denied' ? (
           <p data-slot="notifications-denied" className="text-[13px] text-danger">
-            This browser is blocking notifications for the cockpit. The preference is saved, but
-            nothing will be delivered here until you allow notifications in the browser&apos;s
-            site settings.
+            {t('This browser is blocking notifications for the cockpit. The preference is saved, but nothing will be delivered here until you allow notifications in the browser\'s site settings.')}
           </p>
         ) : null}
       </section>

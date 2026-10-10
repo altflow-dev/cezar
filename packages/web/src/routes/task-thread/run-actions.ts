@@ -1,6 +1,7 @@
 import type { RunRecord, RunStatus, Runner } from '@open-mercato/cezar-api-client'
 import { cliTargetRunner } from '@/components/open-in-menu'
 import { canBeUnread, isUnread } from '@/lib/read-state'
+import { t } from '@/lib/i18n'
 
 export { cliTargetRunner }
 
@@ -157,7 +158,7 @@ export function resolveConflictsPrompt(prNumber?: number): string {
 
 /** The Finish button's tooltip — review-gate accept reads differently from closing a session. */
 export function finishTitle(status: RunStatus): string {
-  return status === 'review' ? 'Accept the changes without a PR' : 'Close the session'
+  return status === 'review' ? t('Accept the changes without a PR') : t('Close the session')
 }
 
 /**

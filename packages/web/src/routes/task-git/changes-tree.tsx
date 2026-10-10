@@ -5,6 +5,7 @@ import { CommentCount } from '@/components/comment-count'
 import { cn } from '@/lib/utils'
 
 import type { TreeDir, TreeFile } from './file-tree'
+import { t } from '@/lib/i18n'
 
 /**
  * The Changes tab's file tree (spec #390: "file tree (left, folders collapsible, per-file ±)").
@@ -26,7 +27,7 @@ export function ChangesTree({
 }) {
   return (
     <CommentCountsContext.Provider value={commentCounts}>
-    <nav data-slot="changes-tree" aria-label="Changed files" className="min-w-0 text-[13px]">
+    <nav data-slot="changes-tree" aria-label={t('Changed files')} className="min-w-0 text-[13px]">
       <ul className="flex flex-col gap-px">
         {root.dirs.map((dir) => (
           <DirNode key={dir.path} dir={dir} depth={0} selected={selected} onSelect={onSelect} />

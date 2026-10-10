@@ -6,6 +6,7 @@ import { queryScope } from '@open-mercato/cezar-api-client'
 import { useThrottledValue } from '@/lib/use-throttled-value'
 import { getRunHistory, getRunHistoryContext } from './client'
 import { liveItemKey, useRunEvents, type RunEventCompaction } from './run-events'
+import { t } from '@/lib/i18n'
 
 const MAX_HISTORY_PAGES = 5
 const LIVE_FRAME_MS = 120
@@ -218,7 +219,7 @@ export function useRunHistory(runId: string | undefined): RunHistoryState {
         new Promise<RunHistoryPage>((_, reject) => {
           timeout = setTimeout(() => {
             controller.abort()
-            reject(new Error('history compaction timed out'))
+            reject(new Error(t('history compaction timed out')))
           }, COMPACTION_TIMEOUT_MS)
         }),
       ])
@@ -390,7 +391,7 @@ export function useRunHistory(runId: string | undefined): RunHistoryState {
     hasOlder: !fallback && Boolean(history.hasPreviousPage),
     isFetchingOlder: history.isFetchingPreviousPage,
     olderError: history.isFetchPreviousPageError
-      ? history.error instanceof Error ? history.error.message : 'Could not load earlier items'
+      ? history.error instanceof Error ? history.error.message : t('Could not load earlier items')
       : undefined,
     loadOlder,
     jumpToLatest,

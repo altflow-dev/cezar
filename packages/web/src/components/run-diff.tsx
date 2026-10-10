@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { highlight, highlightSync, type SynToken } from '@/lib/highlighter'
 import { diffTotals, parseUnifiedDiff, type DiffFile } from '@/lib/unified-diff'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 /**
  * A run's worktree diff (`GET /api/runs/:id/diff`) as collapsible per-file sections — shared by
@@ -40,7 +41,7 @@ export function RunDiff({ runId }: { runId: string }) {
   const [showAllFiles, setShowAllFiles] = useState(false)
 
   if (diff.isPending) {
-    return <p className="px-1 text-xs text-soft-foreground">Loading diff…</p>
+    return <p className="px-1 text-xs text-soft-foreground">{t('Loading diff…')}</p>
   }
   if (diff.isError) {
     return <p className="px-1 text-xs text-danger">{diff.error.message}</p>
@@ -50,7 +51,7 @@ export function RunDiff({ runId }: { runId: string }) {
     // empty answer. Show its words — they were written for the reader.
     return (
       <p data-slot="run-diff-empty" className="px-1 font-mono text-xs text-soft-foreground">
-        {diff.data.trim() || '(no changes)'}
+        {diff.data.trim() || t('(no changes)')}
       </p>
     )
   }
@@ -61,7 +62,7 @@ export function RunDiff({ runId }: { runId: string }) {
     <div data-slot="run-diff" className="flex min-w-0 flex-col gap-2">
       <p className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
         <span>
-          {totals.files} {totals.files === 1 ? 'file' : 'files'} changed
+          {totals.files} {totals.files === 1 ? t('file') : t('files')}{t(' changed')}
         </span>
         <span className="font-mono font-semibold tabular-nums">
           <span className="text-success">+{totals.additions}</span>{' '}
@@ -73,7 +74,7 @@ export function RunDiff({ runId }: { runId: string }) {
       ))}
       {files.length > shown.length ? (
         <Button variant="ghost" size="sm" className="self-start" onClick={() => setShowAllFiles(true)}>
-          Show {files.length - shown.length} more files
+          {t('Show ')}{files.length - shown.length}{t(' more files')}
         </Button>
       ) : null}
     </div>
@@ -119,7 +120,7 @@ function DiffFileSection({ file }: { file: DiffFile }) {
         ) : null}
         {file.binary ? (
           <span className="shrink-0 rounded-sm bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground">
-            binary
+            {t('binary')}
           </span>
         ) : null}
         <span className="ml-auto shrink-0 font-mono text-[11px] font-semibold tabular-nums">
@@ -130,9 +131,9 @@ function DiffFileSection({ file }: { file: DiffFile }) {
       <CollapsibleContent>
         <div className="border-t border-border/50">
           {file.binary ? (
-            <p className="px-4 py-2.5 text-xs text-soft-foreground">Binary file — no text diff.</p>
+            <p className="px-4 py-2.5 text-xs text-soft-foreground">{t('Binary file — no text diff.')}</p>
           ) : file.lines.length === 0 ? (
-            <p className="px-4 py-2.5 text-xs text-soft-foreground">No content changes (metadata only).</p>
+            <p className="px-4 py-2.5 text-xs text-soft-foreground">{t('No content changes (metadata only).')}</p>
           ) : (
             <DiffFileBody lines={file.lines} />
           )}
@@ -201,7 +202,7 @@ function DiffFileBody({ lines }: { lines: string[] }) {
           onClick={() => setExpanded((value) => !value)}
           className="block w-full border-t border-border/50 px-4 py-1.5 text-left text-[11px] font-medium text-soft-foreground hover:text-foreground"
         >
-          {expanded ? 'Show less' : `Show all ${lines.length} lines`}
+          {expanded ? t('Show less') : t('Show all {length} lines', { length: lines.length })}
         </button>
       ) : null}
     </>

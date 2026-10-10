@@ -96,6 +96,7 @@ import {
 
 import { WorkflowsLoading } from '../workflows/workflows-loading'
 import { backLanes, CATEGORY_ORDER, edgeStyle, edgeTypes, GraphNodeView, ICONS, type InnerStep, TILE, TONE, WIDE_WIDTH } from './graph-node'
+import { t } from '@/lib/i18n'
 
 /**
  * The workflow node editor (spec 2026-09-30-workflow-node-editor), at
@@ -167,7 +168,7 @@ export interface SimState {
 
 function applySim(s: SimState, r: ReturnType<typeof advance>): SimState {
   const taken = [...s.taken, ...r.transitions.filter((t) => t.to).map((t) => `${t.from}.${t.port}->${t.to}`)]
-  const log = [...s.log, ...r.transitions.map((t) => `${t.from}.${t.port} → ${t.to ?? '(ends run)'}`)]
+  const log = [...s.log, ...r.transitions.map((step) => `${step.from}.${step.port} → ${step.to ?? t('(ends run)')}`)]
   const visited = [...s.visited, ...r.transitions.flatMap((t) => (t.to ? [t.to] : []))]
   if (r.kind === 'end') return { ...s, cursor: null, taken, log, visited, finished: r.status }
   return { ...s, cursor: r.node, taken, log, visited }
@@ -186,7 +187,7 @@ export function startSim(graph: WorkflowGraph): SimState {
   const loops = new Map<string, number>()
   const start = graph.nodes.find((n) => n.type === 'start')
   const base: SimState = { cursor: null, visited: [], taken: [], loops, log: [] }
-  if (!start) return { ...base, finished: 'failed', log: ['no start node'] }
+  if (!start) return { ...base, finished: 'failed', log: [t('no start node')] }
   return applySim({ ...base, visited: [start.id] }, advance(graph, start.id, 'next', loops))
 }
 
@@ -229,7 +230,7 @@ export function FloatingPanel({
     >
       <div className="flex h-10 shrink-0 items-center justify-between border-b border-border pr-1 pl-3 text-[12px] font-medium">
         <span className="min-w-0 truncate">{title}</span>
-        <Button size="sm" variant="ghost" onClick={onClose} aria-label={`Close ${label.toLowerCase()}`}>
+        <Button size="sm" variant="ghost" onClick={onClose} aria-label={t('Close {v0}', { v0: label.toLowerCase() })}>
           <XIcon />
         </Button>
       </div>
@@ -318,7 +319,7 @@ function WorkflowGraphEditor() {
     // for the ~350ms before the debounced validation below re-runs against the new graph.
     setIssues([])
     setValidating(true)
-    if (routeName && !def) toast(`No workflow named “${routeName}” — starting a new one.`, { tone: 'danger' })
+    if (routeName && !def) toast(t('No workflow named “{routeName}” — starting a new one.', { routeName }), { tone: 'danger' })
     pendingFit.current = true
   }, [routeName, workflows.data])
 
@@ -568,7 +569,7 @@ function WorkflowGraphEditor() {
     },
     onSuccess: (res) => {
       setDirty(false)
-      toast(`Saved ${res.path.split('/').pop() ?? res.path}`)
+      toast(t('Saved {file}', { file: res.path.split('/').pop() ?? res.path }))
       void queryClient.invalidateQueries({ queryKey: queryKeys.workflows })
       if (res.name !== routeName) {
         loadedFor.current = res.name
@@ -606,7 +607,7 @@ function WorkflowGraphEditor() {
       setPlanText('')
       pendingFit.current = true
       toast(
-        plan.fallback ? 'Planner unavailable — added a single step. Edit, then Save.' : 'Built a workflow — review, tweak, then Save.',
+        plan.fallback ? t('Planner unavailable — added a single step. Edit, then Save.') : t('Built a workflow — review, tweak, then Save.'),
         plan.fallback ? { tone: 'danger' } : undefined,
       )
     },
@@ -616,7 +617,7 @@ function WorkflowGraphEditor() {
   const del = useMutation({
     mutationFn: (workflowName: string) => deleteWorkflow(workflowName),
     onSuccess: (_, workflowName) => {
-      toast(`Deleted “${workflowName}”.`)
+      toast(t('Deleted “{workflowName}”.', { workflowName }))
       setDirty(false)
       void queryClient.invalidateQueries({ queryKey: queryKeys.workflows })
       void navigate('/workflows')
@@ -642,8 +643,8 @@ function WorkflowGraphEditor() {
       <CenteredState
         icon={<AlertTriangleIcon />}
         tone="neutral"
-        title="The node catalog did not load"
-        subtitle={catalog.error instanceof Error ? catalog.error.message : 'Try again in a moment.'}
+        title={t('The node catalog did not load')}
+        subtitle={catalog.error instanceof Error ? catalog.error.message : t('Try again in a moment.')}
       />
     )
   }
@@ -663,7 +664,7 @@ function WorkflowGraphEditor() {
     <div data-route="workflows" className="flex h-full min-h-0 flex-col">
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-3">
         <select
-          aria-label="Open workflow"
+          aria-label={t('Open workflow')}
           className="h-8 max-w-44 rounded-md border border-transparent bg-transparent px-1.5 text-[13px] font-medium outline-none hover:border-border focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
           value={routeName ?? ''}
           onChange={(e) => {
@@ -672,8 +673,8 @@ function WorkflowGraphEditor() {
             else void navigate(to)
           }}
         >
-          <option value="">New workflow</option>
-          <optgroup label="This repo">
+          <option value="">{t('New workflow')}</option>
+          <optgroup label={t('This repo')}>
             {workflows.data?.workflows
               .filter((w) => w.source === 'file')
               .map((w) => (
@@ -683,7 +684,7 @@ function WorkflowGraphEditor() {
                 </option>
               ))}
           </optgroup>
-          <optgroup label="Built-in templates">
+          <optgroup label={t('Built-in templates')}>
             {workflows.data?.workflows
               .filter((w) => w.source === 'built-in')
               .map((w) => (
@@ -695,8 +696,8 @@ function WorkflowGraphEditor() {
         </select>
         <span className="text-muted-foreground/60">/</span>
         <Input
-          aria-label="Workflow name"
-          placeholder="name this workflow"
+          aria-label={t('Workflow name')}
+          placeholder={t('name this workflow')}
           value={name}
           onChange={(e) => {
             setName(e.target.value)
@@ -704,19 +705,19 @@ function WorkflowGraphEditor() {
           }}
           className="h-8 w-52 border-transparent bg-transparent text-[13px] shadow-none hover:border-border"
         />
-        {dirty && <span className="size-1.5 rounded-full bg-primary" title="Unsaved changes" aria-label="Unsaved changes" />}
+        {dirty && <span className="size-1.5 rounded-full bg-primary" title={t('Unsaved changes')} aria-label={t('Unsaved changes')} />}
         <button
           type="button"
           className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[12px] hover:bg-accent"
           style={{ color: issues.length ? TONE.failure : 'var(--muted-foreground)' }}
-          title={issues.join('\n') || 'The server validated this workflow'}
+          title={issues.join('\n') || t('The server validated this workflow')}
           onClick={() => {
             setSelectedId(null)
             setWorkflowPanel(true)
           }}
         >
           {issues.length ? <AlertTriangleIcon className="size-3.5" /> : <CheckCircle2Icon className="size-3.5" />}
-          {issues.length ? `${issues.length} issue${issues.length > 1 ? 's' : ''}` : 'valid'}
+          {issues.length ? `${issues.length} issue${issues.length > 1 ? 's' : ''}` : t('valid')}
         </button>
         <div className="ml-auto flex items-center gap-1">
           <Button
@@ -727,13 +728,13 @@ function WorkflowGraphEditor() {
               setPaletteOpen((o) => !o)
             }}
           >
-            <PlusIcon /> Add node
+            <PlusIcon />{t(' Add node')}
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            title="Tidy up the layout"
-            aria-label="Tidy up"
+            title={t('Tidy up the layout')}
+            aria-label={t('Tidy up')}
             onClick={() => {
               edit((g) => ({ ...g, layout: autoLayout(g) }))
               pendingFit.current = true
@@ -742,13 +743,13 @@ function WorkflowGraphEditor() {
             <LayoutGridIcon />
           </Button>
           <Button size="sm" variant={sim ? 'primary' : 'ghost'} onClick={() => setSim((s) => (s ? null : startSim(graph)))}>
-            {sim ? <SquareIcon /> : <PlayIcon />} {sim ? 'Stop' : 'Simulate'}
+            {sim ? <SquareIcon /> : <PlayIcon />} {sim ? t('Stop') : t('Simulate')}
           </Button>
           <Button
             size="sm"
             variant={workflowPanel ? 'primary' : 'ghost'}
-            title="Workflow settings, YAML and import"
-            aria-label="Workflow settings"
+            title={t('Workflow settings, YAML and import')}
+            aria-label={t('Workflow settings')}
             onClick={() => {
               setSelectedId(null)
               setWorkflowPanel((o) => !o)
@@ -756,7 +757,7 @@ function WorkflowGraphEditor() {
           >
             <Settings2Icon />
           </Button>
-          <Button size="sm" variant="ghost" title="Export as a .yaml file" aria-label="Export YAML" onClick={exportYaml}>
+          <Button size="sm" variant="ghost" title={t('Export as a .yaml file')} aria-label={t('Export YAML')} onClick={exportYaml}>
             <DownloadIcon />
           </Button>
           <Button
@@ -765,7 +766,7 @@ function WorkflowGraphEditor() {
             disabled={!canSave}
             onClick={() => (shadowsBuiltIn ? setConfirm({ kind: 'shadow' }) : save.mutate(savingOwnFile))}
           >
-            <SaveIcon /> Save
+            <SaveIcon />{t(' Save')}
           </Button>
         </div>
       </header>
@@ -800,15 +801,15 @@ function WorkflowGraphEditor() {
         {paletteOpen && (
           <FloatingPanel
             side="left"
-            label="Node palette"
+            label={t('Node palette')}
             title={
               attach ? (
                 <span>
-                  Add after <span className="text-muted-foreground">{attach.node}</span> →{' '}
+                  {t('Add after ')}<span className="text-muted-foreground">{attach.node}</span> →{' '}
                   <span style={{ color: TONE.success }}>{attach.port}</span>
                 </span>
               ) : (
-                'Add a node'
+                t('Add a node')
               )
             }
             onClose={() => {
@@ -838,7 +839,7 @@ function WorkflowGraphEditor() {
                           }}
                           onClick={() => addNode(entry.type)}
                           className="flex w-full cursor-grab items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left hover:bg-accent"
-                          title={`${entry.description} — drag onto the canvas, or click to add`}
+                          title={t('{description} — drag onto the canvas, or click to add', { description: entry.description })}
                         >
                           <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background">
                             <Icon className="size-4" style={{ color: cat.color }} strokeWidth={1.75} />
@@ -854,16 +855,16 @@ function WorkflowGraphEditor() {
                 )
               })}
               <section className="mb-1">
-                <h2 className="px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">Skills</h2>
+                <h2 className="px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">{t('Skills')}</h2>
                 <Input
-                  aria-label="Search skills"
-                  placeholder="search skills…"
+                  aria-label={t('Search skills')}
+                  placeholder={t('search skills…')}
                   value={skillQuery}
                   onChange={(e) => setSkillQuery(e.target.value)}
                   className="mb-1 h-7 text-[12px]"
                 />
                 {skills.isPending ? (
-                  <p className="px-1.5 text-[11px] text-muted-foreground">Loading skills…</p>
+                  <p className="px-1.5 text-[11px] text-muted-foreground">{t('Loading skills…')}</p>
                 ) : (
                   (skills.data ?? [])
                     .filter((sk) => {
@@ -899,7 +900,7 @@ function WorkflowGraphEditor() {
         {selected ? (
           <FloatingPanel
             side="right"
-            label="Inspector"
+            label={t('Inspector')}
             title={selected.name ?? selected.id}
             onClose={() => setSelectedId(null)}
           >
@@ -919,7 +920,7 @@ function WorkflowGraphEditor() {
             />
           </FloatingPanel>
         ) : workflowPanel ? (
-          <FloatingPanel side="right" label="Workflow settings" title="Workflow" onClose={() => setWorkflowPanel(false)}>
+          <FloatingPanel side="right" label={t('Workflow settings')} title={t('Workflow')} onClose={() => setWorkflowPanel(false)}>
             <div className="space-y-4 p-4 text-[12px]">
               <Field label="description">
                 <Textarea
@@ -940,32 +941,32 @@ function WorkflowGraphEditor() {
                     </div>
                   ))}
                   {unwired.length > 0 && (
-                    <div className="text-[11px] text-muted-foreground">Unwired — end the run: {unwired.join(', ')}</div>
+                    <div className="text-[11px] text-muted-foreground">{t('Unwired — end the run: ')}{unwired.join(', ')}</div>
                   )}
                 </div>
               )}
               <div>
                 <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span>YAML</span>
+                  <span>{t('YAML')}</span>
                   <button
                     type="button"
                     className="hover:text-foreground"
                     onClick={() => void navigator.clipboard?.writeText(graphYaml(name, description, graph))}
                   >
-                    Copy
+                    {t('Copy')}
                   </button>
                 </div>
                 <pre className="max-h-64 overflow-auto rounded-md bg-muted/40 p-2 text-[10.5px] leading-relaxed">
                   {graphYaml(name, description, graph)}
                 </pre>
               </div>
-              <Field label="import YAML (v1 or v2)">
+              <Field label={t('import YAML (v1 or v2)')}>
                 <Textarea
                   value={importText}
                   onChange={(e) => setImportText(e.target.value)}
                   rows={4}
                   className="font-mono text-[11px]"
-                  placeholder="paste a workflow file…"
+                  placeholder={t('paste a workflow file…')}
                 />
               </Field>
               <Button
@@ -974,18 +975,18 @@ function WorkflowGraphEditor() {
                 disabled={!importText.trim() || importYaml.isPending}
                 onClick={() => importYaml.mutate()}
               >
-                Import
+                {t('Import')}
               </Button>
-              <Field label="build from a description — replaces the canvas">
+              <Field label={t('build from a description — replaces the canvas')}>
                 <Textarea
                   value={planText}
                   onChange={(e) => setPlanText(e.target.value)}
                   rows={3}
-                  placeholder="implement, run the tests, then review…"
+                  placeholder={t('implement, run the tests, then review…')}
                 />
               </Field>
               <Button size="sm" variant="outline" disabled={!planText.trim() || autoPlan.isPending} onClick={() => autoPlan.mutate()}>
-                {autoPlan.isPending ? 'Building…' : 'Build workflow'}
+                {autoPlan.isPending ? t('Building…') : t('Build workflow')}
               </Button>
               {opened?.source === 'file' && (
                 <div className="border-t border-border pt-3">
@@ -995,7 +996,7 @@ function WorkflowGraphEditor() {
                     disabled={del.isPending}
                     onClick={() => setConfirm({ kind: 'delete', name: opened.name })}
                   >
-                    <Trash2Icon /> Delete workflow
+                    <Trash2Icon />{t(' Delete workflow')}
                   </Button>
                 </div>
               )}
@@ -1008,15 +1009,15 @@ function WorkflowGraphEditor() {
             {sim.finished || !cursorNode ? (
               <div className="flex items-center gap-2 text-[13px]">
                 <CheckCircle2Icon className="size-4" style={{ color: sim.finished === 'failed' ? TONE.failure : TONE.success }} />
-                Run ends <b>{sim.finished}</b> after {sim.taken.length} steps.
+                {t('Run ends ')}<b>{sim.finished}</b>{t(' after ')}{sim.taken.length}{t(' steps.')}
                 <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setSim(startSim(graph))}>
-                  <RotateCcwIcon /> Restart
+                  <RotateCcwIcon />{t(' Restart')}
                 </Button>
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[12px] text-muted-foreground">
-                  <b className="text-foreground">{cursorNode.name ?? cursorNode.id}</b> ends with
+                  <b className="text-foreground">{cursorNode.name ?? cursorNode.id}</b>{t(' ends with')}
                 </span>
                 {(cursorNode.type === 'fork' ? ['done', 'failed'] : portsOf(cursorNode)).map((p) => (
                   <Button
@@ -1026,7 +1027,7 @@ function WorkflowGraphEditor() {
                     style={{ color: TONE[cursorNode.type === 'fork' ? (p === 'failed' ? 'failure' : 'success') : portTone(cursorNode, p)] }}
                     onClick={() => setSim((s) => (s ? simStep(graph, s, cursorNode.id, p) : s))}
                   >
-                    {cursorNode.type === 'fork' ? (p === 'done' ? 'all branches done' : 'a branch failed') : p}
+                    {cursorNode.type === 'fork' ? (p === 'done' ? t('all branches done') : t('a branch failed')) : p}
                   </Button>
                 ))}
               </div>
@@ -1040,25 +1041,25 @@ function WorkflowGraphEditor() {
           <AlertDialogHeader>
             <AlertDialogTitle>
               {confirm?.kind === 'overwrite'
-                ? `“${name.trim()}” already exists`
+                ? t('“{v0}” already exists', { v0: name.trim() })
                 : confirm?.kind === 'shadow'
-                  ? `Replace the built-in “${name.trim()}”?`
+                  ? t('Replace the built-in “{v0}”?', { v0: name.trim() })
                   : confirm?.kind === 'delete'
-                    ? `Delete “${confirm.name}”?`
-                    : 'Discard unsaved changes?'}
+                    ? t('Delete “{name}”?', { name: confirm.name })
+                    : t('Discard unsaved changes?')}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirm?.kind === 'overwrite'
-                ? 'Saving replaces the existing workflow file — including a v1 file of the same name. There is no undo.'
+                ? t('Saving replaces the existing workflow file — including a v1 file of the same name. There is no undo.')
                 : confirm?.kind === 'shadow'
-                  ? 'A saved file with a built-in name takes its place for every task in this repository, including tasks that use the default. Rename it to keep the built-in; delete the file to bring it back.'
+                  ? t('A saved file with a built-in name takes its place for every task in this repository, including tasks that use the default. Rename it to keep the built-in; delete the file to bring it back.')
                   : confirm?.kind === 'delete'
-                    ? 'This removes the workflow file from the repository. Tasks already started with it keep running; there is no undo.'
-                    : 'The edits on this canvas have not been saved.'}
+                    ? t('This removes the workflow file from the repository. Tasks already started with it keep running; there is no undo.')
+                    : t('The edits on this canvas have not been saved.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogCancel>{t('Keep editing')}</AlertDialogCancel>
             <AlertDialogAction
               data-slot="wg-confirm-action"
               onClick={() => {
@@ -1073,12 +1074,12 @@ function WorkflowGraphEditor() {
               }}
             >
               {confirm?.kind === 'overwrite'
-                ? 'Overwrite'
+                ? t('Overwrite')
                 : confirm?.kind === 'shadow'
-                  ? 'Replace built-in'
+                  ? t('Replace built-in')
                   : confirm?.kind === 'delete'
-                    ? 'Delete'
-                    : 'Discard'}
+                    ? t('Delete')
+                    : t('Discard')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1100,8 +1101,8 @@ function SkillField({ value, onChange }: { value: string | undefined; onChange: 
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value || undefined)}
       >
-        <option value="">no skill</option>
-        {!known && <option value={value}>{value} (not in this repo)</option>}
+        <option value="">{t('no skill')}</option>
+        {!known && <option value={value}>{value}{t(' (not in this repo)')}</option>}
         {names.map((n) => (
           <option key={n} value={n}>
             {n}
@@ -1149,8 +1150,8 @@ function WorkflowSelect({
       value={value ?? ''}
       onChange={(e) => onChange(e.target.value || undefined)}
     >
-      {optional ? <option value="">one agent step</option> : null}
-      {value && !names.includes(value) ? <option value={value}>{value} (not found)</option> : null}
+      {optional ? <option value="">{t('one agent step')}</option> : null}
+      {value && !names.includes(value) ? <option value={value}>{value}{t(' (not found)')}</option> : null}
       {names.map((n) => (
         <option key={n} value={n}>
           {n}
@@ -1181,13 +1182,13 @@ function ConditionEditor({ condition, onChange }: { condition: ConditionValue; o
   }
   return (
     <>
-      <Field label="look at">
+      <Field label={t('look at')}>
         <select className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={condition.kind} onChange={(e) => switchKind(e.target.value as ConditionValue['kind'])}>
-          <option value="diff-lines">the task's diff — changed lines</option>
-          <option value="diff-files">the task's diff — changed files</option>
-          <option value="paths-changed">which paths changed (glob)</option>
-          <option value="output">another node's output</option>
-          <option value="branch">the base branch</option>
+          <option value="diff-lines">{t('the task\'s diff — changed lines')}</option>
+          <option value="diff-files">{t('the task\'s diff — changed files')}</option>
+          <option value="paths-changed">{t('which paths changed (glob)')}</option>
+          <option value="output">{t('another node\'s output')}</option>
+          <option value="branch">{t('the base branch')}</option>
         </select>
       </Field>
       {(condition.kind === 'diff-lines' || condition.kind === 'diff-files') && (
@@ -1203,13 +1204,13 @@ function ConditionEditor({ condition, onChange }: { condition: ConditionValue; o
         </div>
       )}
       {condition.kind === 'paths-changed' && (
-        <Field label="glob — * within a folder, ** across folders">
+        <Field label={t('glob — * within a folder, ** across folders')}>
           <Input value={condition.glob} onChange={(e) => onChange({ ...condition, glob: e.target.value })} className="h-8 font-mono text-[11px]" />
         </Field>
       )}
       {condition.kind === 'output' && (
         <>
-          <Field label="output — <node>.<field>">
+          <Field label={t('output — <node>.<field>')}>
             <Input value={condition.ref} onChange={(e) => onChange({ ...condition, ref: e.target.value.trim() })} className="h-8 font-mono text-[11px]" />
           </Field>
           <div className="grid grid-cols-[7rem_1fr] gap-2">
@@ -1227,13 +1228,13 @@ function ConditionEditor({ condition, onChange }: { condition: ConditionValue; o
       {condition.kind === 'branch' && (
         <div className="grid grid-cols-[7rem_1fr] gap-2">
           <select className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" aria-label="operator" value={condition.op} onChange={(e) => onChange({ ...condition, op: e.target.value as 'equals' | 'matches' })}>
-            <option value="equals">equals</option>
-            <option value="matches">matches glob</option>
+            <option value="equals">{t('equals')}</option>
+            <option value="matches">{t('matches glob')}</option>
           </select>
           <Input aria-label="branch" value={condition.value} onChange={(e) => onChange({ ...condition, value: e.target.value })} className="h-8 font-mono text-[11px]" />
         </div>
       )}
-      <p className="text-[11px] text-muted-foreground">Leaves by true or false. Diff and paths are this task's own changes vs its base.</p>
+      <p className="text-[11px] text-muted-foreground">{t('Leaves by true or false. Diff and paths are this task\'s own changes vs its base.')}</p>
     </>
   )
 }
@@ -1265,7 +1266,7 @@ function MinutesField({
         type="number"
         min={1}
         value={value ? Math.round(value / 60_000) : ''}
-        placeholder={optional ? 'no timeout' : undefined}
+        placeholder={optional ? t('no timeout') : undefined}
         onChange={(e) => {
           const minutes = Math.floor(Number(e.target.value))
           onChange(minutes >= 1 ? minutes * 60_000 : undefined)
@@ -1333,8 +1334,8 @@ function Inspector({
   return (
     <div className="space-y-3 p-4 text-[12px]">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] uppercase text-muted-foreground">{node.type} node</span>
-        <Button size="sm" variant="danger-ghost" onClick={onDelete} aria-label="Delete node">
+        <span className="text-[11px] uppercase text-muted-foreground">{node.type}{t(' node')}</span>
+        <Button size="sm" variant="danger-ghost" onClick={onDelete} aria-label={t('Delete node')}>
           <Trash2Icon />
         </Button>
       </div>
@@ -1346,7 +1347,7 @@ function Inspector({
             const id = draftId.trim()
             if (!id || id === node.id) return setDraftId(node.id)
             if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(id) || graph.nodes.some((n) => n.id === id)) {
-              toast(`“${id}” is taken or not a valid id (letters, digits, - and _).`, { tone: 'danger' })
+              toast(t('“{id}” is taken or not a valid id (letters, digits, - and _).', { id }), { tone: 'danger' })
               return setDraftId(node.id)
             }
             onChange({ ...node, id })
@@ -1360,14 +1361,14 @@ function Inspector({
 
       {node.type === 'agent' && (
         <>
-          <Field label="prompt — {{task}}, {{nodes.<id>.<field>}}">
+          <Field label={t('prompt — {{task}}, {{nodes.<id>.<field>}}')}>
             <Textarea value={node.prompt ?? ''} rows={5} className="font-mono text-[11px]" onChange={(e) => set({ prompt: e.target.value })} />
           </Field>
           <SkillField value={node.skill} onChange={(skill) => set({ skill })} />
           <div className="grid grid-cols-2 gap-2">
             <Field label="runner">
               <select className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={node.runner ?? ''} onChange={(e) => set({ runner: e.target.value || undefined })}>
-                <option value="">task default</option>
+                <option value="">{t('task default')}</option>
                 {RUNNERS.map((r) => (
                   <option key={r} value={r}>
                     {r}
@@ -1388,9 +1389,9 @@ function Inspector({
                   checked={node.review ?? false}
                   onChange={(e) => set({ review: e.target.checked || undefined })}
                 />
-                reviewer — judges the task branch, never implements
+                {t('reviewer — judges the task branch, never implements')}
               </label>
-              <Field label="budget USD — carved from this run">
+              <Field label={t('budget USD — carved from this run')}>
                 <Input
                   type="number"
                   min={0}
@@ -1401,13 +1402,12 @@ function Inspector({
                 />
               </Field>
               <p className="rounded-md bg-accent/50 p-2 text-[11px] text-muted-foreground">
-                A fork branch: runs as its own subtask at the same time as the other branches — a fresh session in its
-                own worktree, starting from the task's work so far.
+                {t('A fork branch: runs as its own subtask at the same time as the other branches — a fresh session in its own worktree, starting from the task\'s work so far.')}
               </p>
             </>
           ) : (
             <>
-              <Field label="verdicts — comma-separated, each becomes a port">
+              <Field label={t('verdicts — comma-separated, each becomes a port')}>
                 <Input
                   defaultValue={node.verdicts?.join(', ') ?? ''}
                   onBlur={(e) => {
@@ -1415,7 +1415,7 @@ function Inspector({
                     set({ verdicts: list.length ? list : undefined })
                   }}
                   className="h-8"
-                  placeholder="approve, changes"
+                  placeholder={t('approve, changes')}
                 />
               </Field>
               <Field label="session">
@@ -1424,12 +1424,12 @@ function Inspector({
                   value={node.session?.continue ?? ''}
                   onChange={(e) => set({ session: e.target.value ? { continue: e.target.value } : undefined })}
                 >
-                  <option value="">fresh session</option>
+                  <option value="">{t('fresh session')}</option>
                   {graph.nodes
                     .filter((n) => n.type === 'agent' && n.id !== node.id)
                     .map((n) => (
                       <option key={n.id} value={n.id}>
-                        continue {n.name ?? n.id}
+                        {t('continue ')}{n.name ?? n.id}
                       </option>
                     ))}
                 </select>
@@ -1438,21 +1438,20 @@ function Inspector({
           )}
           {node.verdicts?.length ? (
             <p className="rounded-md bg-accent/50 p-2 text-[11px] text-muted-foreground">
-              The agent ends its turn with {node.verdicts.map((v) => `CEZ:VERDICT ${v}`).join(' or ')}. No verdict → one
-              reminder, then <span style={{ color: TONE.failure }}>failed</span>.
+              {t('The agent ends its turn with ')}{node.verdicts.map((v) => `CEZ:VERDICT ${v}`).join(' or ')}{t('. No verdict → one reminder, then ')}<span style={{ color: TONE.failure }}>{t('failed')}</span>.
             </p>
           ) : null}
         </>
       )}
 
       {node.type === 'check' && (
-        <Field label="command — runs in the worktree; exit 0 passes">
+        <Field label={t('command — runs in the worktree; exit 0 passes')}>
           <Textarea value={node.command} rows={3} className="font-mono text-[11px]" onChange={(e) => set({ command: e.target.value })} />
         </Field>
       )}
 
       {node.type === 'loop' && (
-        <Field label="max iterations — repeat while within, then exhausted">
+        <Field label={t('max iterations — repeat while within, then exhausted')}>
           <Input
             type="number"
             min={1}
@@ -1465,13 +1464,12 @@ function Inspector({
 
       {node.type === 'gate.human' && (
         <>
-          <Field label="message — shown on the approve / reject card">
+          <Field label={t('message — shown on the approve / reject card')}>
             <Textarea value={node.message} rows={3} onChange={(e) => set({ message: e.target.value })} />
           </Field>
-          <MinutesField label="timeout (minutes, optional) — adds a timeout port" value={node.timeoutMs} optional onChange={(ms) => set({ timeoutMs: ms })} />
+          <MinutesField label={t('timeout (minutes, optional) — adds a timeout port')} value={node.timeoutMs} optional onChange={(ms) => set({ timeoutMs: ms })} />
           <p className="rounded-md bg-accent/50 p-2 text-[11px] text-muted-foreground">
-            The run waits without holding a slot. A reply starting with “approve” takes approve; anything else takes
-            reject and becomes <code>{`{{nodes.${node.id}.comment}}`}</code>.
+            {t('The run waits without holding a slot. A reply starting with “approve” takes approve; anything else takes reject and becomes ')}<code>{t('{{nodes.{id}.comment}}', { id: node.id })}</code>.
           </p>
         </>
       )}
@@ -1481,7 +1479,7 @@ function Inspector({
           <Field label="question">
             <Textarea value={node.question} rows={3} onChange={(e) => set({ question: e.target.value })} />
           </Field>
-          <Field label="options — comma-separated, optional (free text always works)">
+          <Field label={t('options — comma-separated, optional (free text always works)')}>
             <Input
               defaultValue={node.options?.join(', ') ?? ''}
               onBlur={(e) => {
@@ -1491,13 +1489,13 @@ function Inspector({
               className="h-8"
             />
           </Field>
-          <MinutesField label="timeout (minutes, optional) — adds a timeout port" value={node.timeoutMs} optional onChange={(ms) => set({ timeoutMs: ms })} />
+          <MinutesField label={t('timeout (minutes, optional) — adds a timeout port')} value={node.timeoutMs} optional onChange={(ms) => set({ timeoutMs: ms })} />
         </>
       )}
 
       {node.type === 'dispatch' && (
         <>
-          <Field label="objective — {{task}}, {{nodes.<id>.<field>}}">
+          <Field label={t('objective — {{task}}, {{nodes.<id>.<field>}}')}>
             <Textarea value={node.prompt} rows={4} className="font-mono text-[11px]" onChange={(e) => set({ prompt: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-2">
@@ -1507,7 +1505,7 @@ function Inspector({
                 value={node.runner ?? ''}
                 onChange={(e) => set({ runner: e.target.value || undefined })}
               >
-                <option value="">task default</option>
+                <option value="">{t('task default')}</option>
                 {RUNNERS.map((r) => (
                   <option key={r} value={r}>
                     {r}
@@ -1515,7 +1513,7 @@ function Inspector({
                 ))}
               </select>
             </Field>
-            <Field label="budget USD">
+            <Field label={t('budget USD')}>
               <Input
                 type="number"
                 min={0}
@@ -1530,27 +1528,27 @@ function Inspector({
       )}
 
       {node.type === 'git.commit' && (
-        <Field label="commit message — commits everything in the worktree">
+        <Field label={t('commit message — commits everything in the worktree')}>
           <Input value={node.message} onChange={(e) => set({ message: e.target.value })} className="h-8" />
         </Field>
       )}
 
       {node.type === 'github.draft-pr' && (
-        <Field label="title — optional, defaults to the task title">
+        <Field label={t('title — optional, defaults to the task title')}>
           <Input value={node.title ?? ''} onChange={(e) => set({ title: e.target.value })} className="h-8" />
         </Field>
       )}
 
       {node.type === 'github.pr-comment' && (
-        <Field label="comment body">
+        <Field label={t('comment body')}>
           <Textarea value={node.body} rows={3} onChange={(e) => set({ body: e.target.value })} />
         </Field>
       )}
 
       {node.type === 'github.wait-ci' && (
         <>
-          <MinutesField label="timeout (minutes) — required" value={node.timeoutMs} onChange={(ms) => set({ timeoutMs: ms ?? 60 * 60_000 })} />
-          <Field label="poll every (seconds)">
+          <MinutesField label={t('timeout (minutes) — required')} value={node.timeoutMs} onChange={(ms) => set({ timeoutMs: ms ?? 60 * 60_000 })} />
+          <Field label={t('poll every (seconds)')}>
             <Input
               type="number"
               min={10}
@@ -1564,7 +1562,7 @@ function Inspector({
 
       {node.type === 'fork' && (
         <>
-          <Field label="branches — one agent each, all at once">
+          <Field label={t('branches — one agent each, all at once')}>
             <select
               className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               value={node.branches}
@@ -1572,50 +1570,49 @@ function Inspector({
             >
               {[2, 3, 4].map((n) => (
                 <option key={n} value={n}>
-                  {n} agents
+                  {n}{t(' agents')}
                 </option>
               ))}
             </select>
           </Field>
           <p className="text-[11px] text-muted-foreground">
-            Each branch is the agent it is wired to: set its prompt, runner and budget there. They run as subtasks in
-            their own worktrees (at most 4 at once) and meet at the join.
+            {t('Each branch is the agent it is wired to: set its prompt, runner and budget there. They run as subtasks in their own worktrees (at most 4 at once) and meet at the join.')}
           </p>
         </>
       )}
 
       {node.type === 'join' && (
-        <Field label="wait for">
+        <Field label={t('wait for')}>
           <select
             className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             value={node.wait}
             onChange={(e) => set({ wait: e.target.value })}
           >
-            <option value="all">every branch (done only if all succeed)</option>
-            <option value="any">the first to succeed (the rest are cancelled)</option>
+            <option value="all">{t('every branch (done only if all succeed)')}</option>
+            <option value="any">{t('the first to succeed (the rest are cancelled)')}</option>
           </select>
         </Field>
       )}
 
       {node.type === 'workflow' && (
         <>
-          <WorkflowSelect label="workflow to run" value={node.workflow} onChange={(workflow) => set({ workflow: workflow ?? 'quick-task' })} />
-          <Field label="task for it — {{task}}, {{nodes.<id>.<field>}}">
-            <Textarea value={node.prompt ?? ''} placeholder="{{task}}" rows={3} className="font-mono text-[11px]" onChange={(e) => set({ prompt: e.target.value })} />
+          <WorkflowSelect label={t('workflow to run')} value={node.workflow} onChange={(workflow) => set({ workflow: workflow ?? 'quick-task' })} />
+          <Field label={t('task for it — {{task}}, {{nodes.<id>.<field>}}')}>
+            <Textarea value={node.prompt ?? ''} placeholder={t('{{task}}')} rows={3} className="font-mono text-[11px]" onChange={(e) => set({ prompt: e.target.value })} />
           </Field>
-          <p className="text-[11px] text-muted-foreground">Runs as a subtask in its own worktree; this node waits for it.</p>
+          <p className="text-[11px] text-muted-foreground">{t('Runs as a subtask in its own worktree; this node waits for it.')}</p>
         </>
       )}
 
       {node.type === 'git.push' && (
-        <p className="text-[11px] text-muted-foreground">Commits anything pending, then pushes the task branch to origin.</p>
+        <p className="text-[11px] text-muted-foreground">{t('Commits anything pending, then pushes the task branch to origin.')}</p>
       )}
 
       {node.type === 'git.sync-base' && (
         <p className="text-[11px] text-muted-foreground">
-          Merges the latest base branch into the task. On a conflict the merge is left in progress and the node leaves by{' '}
-          <span style={{ color: TONE.failure }}>conflict</span> — wire it to an agent to resolve it;{' '}
-          <code>{`{{nodes.${node.id}.conflicts}}`}</code> lists the files.
+          {t('Merges the latest base branch into the task. On a conflict the merge is left in progress and the node leaves by')}{' '}
+          <span style={{ color: TONE.failure }}>{t('conflict')}</span>{t(' — wire it to an agent to resolve it;')}{' '}
+          <code>{t('{{nodes.{id}.conflicts}}', { id: node.id })}</code>{t(' lists the files.')}
         </p>
       )}
 
@@ -1623,16 +1620,16 @@ function Inspector({
         <>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={node.ready ?? false} onChange={(e) => set({ ready: e.target.checked || undefined })} />
-            <span>mark ready for review</span>
+            <span>{t('mark ready for review')}</span>
           </label>
-          <ListField label="add labels — comma-separated" value={node.addLabels} onChange={(addLabels) => set({ addLabels })} />
-          <ListField label="request reviewers — comma-separated logins" value={node.reviewers} onChange={(reviewers) => set({ reviewers })} />
+          <ListField label={t('add labels — comma-separated')} value={node.addLabels} onChange={(addLabels) => set({ addLabels })} />
+          <ListField label={t('request reviewers — comma-separated logins')} value={node.reviewers} onChange={(reviewers) => set({ reviewers })} />
         </>
       )}
 
       {node.type === 'github.issue-comment' && (
         <>
-          <Field label="issue number — empty = the task's own issue">
+          <Field label={t('issue number — empty = the task\'s own issue')}>
             <Input
               type="number"
               min={1}
@@ -1649,14 +1646,14 @@ function Inspector({
 
       {node.type === 'notify.webhook' && (
         <>
-          <Field label="URL (http/https)">
+          <Field label={t('URL (http/https)')}>
             <Input value={node.url} onChange={(e) => set({ url: e.target.value })} className="h-8 font-mono text-[11px]" />
           </Field>
-          <Field label="message — sent as JSON text">
+          <Field label={t('message — sent as JSON text')}>
             <Textarea value={node.body ?? ''} rows={3} onChange={(e) => set({ body: e.target.value })} />
           </Field>
           <p className="text-[11px] text-muted-foreground">
-            Only runs when the server has <code>CEZ_WORKFLOW_WEBHOOKS=1</code>; otherwise it leaves by failed.
+            {t('Only runs when the server has ')}<code>CEZ_WORKFLOW_WEBHOOKS=1</code>{t('; otherwise it leaves by failed.')}
           </p>
         </>
       )}
@@ -1664,28 +1661,28 @@ function Inspector({
       {node.type === 'if' && <ConditionEditor condition={node.condition} onChange={(condition) => set({ condition })} />}
 
       {node.type === 'end' && (
-        <Field label="run status">
+        <Field label={t('run status')}>
           <select className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={node.status} onChange={(e) => set({ status: e.target.value })}>
-            <option value="success">success</option>
-            <option value="failed">failed</option>
+            <option value="success">{t('success')}</option>
+            <option value="failed">{t('failed')}</option>
           </select>
         </Field>
       )}
 
       <div>
-        <div className="mb-1 text-[11px] uppercase text-muted-foreground">Output ports</div>
+        <div className="mb-1 text-[11px] uppercase text-muted-foreground">{t('Output ports')}</div>
         {portsOf(node).map((p) => (
           <div key={p} className="flex justify-between py-0.5">
             <span style={{ color: TONE[portTone(node, p)] }}>{p}</span>
-            <span className="text-muted-foreground">{targetOf(graph, node.id, p) ?? 'ends run'}</span>
+            <span className="text-muted-foreground">{targetOf(graph, node.id, p) ?? t('ends run')}</span>
           </div>
         ))}
       </div>
       {outputsOf(node, branches).length > 0 && (
         <div>
-          <div className="mb-1 text-[11px] uppercase text-muted-foreground">Outputs for templates</div>
+          <div className="mb-1 text-[11px] uppercase text-muted-foreground">{t('Outputs for templates')}</div>
           {outputsOf(node, branches).map((o) => (
-            <code key={o} className="block text-[11px]">{`{{nodes.${node.id}.${o}}}`}</code>
+            <code key={o} className="block text-[11px]">{t('{{nodes.{id}.{o}}}', { id: node.id, o })}</code>
           ))}
         </div>
       )}

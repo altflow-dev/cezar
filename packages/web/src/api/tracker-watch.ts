@@ -4,6 +4,7 @@ import { queryScope, trackerWatchSignalSchema, type TrackerItemsResponse, type T
 import { openTrackerWatch, readTrackerWatch, refreshTrackerWatch } from './client'
 import { useHealth, workspaceQueryKeys } from './queries'
 import { subscribeTopic } from './ws'
+import { t } from '@/lib/i18n'
 
 type Pages = InfiniteData<TrackerItemsResponse, string | undefined>
 const samePage = (a: TrackerItemsResponse | undefined, b: TrackerItemsSuccess) => a?.available && JSON.stringify([a.items, a.truncated]) === JSON.stringify([b.items, b.truncated])
@@ -81,7 +82,7 @@ export function useTrackerWatch(input: TrackerWatchInput, queryKey: QueryKey, en
       const accept = (snapshot: TrackerWatchSnapshot) => active() && receive(snapshot)
       const fail = () => {
         if (!active()) return
-        update('Automatic checking is temporarily unavailable. Retrying…')
+        update(t('Automatic checking is temporarily unavailable. Retrying…'))
         offTopic(); clearTimeout(retry)
         retry = setTimeout(() => { if (active()) activate() }, 5_000)
       }

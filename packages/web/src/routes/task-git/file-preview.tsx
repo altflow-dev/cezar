@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 
 import { Markdown } from '../task-thread/markdown'
 import { formatFileSize, previewKind } from './worktree-files'
+import { t } from '@/lib/i18n'
 
 /**
  * The preview pane behind BOTH file browsers (R5 Step 1.6; generalized for the repo Files sub-tab,
@@ -62,8 +63,8 @@ export function FilePreview({
           icon={<MousePointerClickIcon />}
           tone="neutral"
           heading="h2"
-          title="Select a file"
-          subtitle="Pick a file from the tree to preview it here."
+          title={t('Select a file')}
+          subtitle={t('Pick a file from the tree to preview it here.')}
         />
       </Pane>
     )
@@ -72,7 +73,7 @@ export function FilePreview({
     return (
       <Pane className={className}>
         <p data-slot="file-preview-loading" className="px-4 py-6 text-center text-xs text-soft-foreground">
-          Loading {path}…
+          {t('Loading ')}{path}…
         </p>
       </Pane>
     )
@@ -87,7 +88,7 @@ export function FilePreview({
           icon={refused ? <FileXIcon /> : <TriangleAlertIcon />}
           tone={refused ? 'neutral' : 'danger'}
           heading="h2"
-          title={refused ? 'Cannot preview this file' : 'Could not load this file'}
+          title={refused ? t('Cannot preview this file') : t('Could not load this file')}
           subtitle={entry.error.message}
         />
       </Pane>
@@ -178,16 +179,16 @@ function FileEntryView({
           icon={<FileWarningIcon />}
           tone="neutral"
           heading="h2"
-          title="Too large to preview"
-          subtitle={`${formatFileSize(entry.size)} — past the preview cap. Open it in your editor instead.`}
+          title={t('Too large to preview')}
+          subtitle={t('{v0} — past the preview cap. Open it in your editor instead.', { v0: formatFileSize(entry.size) })}
         />
       ) : kind === 'binary' ? (
         <CenteredState
           icon={<FileQuestionIcon />}
           tone="neutral"
           heading="h2"
-          title="Binary file"
-          subtitle={`${formatFileSize(entry.size)} of binary data — no text preview.`}
+          title={t('Binary file')}
+          subtitle={t('{v0} of binary data — no text preview.', { v0: formatFileSize(entry.size) })}
         />
       ) : markdown && mode === 'rendered' ? (
         // The thread's own Markdown component: the same single Shiki for fences and the same

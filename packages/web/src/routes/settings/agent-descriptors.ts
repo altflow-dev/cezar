@@ -1,4 +1,5 @@
 import type { AgentConfigFile, Runner } from '@open-mercato/cezar-api-client'
+import { t } from '@/lib/i18n'
 
 /**
  * Per-agent descriptor driving the Settings → Agent config pane (spec
@@ -40,7 +41,7 @@ export interface AgentDescriptor {
 }
 
 const EDITOR_PLUS_COMMIT =
-  'An editor-plus-commit: a saved change reaches a run after you commit it to the base branch.'
+  t('An editor-plus-commit: a saved change reaches a run after you commit it to the base branch.')
 
 function ownedBy(agent: Runner) {
   return (f: AgentConfigFile) => f.runners.includes(agent)
@@ -65,74 +66,74 @@ function group(
 export const AGENT_DESCRIPTORS: AgentDescriptor[] = [
   {
     id: 'claude',
-    label: 'Claude',
+    label: t('Claude'),
     groups: [
-      group('claude', 'settings', 'Settings'),
+      group('claude', 'settings', t('Settings')),
       group(
         'claude',
         'mcp',
         'MCP',
         'A dedicated .mcp.json (key: mcpServers), shared via version control.',
       ),
-      group('claude', 'memory', 'Memory & instructions'),
+      group('claude', 'memory', t('Memory & instructions')),
     ],
   },
   {
     id: 'codex',
-    label: 'Codex',
+    label: t('Codex'),
     note: EDITOR_PLUS_COMMIT,
     groups: [
-      group('codex', 'settings', 'Settings'),
+      group('codex', 'settings', t('Settings')),
       group(
         'codex',
         'mcp',
         'MCP',
-        'Inside config.toml under [mcp_servers.<id>] — the same file as Codex’s settings.',
+        t('Inside config.toml under [mcp_servers.<id>] — the same file as Codex’s settings.'),
       ),
-      group('codex', 'memory', 'Memory & instructions'),
+      group('codex', 'memory', t('Memory & instructions')),
     ],
   },
   {
     id: 'copilot',
-    label: 'GitHub Copilot',
+    label: t('GitHub Copilot'),
     note: EDITOR_PLUS_COMMIT,
     groups: [
-      group('copilot', 'settings', 'Settings'),
+      group('copilot', 'settings', t('Settings')),
       group(
         'copilot',
         'mcp',
         'MCP',
-        'A dedicated ~/.copilot/mcp-config.json. Per-run --additional-mcp-config augments it rather than replacing it.',
+        t('A dedicated ~/.copilot/mcp-config.json. Per-run --additional-mcp-config augments it rather than replacing it.'),
       ),
-      group('copilot', 'memory', 'Memory & instructions'),
+      group('copilot', 'memory', t('Memory & instructions')),
     ],
   },
   {
     id: 'opencode',
-    label: 'OpenCode',
+    label: t('OpenCode'),
     note: EDITOR_PLUS_COMMIT,
     groups: [
-      group('opencode', 'settings', 'Settings'),
+      group('opencode', 'settings', t('Settings')),
       group(
         'opencode',
         'mcp',
         'MCP',
-        'Under the "mcp" key in opencode.json — the same file as OpenCode’s settings.',
+        t('Under the "mcp" key in opencode.json — the same file as OpenCode’s settings.'),
       ),
-      group('opencode', 'memory', 'Memory & instructions'),
+      group('opencode', 'memory', t('Memory & instructions')),
     ],
   },
   {
     id: 'cursor',
-    label: 'Cursor',
-    note: 'Cursor Agent CLI (`agent`). Auth via `agent login` or CURSOR_API_KEY. No separate memory file — instructions live in rules/MCP elsewhere.',
+    label: t('Cursor'),
+    note: t('Cursor Agent CLI (`agent`). Auth via `agent login` or CURSOR_API_KEY. No separate memory file — instructions live in rules/MCP elsewhere.'),
     groups: [
-      group('cursor', 'settings', 'Settings'),
+      group('cursor', 'settings', t('Settings')),
       group(
         'cursor',
         'mcp',
         'MCP',
-        'User ~/.cursor/mcp.json and project .cursor/mcp.json.',
+        t('User ~/.cursor/mcp.json and project .cursor/mcp.json.'),
       ),
     ],
   },

@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n'
 /**
  * The unread marker (#unread-done-items) — for assistive tech only.
  *
@@ -14,7 +15,7 @@
 export function UnreadMarker() {
   return (
     <span data-slot="unread-marker" className="sr-only">
-      , unread
+      {t(', unread')}
     </span>
   )
 }
