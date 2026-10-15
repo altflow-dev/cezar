@@ -78,3 +78,22 @@ describe('tracker handoff', () => {
 it.each(['123', 'OPS-123'])('does not invent a GitHub reference for tracker ID %s', id => {
   expect(extractTaskRefs(trackerTaskPrompt({ ...item, id }))).toEqual({})
 })
+
+describe('tracker handoff ticket metadata (spec 2026-10-15 §13)', () => {
+  const ticket: TrackerItem = { ...item, id: 'TERM-396', title: '  Fix the export  ', url: 'https://altflow.youtrack.cloud/issue/TERM-396' }
+
+  it('records a YouTrack ticket on every launch shape', () => {
+    const expected = { kind: 'youtrack', id: 'TERM-396', url: ticket.url, title: 'Fix the export' }
+    expect(trackerRunBody(ticket, 'ship', [], {}, { trackerKind: 'youtrack' }).trackerItem).toEqual(expected)
+    expect(trackerRunBody(ticket, null, ['review'], {}, { trackerKind: 'youtrack' }).trackerItem).toEqual(expected)
+    expect(trackerRunBody(ticket, null, [], {}, { trackerKind: 'youtrack' }).trackerItem).toEqual(expected)
+  })
+
+  it('sends no metadata for other trackers, an unknown kind or an id the server would refuse', () => {
+    for (const body of [
+      trackerRunBody(ticket, null, [], {}, { trackerKind: 'jira' }),
+      trackerRunBody(ticket, null, [], {}, {}),
+      trackerRunBody({ ...ticket, id: 'term-396' }, null, [], {}, { trackerKind: 'youtrack' }),
+    ]) expect('trackerItem' in body).toBe(false)
+  })
+})

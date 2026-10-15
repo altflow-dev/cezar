@@ -267,6 +267,8 @@ export interface DraftPrInput {
   run: RunRecord;
   /** The task's handoff.md — becomes the PR body (goal + progress skim). */
   handoffText: string;
+  /** An explicit PR title (a `github.draft-pr` node's); omitted → `draftPrTitle`'s default. */
+  title?: string;
 }
 
 /** Purpose-specific creation feed; independent of open lists and relevance search. */

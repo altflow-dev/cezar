@@ -8,7 +8,7 @@ import { workflowDefSchema, workflowStepDefSchema } from './workflows.ts';
 // one. `src/runs/store.ts` imports the SAME value for its persistence twin, so the two halves of
 // `contract-parity.runs.test.ts` cannot drift apart by construction.
 import { dispatchIntentSchema, dispatchSchema } from './dispatch.ts';
-import { trackerAssociationSchema, trackerAutomationEventSchema } from './tracker.ts';
+import { runTrackerItemSchema, trackerAssociationSchema, trackerAutomationEventSchema } from './tracker.ts';
 
 /**
  * The RUNS family of `/api/v1` — a task's record, its lifecycle mutations, and the artifacts
@@ -297,6 +297,8 @@ export const runRecordSchema = z.object({
   /** Absent for in-place runs and after an isolated worktree is removed. */
   worktreePath: z.string().optional(),
   branch: z.string().optional(),
+  /** The YouTrack ticket this task was launched from (spec 2026-10-15 §13), fixed at creation. */
+  trackerItem: runTrackerItemSchema.optional(),
   /** Stable baseline for session git views: a worktree's fork ref, or an in-place run's starting commit. */
   baseBranch: z.string().optional(),
   /** Set when count-based retention (#483) reclaimed the worktree DIRECTORY (the branch is
@@ -972,6 +974,9 @@ export const createRunInputBaseSchema = z
      *  a dispatch tree, with the user's limits. Omit for an ordinary task. Ignored — the run is
      *  still created — on a server with `capabilities.dispatch` off. */
     dispatch: dispatchIntentSchema.optional(),
+    /** The YouTrack ticket this task was launched from (spec 2026-10-15 §13). Names the ticket
+     *  in the task branch, cezar's commits and the PR title. Omit for every other task. */
+    trackerItem: runTrackerItemSchema.optional(),
   });
 
 /**
