@@ -1,6 +1,7 @@
-import type { TrackerAssociation } from '@open-mercato/cezar-contract';
+import type { RunTrackerItem, TrackerAssociation } from '@open-mercato/cezar-contract';
 import { TrackerAgentBindingError } from '../server/tracker/agent-credentials.ts';
 import { credentialEnvSecrets } from '../server/tracker/connection-env.ts';
+import { withTicketPrefix } from '../tracker-item.ts';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -61,6 +62,7 @@ import { readAgentModelProvider } from '../agent-config/models.ts';
 import { loadConfig, resolveWorktreeRetention } from '../config.ts';
 import {
   autosaveCommit,
+  branchFor,
   chooseForkBase,
   commitAll,
   createWorktree,
@@ -722,6 +724,9 @@ export interface StartRunInput {
    *  dispatch tree with the user's limits. Persisted as `dispatch.intent`; a worktree opt-out is
    *  overridden, because children fork the root's commits and an in-place run has no branch. */
   dispatchIntent?: DispatchIntent;
+  /** The YouTrack ticket the task was launched from (spec 2026-10-15 §13). Persisted on the record
+   *  at creation, BEFORE the job can start: `execute()` names the worktree branch from the record. */
+  trackerItem?: RunTrackerItem;
   /** Attachments from the queued prompt stack (#472), re-encoded from disk by
    *  `hydrateQueuedInput` at dequeue. Kept separate from `images` because those
    *  are persisted into `taskImages` by `startRun()` — folding
@@ -1401,6 +1406,9 @@ export class RunManager {
     // holding it on the input — is what makes it survive: `execute()`, restart recovery and the
     // turn-end handlers all read the RECORD, and a tree whose root lost its `dispatch` on a
     // restart would be a tree with no root.
+    // The ticket the task came from (spec 2026-10-15 §13) — the same update-after-create shape,
+    // and for the same reason: everything downstream (branch, commits, PR title) reads the record.
+    if (input.trackerItem) this.store.updateRun(run.id, { trackerItem: input.trackerItem });
     if (input.dispatch) this.store.updateRun(run.id, { dispatch: input.dispatch });
     else if (input.dispatchIntent) this.store.updateRun(run.id, { dispatch: { rootRunId: run.id, intent: input.dispatchIntent } });
     // Initial pasted attachments must be visible while the run is still queued (#612),
@@ -4230,7 +4238,7 @@ export class RunManager {
       this.clearIdleTimer(state);
       this.clearAutosaveTimer(state);
       if (!state.cancelled && this.active.get(runId) === state && state.cwd !== this.repoRoot) {
-        await autosaveCommit(state.cwd, 'turn end');
+        await autosaveCommit(state.cwd, 'turn end', this.ticketIdOf(runId));
       }
       this.dropActive(runId, state);
     }
@@ -4333,7 +4341,10 @@ export class RunManager {
           emit({ type: 'note', message }),
         ));
       try {
-        const wt = await createWorktree(this.repoRoot, runId, base);
+        // A task that already has a branch keeps it; a new one is named from its ticket, if any.
+        const record = this.store.getRun(runId);
+        const branch = record?.branch ?? branchFor(runId, record?.trackerItem?.id);
+        const wt = await createWorktree(this.repoRoot, runId, base, branch);
         state.cwd = wt.path;
         this.store.updateRun(runId, {
           worktreePath: wt.path,
@@ -4478,7 +4489,7 @@ export class RunManager {
     // Final autosave: the branch always ends holding the finished state.
     this.clearAutosaveTimer(state);
     if (!state.cancelled && this.active.get(runId) === state && state.cwd !== this.repoRoot) {
-      await autosaveCommit(state.cwd, 'run finalize');
+      await autosaveCommit(state.cwd, 'run finalize', this.ticketIdOf(runId));
     }
 
     // The cancellation grace timer may have retired this owner while the async
@@ -4890,7 +4901,7 @@ export class RunManager {
       });
       note(`still waiting for ${byChild.size} branches`);
     } else {
-      await autosaveCommit(state.cwd, 'pre-dispatch');
+      await autosaveCommit(state.cwd, 'pre-dispatch', this.ticketIdOf(runId));
       const reviewOf = this.store.getRun(runId)?.branch ?? runId;
       // Resume a partial dispatch (a restart between two branches) from where it left off —
       // `earlierIds` already holds one entry per branch dispatched before the crash, including
@@ -5076,7 +5087,7 @@ export class RunManager {
         return child && childSucceeded(child.status) ? 'done' : 'failed';
       }
       case 'git.commit': {
-        const res = await commitAll(state.cwd, render(node.message));
+        const res = await commitAll(state.cwd, withTicketPrefix(render(node.message), this.ticketIdOf(runId)));
         if (res.result === 'committed') {
           outputs.set(node.id, { sha: res.sha });
           note(`committed ${res.sha.slice(0, 8)}`);
@@ -5103,8 +5114,9 @@ export class RunManager {
         const title = node.title ? render(node.title) : undefined;
         const outcome = await createDraftPr({
           repoRoot: this.repoRoot,
-          run: title ? { ...run, title } : run,
+          run,
           handoffText: readHandoff(this.dataDir, runId),
+          ...(title ? { title } : {}),
         });
         if (!outcome.ok) {
           note(`draft PR failed — ${outcome.error}`, 'danger');
@@ -5178,7 +5190,7 @@ export class RunManager {
           note('this task has no branch of its own to push (it runs in the repository working tree)', 'danger');
           return 'failed';
         }
-        await autosaveCommit(state.cwd, 'pre-PR');
+        await autosaveCommit(state.cwd, 'pre-PR', this.ticketIdOf(runId));
         const res = await pushBranch(state.cwd, run.branch);
         if (!res.ok) {
           note(`push failed — ${res.error}`, 'danger');
@@ -5193,7 +5205,7 @@ export class RunManager {
           note('no base branch recorded for this task', 'danger');
           return 'failed';
         }
-        await autosaveCommit(state.cwd, 'pre-PR');
+        await autosaveCommit(state.cwd, 'pre-PR', this.ticketIdOf(runId));
         const res = await syncWithBase(state.cwd, base);
         if (res.result === 'done') {
           note(`merged the latest ${base}`);
@@ -6762,6 +6774,11 @@ export class RunManager {
     if (runId) this.store.updateRun(runId, { monitoringWakeAt: undefined });
   }
 
+  /** The YouTrack ticket id a task was launched from, for cezar's own commit messages. */
+  private ticketIdOf(runId: string): string | undefined {
+    return this.store.getRun(runId)?.trackerItem?.id;
+  }
+
   /** Autosave-commit the worktree every 90 s while the run lives (spec 006).
    *  Opt-in via CEZ_AUTOSAVE=1 (#471) — see periodicAutosaveEnabled. */
   private armAutosave(runId: string, state: ActiveRun): void {
@@ -6769,7 +6786,7 @@ export class RunManager {
     if (state.cwd === this.repoRoot || state.autosaveTimer) return;
     state.autosaveTimer = setInterval(() => {
       if (this.active.get(runId) !== state || state.cancelled) return;
-      void autosaveCommit(state.cwd, 'periodic');
+      void autosaveCommit(state.cwd, 'periodic', this.ticketIdOf(runId));
     }, AUTOSAVE_INTERVAL_MS);
     state.autosaveTimer.unref?.();
   }

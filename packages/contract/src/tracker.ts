@@ -44,6 +44,29 @@ export type TrackerAssociation = z.infer<typeof trackerAssociationSchema>;
 export const trackerAutomationEventSchema = z.enum(['issue.opened', 'issue.status_changed', 'issue.labeled', 'issue.unlabeled']);
 export type TrackerAutomationEvent = z.infer<typeof trackerAutomationEventSchema>;
 
+/**
+ * A YouTrack readable issue id (`TERM-396`). Strict on purpose: the id is spliced into the task's
+ * branch name, cezar's commit messages and the PR title, so it must be a safe git ref component
+ * and can never start with `-` or carry whitespace, `/`, `..` or shell metacharacters.
+ */
+export const TRACKER_ITEM_ID_RE = /^[A-Z][A-Z0-9_]{0,31}-[1-9][0-9]{0,8}$/;
+
+/**
+ * The tracker ticket a task was launched from (spec 2026-10-15-ticket-implement-review-workflow
+ * §13). Run METADATA, set once at creation and never edited: it names the ticket in the task's
+ * branch (`cez/<ID>-<id8>`), in cezar's own commits and in the PR title. YouTrack only for now.
+ */
+export const runTrackerItemSchema = z
+  .object({
+    kind: z.literal('youtrack'),
+    id: z.string().regex(TRACKER_ITEM_ID_RE, 'must be a YouTrack issue id such as TERM-396'),
+    url: httpsUrlSchema.max(2048),
+    /** The ticket's summary as the launch snapshot had it — the default PR title after the id. */
+    title: z.string().trim().min(1).max(500).optional(),
+  })
+  .strict();
+export type RunTrackerItem = z.infer<typeof runTrackerItemSchema>;
+
 /** Non-secret read identity; display-name changes do not move an issue to another source. */
 export function trackerReadScope(association: TrackerAssociation): string {
   return JSON.stringify([association.kind, association.source.id, association.source.webUrl, association.externalId, association.connectionId ?? null]);

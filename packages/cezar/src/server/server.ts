@@ -63,6 +63,8 @@ import {
   updateProjectInputSchema,
 } from '@open-mercato/cezar-contract';
 import { dispatchInputSchema, dispatchIntentSchema, dispatchReportSchema } from '@open-mercato/cezar-contract';
+import { runTrackerItemSchema } from '@open-mercato/cezar-contract';
+import { trackerItemIssue, withTicketPrefix } from '../tracker-item.ts';
 import { detectEnvironment } from '../core/backend-detect.ts';
 import { hostUsageSampler, type HostSampler } from '../core/host-usage.ts';
 import { RUNNER_IDS } from '../core/agent-runner.ts';
@@ -688,6 +690,9 @@ const startRunSchema = z
     // dispatch tree, within the user's limits. Dropped — not refused — when the capability is
     // off: the task itself is still perfectly valid as an ordinary run.
     dispatch: dispatchIntentSchema.optional(),
+    // The YouTrack ticket the task was launched from (spec 2026-10-15 §13). Must belong to the
+    // project's associated YouTrack source — checked in the handler, which can read it.
+    trackerItem: runTrackerItemSchema.optional(),
   })
   .refine((b) => Boolean(b.workflow) !== Boolean(b.steps), {
     message: 'provide either "workflow" or "steps", not both',
@@ -4263,6 +4268,10 @@ export function createApp(deps: ServerDeps) {
           );
         }
       }
+      if (parsed.data.trackerItem) {
+        const issue = trackerItemIssue(parsed.data.trackerItem, await readTrackerAssociation(dataDir));
+        if (issue) return c.json({ error: issue }, 400);
+      }
       const images = parsed.data.images?.map((image) => toPastedContent(image));
       const input = {
         task: parsed.data.task,
@@ -4280,6 +4289,7 @@ export function createApp(deps: ServerDeps) {
         // CEZ_TODOS_FILE alike (RunManager.agentEnv).
         generateFollowups: capabilities().followups ? parsed.data.generateFollowups : false,
         ...(parsed.data.dispatch && capabilities().dispatch ? { dispatchIntent: parsed.data.dispatch } : {}),
+        ...(parsed.data.trackerItem ? { trackerItem: parsed.data.trackerItem } : {}),
       };
       if (variants > 1) {
         const runs = manager.startVariants(workflow, input, variants);
@@ -4865,7 +4875,7 @@ export function createApp(deps: ServerDeps) {
       const worktree = worktreeOf(run);
       if (!worktree) return c.json({ error: NO_WORKTREE }, 409);
       const parsed = { data: c.req.valid('json') };
-      const result = await commitAll(worktree, parsed.data.message);
+      const result = await commitAll(worktree, withTicketPrefix(parsed.data.message, run.trackerItem?.id));
       if (!result.ok) return c.json({ error: result.error }, 409);
       return c.json({ committed: true, sha: result.sha });
     })
