@@ -87,6 +87,18 @@ describe('RunManager agent-profile resolution', () => {
     expect(store.appendEvent(run.id, { type: 'note', message: `synthetic-private-value Basic ${basic}` }).message).toBe('[REDACTED] Basic [REDACTED]');
   });
 
+  it('registers a YouTrack token as a run secret before spawn', async () => {
+    const association = { kind: 'youtrack' as const, source: { id: 'source', webUrl: 'https://example.youtrack.cloud' }, externalId: 'SAM', externalName: 'Sam' };
+    manager = new RunManager(store, repoRoot, { resolveTrackerEnv: async () => ({ YOUTRACK_BASE_URL: 'https://example.youtrack.cloud', YOUTRACK_TOKEN: 'perm:synthetic-youtrack-value' }) });
+    const run = newRun();
+    // `provider` does not list YouTrack yet (no YouTrack automations); the env seam keys on the
+    // association alone, so the token must be redacted the day that enum widens.
+    store.updateRun(run.id, { automationTracker: { automationId: 'a', automationRevision: 1, receiptId: 'r', provider: 'youtrack' as 'jira', key: 'SAM-1', url: 'https://example.youtrack.cloud', association } });
+    const { env } = await seam().agentEnvForStep(run.id, 'claude');
+    expect(env.YOUTRACK_TOKEN).toBe('perm:synthetic-youtrack-value');
+    expect(store.appendEvent(run.id, { type: 'note', message: 'Bearer perm:synthetic-youtrack-value' }).message).toBe('Bearer [REDACTED]');
+  });
+
   it('does not swallow binding failures on the step and continuation seam', async () => {
     manager = new RunManager(store, repoRoot, { resolveTrackerEnv: async () => { throw new Error('connection changed'); } });
     const run = newRun();
