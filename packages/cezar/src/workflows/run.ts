@@ -207,8 +207,7 @@ const GRAPH_TAKEN_CAP = 500;
 /** Tail of an agent node's last turn kept as `{{nodes.<id>.summary}}`. */
 const NODE_SUMMARY_CAP = 4_000;
 import { freshContinuationContext } from './continuation-context.ts';
-
-const CHECK_OUTPUT_CAP = 20_000;
+import { createCheckOutputCollector } from './check-output.ts';
 
 async function configuredModelProvider(
   backend: RunnerId,
@@ -6794,13 +6793,9 @@ export class RunManager {
       const child = spawn('bash', ['-lc', command], { cwd: state.cwd, env: process.env });
       state.interrupt = () => child.kill('SIGTERM');
 
-      let output = '';
-      const collect = (chunk: Buffer) => {
-        if (output.length < CHECK_OUTPUT_CAP) {
-          output += chunk.toString('utf8');
-          if (output.length >= CHECK_OUTPUT_CAP) output += '\n… (output truncated)';
-        }
-      };
+      // Head + tail, not head only: test runners print what failed at the end.
+      const output = createCheckOutputCollector();
+      const collect = (chunk: Buffer) => output.push(chunk.toString('utf8'));
       child.stdout.on('data', collect);
       child.stderr.on('data', collect);
       child.on('error', (err) => {
@@ -6811,7 +6806,7 @@ export class RunManager {
       });
       child.on('close', (code) => {
         state.interrupt = () => undefined;
-        const trimmed = output.trim() || '(no output)';
+        const trimmed = output.text().trim() || '(no output)';
         // `code` is null when a signal killed the child; -1 then, the same value an
         // unspawnable command reports, and one no `retryOn` list can name — neither
         // is a verdict on the diff, so neither buys the agent another attempt.
