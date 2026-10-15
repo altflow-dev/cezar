@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import { z } from 'zod';
 import { REFERENCE_STATUS_MAX } from '@open-mercato/cezar-contract';
 import { autosaveCommit } from '../../git-worktree.ts';
+import { draftPrTitle, withTicketLink } from '../../tracker-item.ts';
 import type {
   DraftPrInput,
   DraftPrOutcome,
@@ -2468,7 +2469,7 @@ export async function createDraftPr(input: DraftPrInput): Promise<DraftPrOutcome
   // no later autosave to pick the work up, so a refusal (conflicted tree) or a
   // failed commit has to stop the publish instead of silently opening a PR from
   // a branch that is missing the run's final state.
-  const saved = await autosaveCommit(worktree, 'pre-PR');
+  const saved = await autosaveCommit(worktree, 'pre-PR', run.trackerItem?.id);
   if (saved === 'refused') {
     return {
       ok: false,
@@ -2495,7 +2496,7 @@ export async function createDraftPr(input: DraftPrInput): Promise<DraftPrOutcome
     return { ok: false, error: `git push failed — ${tail(push.stderr) || 'unknown error'}` };
   }
 
-  const body = buildPrBody(input.handoffText, run.task);
+  const body = withTicketLink(buildPrBody(input.handoffText, run.task), run.trackerItem);
   // Target the branch the worktree forked from (config `baseBranch`) — without
   // --base, gh aims at the repo default (main) even when work started on
   // develop. `origin/x` normalizes to `x`; a raw sha (detached-HEAD fork
@@ -2503,7 +2504,7 @@ export async function createDraftPr(input: DraftPrInput): Promise<DraftPrOutcome
   const prBase = run.baseBranch?.replace(/^origin\//, '');
   const baseArgs = prBase && !/^[0-9a-f]{7,40}$/i.test(prBase) ? ['--base', prBase] : [];
   const pr = await execTool(
-    ['pr', 'create', '--draft', '--head', branch, ...baseArgs, '--title', run.title, '--body', body],
+    ['pr', 'create', '--draft', '--head', branch, ...baseArgs, '--title', draftPrTitle(run, input.title), '--body', body],
     worktree,
     'gh',
     PUSH_TIMEOUT_MS,

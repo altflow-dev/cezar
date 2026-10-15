@@ -5,9 +5,11 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
+  autosaveCommit,
   branchFor,
   chooseForkBase,
   createWorktree,
+  pruneOrphans,
   parseShortstat,
   resolveBaseRef,
   worktreeShortstat,
@@ -670,5 +672,65 @@ describe('resolveBaseRef (real git)', () => {
       const work = await repoWithOrigin();
       expect(await chooseForkBase(work, 'HEAD', undefined, note)).toBe('HEAD');
     });
+  });
+});
+
+/** Spec 2026-10-15 §13: a task launched from a YouTrack ticket carries the id in its branch and
+ *  in cezar's commits; every other task keeps `cez/<id8>` and `cezar autosave (…)` unchanged. */
+describe('ticket task branches and commits (real git)', () => {
+  const runId = '55555555-5555-4555-8555-555555555555';
+  const ticketBranch = 'cez/TERM-396-55555555';
+  const branches = async (repo: string) =>
+    (await run('git', ['branch', '--format=%(refname:short)'], { cwd: repo })).stdout.split('\n').filter(Boolean);
+  const subject = async (dir: string) => (await run('git', ['log', '-1', '--format=%s'], { cwd: dir })).stdout.trim();
+
+  it('names the branch cez/<TICKET>-<id8> only when a ticket is given', () => {
+    expect(branchFor(runId)).toBe('cez/55555555');
+    expect(branchFor(runId, 'TERM-396')).toBe(ticketBranch);
+  });
+
+  it('creates, reuses and reattaches a ticket task on its own branch', async () => {
+    const repo = await fixtureRepo('cez-worktree-ticket-');
+    const created = await createWorktree(repo, runId, 'main', ticketBranch);
+    expect(created.branch).toBe(ticketBranch);
+    expect(created.path.endsWith(`.ai/cezar/worktrees/${runId}`)).toBe(true);
+    expect(await createWorktree(repo, runId, 'main', ticketBranch)).toEqual(created);
+
+    rmSync(created.path, { recursive: true, force: true });
+    await run('git', ['worktree', 'prune'], { cwd: repo });
+    const recovered = await createWorktree(repo, runId, 'main', ticketBranch);
+    expect(recovered).toEqual(created);
+    expect(await branches(repo)).not.toContain(branchFor(runId));
+  });
+
+  it('refuses to reuse a ticket worktree under the default branch name', async () => {
+    const repo = await fixtureRepo('cez-worktree-ticket-mismatch-');
+    await createWorktree(repo, runId, 'main', ticketBranch);
+    await expect(createWorktree(repo, runId, 'main')).rejects.toThrow(`expected refs/heads/${branchFor(runId)}`);
+  });
+
+  it('refuses an option-like task branch', async () => {
+    const repo = await fixtureRepo('cez-worktree-ticket-dash-');
+    await expect(createWorktree(repo, runId, 'main', '--orphan')).rejects.toThrow('option-like task branch');
+  });
+
+  it('prunes an orphaned ticket worktree together with its own branch', async () => {
+    const repo = await fixtureRepo('cez-worktree-ticket-orphan-');
+    await createWorktree(repo, runId, 'main', ticketBranch);
+    expect(await pruneOrphans(repo, new Set())).toEqual([runId]);
+    expect(await branches(repo)).toEqual(['main']);
+  });
+
+  it('prefixes cezar autosave commits with the ticket id, and only then', async () => {
+    const repo = await fixtureRepo('cez-worktree-ticket-autosave-');
+    const plain = await createWorktree(repo, '66666666-6666-4666-8666-666666666666', 'main');
+    writeFileSync(join(plain.path, 'a.txt'), 'a\n');
+    expect(await autosaveCommit(plain.path, 'turn end')).toBe('committed');
+    expect(await subject(plain.path)).toBe('cezar autosave (turn end)');
+
+    const ticket = await createWorktree(repo, runId, 'main', ticketBranch);
+    writeFileSync(join(ticket.path, 'b.txt'), 'b\n');
+    expect(await autosaveCommit(ticket.path, 'pre-PR', 'TERM-396')).toBe('committed');
+    expect(await subject(ticket.path)).toBe('[TERM-396] cezar autosave (pre-PR)');
   });
 });

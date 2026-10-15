@@ -1,4 +1,5 @@
-import type { CreateRunInput, TrackerItem } from '@open-mercato/cezar-api-client'
+import { TRACKER_ITEM_ID_RE } from '@open-mercato/cezar-api-client'
+import type { CreateRunInput, RunTrackerItem, TrackerItem, TrackerKind } from '@open-mercato/cezar-api-client'
 
 import { MAX_CHAIN_STEPS, skillChainSteps } from './github-task'
 
@@ -37,12 +38,22 @@ export function trackerTaskPrompt(item: TrackerItem, options: TrackerPromptOptio
   return task
 }
 
+/**
+ * The run metadata naming the ticket (spec 2026-10-15 §13) — YouTrack only, and only for an id
+ * the server will accept; anything else launches exactly as before, with no metadata at all.
+ */
+export function runTrackerItem(item: TrackerItem, kind: TrackerKind | undefined): RunTrackerItem | undefined {
+  if (kind !== 'youtrack' || !TRACKER_ITEM_ID_RE.test(item.id)) return undefined
+  const title = item.title.trim().slice(0, 500)
+  return { kind, id: item.id, url: item.url, ...(title ? { title } : {}) }
+}
+
 export function trackerRunBody(
   item: TrackerItem,
   workflow: string | null,
   skills: readonly string[],
   backend: Pick<CreateRunInput, 'model' | 'runner' | 'agentProfile'>,
-  options: TrackerPromptOptions & { acknowledgeLoss?: boolean },
+  options: TrackerPromptOptions & { acknowledgeLoss?: boolean; trackerKind?: TrackerKind },
 ): CreateRunInput {
   if (!workflow && skills.length > MAX_CHAIN_STEPS) {
     throw new Error(`A skill chain can contain at most ${MAX_CHAIN_STEPS} skills. Remove a skill before launching.`)
@@ -54,7 +65,9 @@ export function trackerRunBody(
     ...options,
     skills: workflow ? skills : [],
   })
-  if (workflow) return { ...backend, workflow, task }
-  if (skills.length) return { ...backend, steps: skillChainSteps(skills), task }
-  return { ...backend, workflow: 'quick-task', task }
+  const ticket = runTrackerItem(item, options.trackerKind)
+  const meta = ticket ? { trackerItem: ticket } : {}
+  if (workflow) return { ...backend, workflow, task, ...meta }
+  if (skills.length) return { ...backend, steps: skillChainSteps(skills), task, ...meta }
+  return { ...backend, workflow: 'quick-task', task, ...meta }
 }

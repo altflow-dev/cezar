@@ -58,7 +58,7 @@ export interface RematerializeStore {
 /**
  * If retention (#483) reclaimed this run's worktree — branch kept, directory
  * gone, `worktreeReclaimedAt` stamped — re-materialize the directory (via the
- * idempotent `createWorktree`, which reattaches the surviving `cez/<id8>`
+ * idempotent `createWorktree`, which reattaches the surviving task branch (`run.branch`)
  * branch) and CLEAR the stamp. Called on the resume/continue path so a resumed
  * run regains its isolated tree and becomes eligible for retention again;
  * without it the run would keep a directory on disk while staying invisible to
@@ -73,7 +73,7 @@ export async function rematerializeReclaimedWorktree(
   const run = store.getRun(runId);
   if (!run?.worktreePath || !run.worktreeReclaimedAt || existsSync(run.worktreePath)) return false;
   try {
-    await createWorktree(repoRoot, runId, run.baseBranch ?? 'HEAD');
+    await createWorktree(repoRoot, runId, run.baseBranch ?? 'HEAD', run.branch);
     store.updateRun(runId, { worktreeReclaimedAt: undefined });
     return true;
   } catch {

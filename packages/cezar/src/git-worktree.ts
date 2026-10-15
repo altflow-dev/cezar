@@ -4,6 +4,7 @@ import { readdir, readFile, rm, stat } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 import { resolveTaskDiffBase } from './git-diff-base.ts';
 import { isSafeGitRef } from './git-refs.ts';
+import { withTicketPrefix } from './tracker-item.ts';
 
 /**
  * Git worktree per task (spec 006). Each run gets its own branch
@@ -73,8 +74,15 @@ async function fetchBase(repoRoot: string, base: string): Promise<void> {
   });
 }
 
-export function branchFor(runId: string): string {
-  return `cez/${runId.slice(0, 8)}`;
+/**
+ * The task branch a NEW worktree is created on: `cez/<id8>`, or `cez/<TICKET>-<id8>` for a task
+ * launched from a YouTrack ticket (spec 2026-10-15 §13; the id is contract-validated, so it is a
+ * safe ref component). An EXISTING task's branch is whatever its record says (`RunRecord.branch`)
+ * — never re-derive it from the run id, or a ticket task's branch is lost on reuse.
+ */
+export function branchFor(runId: string, ticketId?: string): string {
+  const id8 = runId.slice(0, 8);
+  return ticketId ? `cez/${ticketId}-${id8}` : `cez/${id8}`;
 }
 
 /**
@@ -208,6 +216,8 @@ export async function createWorktree(
   repoRoot: string,
   runId: string,
   baseBranch: string,
+  /** The task's branch — its recorded `RunRecord.branch`, or `branchFor(...)` for a new task. */
+  branch: string = branchFor(runId),
 ): Promise<WorktreeInfo> {
   let base = baseBranch;
   if (!base || base === 'HEAD') {
@@ -220,7 +230,7 @@ export async function createWorktree(
   // Dash-guard (#431): `base` is spliced in as a positional git operand; an
   // option-like value would be argument injection.
   if (!isSafeGitRef(base)) throw new Error(`refusing option-like base ref: ${base}`);
-  const branch = branchFor(runId);
+  if (!isSafeGitRef(branch)) throw new Error(`refusing option-like task branch: ${branch}`);
   const absolutePath = join(canonicalPath(repoRoot), WORKTREES_DIR, runId);
   const branchRef = `refs/heads/${branch}`;
 
@@ -382,17 +392,19 @@ function hasConflictMarkers(text: string): boolean {
 /**
  * Stage and commit everything in the worktree as a "cezar autosave" commit
  * (janitor pattern) — the agent's progress is always recoverable from the
- * `cez/<id8>` branch history. Quietly a no-op when nothing changed.
+ * task branch history. Quietly a no-op when nothing changed.
  *
  * The message carries `reason` so the opt-in periodic timer and the always-on
  * flushes are distinguishable in `git log`; the `cezar autosave` prefix is kept
- * so existing log greps still match.
+ * so existing log greps still match. A task launched from a YouTrack ticket prefixes it with the
+ * ticket id (`[TERM-396] cezar autosave (…)`, spec 2026-10-15 §13) — a substring match on
+ * `cezar autosave` still finds it.
  *
  * Refuses to commit a worktree that is mid-merge or still carries conflict
  * markers: the incident behind #471 was an autosave capturing a half-resolved
  * merge, and a blind `git add -A` would do it again.
  */
-export async function autosaveCommit(dir: string, reason: AutosaveReason): Promise<AutosaveResult> {
+export async function autosaveCommit(dir: string, reason: AutosaveReason, ticketId?: string): Promise<AutosaveResult> {
   const status = await git(dir, ['status', '--porcelain']);
   if (!status.ok || !status.stdout.trim()) return 'nothing-to-do';
   const unresolved = await unresolvedConflicts(dir, status.stdout);
@@ -418,7 +430,7 @@ export async function autosaveCommit(dir: string, reason: AutosaveReason): Promi
     'commit',
     '--no-verify',
     '-m',
-    `cezar autosave (${reason})`,
+    withTicketPrefix(`cezar autosave (${reason})`, ticketId),
   ]);
   return commit.ok ? 'committed' : 'failed';
 }
@@ -731,10 +743,19 @@ export async function pruneOrphans(
   } catch {
     return []; // no worktrees dir yet
   }
+  // The branch an orphan is checked out on, read from git rather than re-derived from the
+  // directory name: a ticket task's branch (`cez/<TICKET>-<id8>`) is not `branchFor(runId)`.
+  const registered = await registeredWorktrees(repoRoot);
+  const branchAt = (path: string): string => {
+    const target = canonicalPath(path);
+    const ref = registered.find((item) => canonicalPath(item.path) === target)?.branch;
+    return ref?.startsWith('refs/heads/') ? ref.slice('refs/heads/'.length) : '';
+  };
   const removed: string[] = [];
   for (const entry of entries) {
     if (!entry.isDirectory() || validIds.has(entry.name)) continue;
-    await removeWorktree(repoRoot, worktreePathFor(repoRoot, entry.name), branchFor(entry.name));
+    const path = worktreePathFor(repoRoot, entry.name);
+    await removeWorktree(repoRoot, path, branchAt(path) || branchFor(entry.name));
     removed.push(entry.name);
   }
   return removed;
