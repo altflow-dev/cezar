@@ -15,6 +15,25 @@ export function credentialEnv(credentials: TrackerCredentials): Record<string, s
   }
 }
 
+/**
+ * Which of `credentialEnv`'s keys carry a secret, per provider. Keyed by `kind` so a new tracker
+ * fails to compile until it names its own — YouTrack shipped without redaction because this list
+ * used to be spelled out by hand at the agent-env call site.
+ */
+const SECRET_ENV_KEYS: { readonly [K in TrackerCredentials['kind']]: readonly string[] } = {
+  jira: ['JIRA_API_TOKEN'],
+  linear: ['LINEAR_API_KEY'],
+  youtrack: ['YOUTRACK_TOKEN'],
+};
+
+/** Every value in a tracker agent env that must be redacted from transcripts, including derived encodings. */
+export function credentialEnvSecrets(env: Readonly<Record<string, string>>): string[] {
+  const secrets = Object.values(SECRET_ENV_KEYS).flat().map(key => env[key]).filter((value): value is string => Boolean(value));
+  // Jira authenticates with Basic email:token, so an agent that echoes its own header leaks the encoding.
+  if (env.JIRA_EMAIL && env.JIRA_API_TOKEN) secrets.push(Buffer.from(`${env.JIRA_EMAIL}:${env.JIRA_API_TOKEN}`).toString('base64'));
+  return secrets;
+}
+
 const digest = (record: StoredTrackerConnection) => {
   const c = record.credentials;
   const identity = c.kind === 'jira' ? ['jira', new URL(c.origin).origin, c.email, c.token]

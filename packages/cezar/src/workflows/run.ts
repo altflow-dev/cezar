@@ -1,5 +1,6 @@
 import type { RunTrackerItem, TrackerAssociation } from '@open-mercato/cezar-contract';
 import { TrackerAgentBindingError } from '../server/tracker/agent-credentials.ts';
+import { credentialEnvSecrets } from '../server/tracker/connection-env.ts';
 import { withTicketPrefix } from '../tracker-item.ts';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -208,8 +209,7 @@ const GRAPH_TAKEN_CAP = 500;
 /** Tail of an agent node's last turn kept as `{{nodes.<id>.summary}}`. */
 const NODE_SUMMARY_CAP = 4_000;
 import { freshContinuationContext } from './continuation-context.ts';
-
-const CHECK_OUTPUT_CAP = 20_000;
+import { createCheckOutputCollector } from './check-output.ts';
 
 async function configuredModelProvider(
   backend: RunnerId,
@@ -1349,11 +1349,7 @@ export class RunManager {
     const trackerEnv = association && this.resolveTrackerEnv && process.env.CEZ_DRY_RUN !== '1'
       ? await this.resolveTrackerEnv(this.repoRoot, association)
       : {};
-    const secrets = [trackerEnv.JIRA_API_TOKEN, trackerEnv.LINEAR_API_KEY].filter((value): value is string => Boolean(value));
-    if (trackerEnv.JIRA_EMAIL && trackerEnv.JIRA_API_TOKEN) {
-      secrets.push(Buffer.from(`${trackerEnv.JIRA_EMAIL}:${trackerEnv.JIRA_API_TOKEN}`).toString('base64'));
-    }
-    this.store.registerRunSecrets(runId, secrets);
+    this.store.registerRunSecrets(runId, credentialEnvSecrets(trackerEnv));
     return {
       env: { ...this.agentEnv(runId, options.generateFollowups), ...trackerEnv, ...resolved.env },
       profileId: resolved.profile.id,
@@ -6814,13 +6810,9 @@ export class RunManager {
       const child = spawn('bash', ['-lc', command], { cwd: state.cwd, env: process.env });
       state.interrupt = () => child.kill('SIGTERM');
 
-      let output = '';
-      const collect = (chunk: Buffer) => {
-        if (output.length < CHECK_OUTPUT_CAP) {
-          output += chunk.toString('utf8');
-          if (output.length >= CHECK_OUTPUT_CAP) output += '\n… (output truncated)';
-        }
-      };
+      // Head + tail, not head only: test runners print what failed at the end.
+      const output = createCheckOutputCollector();
+      const collect = (chunk: Buffer) => output.push(chunk.toString('utf8'));
       child.stdout.on('data', collect);
       child.stderr.on('data', collect);
       child.on('error', (err) => {
@@ -6831,7 +6823,7 @@ export class RunManager {
       });
       child.on('close', (code) => {
         state.interrupt = () => undefined;
-        const trimmed = output.trim() || '(no output)';
+        const trimmed = output.text().trim() || '(no output)';
         // `code` is null when a signal killed the child; -1 then, the same value an
         // unspawnable command reports, and one no `retryOn` list can name — neither
         // is a verdict on the diff, so neither buys the agent another attempt.

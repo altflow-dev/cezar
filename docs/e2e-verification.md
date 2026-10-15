@@ -101,7 +101,8 @@ loops back, exactly as before this field existed.
 
 That is already what the `onFail` loop does, and it is the reason to prefer
 `--reporter list,markdown` over bare output: when a check loops back, cezar
-appends its output (capped at 20 000 characters) to the retried agent's prompt
+appends its output (capped at 20 000 characters: the first 4 000 and the last
+16 000, so a runner's closing summary survives) to the retried agent's prompt
 under *"A verification command failed after the previous attempt. Fix the
 cause."* `summary.md` is written for exactly that — counts, errors, and the
 failing line, steps and screen for each failure — where a raw `report.json` is

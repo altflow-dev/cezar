@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { expect, it } from 'vitest';
-import { decodeConnectionEnv, encodeConnectionEnv } from './connection-env.ts';
+import type { TrackerCredentials } from '@open-mercato/cezar-contract';
+import { credentialEnv, credentialEnvSecrets, decodeConnectionEnv, encodeConnectionEnv } from './connection-env.ts';
 
 it.each([
   'dummy#=secret', 'dummy\\n\\r\\tail', 'dummy"quote', "dummy'quote", 'dummy`quote',
@@ -46,4 +47,23 @@ it('uses the documented credential-only digest independent of revision and canon
   const expected = createHash('sha256').update(JSON.stringify(['linear', 'dummy'])).digest('hex');
   expect(encodeConnectionEnv(record)).toContain(`CREDENTIAL_SHA256='${expected}'`);
   expect(encodeConnectionEnv({ ...record, id: randomUUID(), projectRoot: '/elsewhere' })).toContain(expected);
+});
+
+it('marks every credential an agent env carries as a run secret, for every tracker kind', () => {
+  const samples: { [K in TrackerCredentials['kind']]: Extract<TrackerCredentials, { kind: K }> } = {
+    jira: { kind: 'jira', origin: 'https://example.atlassian.net', email: 'mail@example.com', token: 'jira-secret' },
+    linear: { kind: 'linear', key: 'linear-secret' },
+    youtrack: { kind: 'youtrack', origin: 'https://example.youtrack.cloud', token: 'youtrack-secret' },
+  };
+  for (const credentials of Object.values(samples)) {
+    const env = credentialEnv(credentials);
+    const secrets = credentialEnvSecrets(env);
+    // Only the site origin and the Jira login are public; every other injected value is a secret.
+    for (const [key, value] of Object.entries(env)) {
+      if (/_BASE_URL$|_EMAIL$/.test(key)) expect(secrets).not.toContain(value);
+      else expect(secrets, `${credentials.kind} ${key}`).toContain(value);
+    }
+  }
+  expect(credentialEnvSecrets(credentialEnv(samples.jira))).toContain(Buffer.from('mail@example.com:jira-secret').toString('base64'));
+  expect(credentialEnvSecrets({})).toEqual([]);
 });
