@@ -1601,7 +1601,7 @@ export const pl: Dictionary = {
   'The registry entry for this checkout — re-probed every time the project list is read.': 'Wpis rejestru dla tego checkoutu — sprawdzany ponownie przy każdym odczycie listy projektów.',
   'The reviewed revision changed.': 'Przejrzana rewizja uległa zmianie.',
   'The run provider is unavailable.': 'Dostawca przebiegu jest niedostępny.',
-  'The run waits without holding a slot. A reply starting with “approve” takes approve; anything else takes reject and becomes': 'Przebieg czeka, nie zajmując slotu. Odpowiedź zaczynająca się od „approve” wybiera approve; cokolwiek innego wybiera reject i staje się',
+  'The run waits without holding a slot. A reply starting with “approve” or “reject” takes that port; any other reply asks again. Everything typed is kept in': 'Przebieg czeka, nie zajmując slotu. Odpowiedź zaczynająca się od „approve” lub „reject” wybiera ten port; każda inna odpowiedź ponawia pytanie. Wszystko, co wpiszesz, trafia do',
   'The running {brandName} server predates the Development channel — restart {brandName} to load it.': 'Działający serwer {brandName} jest starszy niż kanał deweloperski — zrestartuj {brandName}, aby go wczytać.',
   'The same definition the cockpit saves —': 'Ta sama definicja, którą zapisuje kokpit —',
   'The server validated this workflow': 'Serwer zwalidował ten workflow',

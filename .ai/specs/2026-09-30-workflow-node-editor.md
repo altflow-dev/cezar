@@ -190,7 +190,7 @@ validator and editor: `{ type, category, configSchema (zod), ports, outputs }`.
      waits settle `failed` + Continue, like today's ask parks; mid-graph resume is not built).
      Gates/questions reuse the ask card: a click sends `<header>: <label>`, `cardReply` strips
      the header; a reply starting with "approve" approves, anything else rejects and becomes
-     `comment`. Only a USER-authored message answers a wait. `dispatch` awaits its child via
+     `comment` (superseded 2026-10-18 — see § Gate and ask card fixes). Only a USER-authored message answers a wait. `dispatch` awaits its child via
      `reportSettledChildToParent` (a cancelled child takes `failed`). GitHub nodes reuse
      `createDraftPr` / `fetchGithubChecks` and a new `commentOnPr`; under `CEZ_DRY_RUN` the PR is
      faked and CI reports green. System nodes ride the run rail as `check`-kind rows
@@ -283,6 +283,23 @@ What the old builder did and the editor had dropped when it took over `/workflow
 - **Export** — a top-bar button downloads `<slug>.yaml`.
 - **Route tests** — `routes/workflow-graph/workflow-graph.test.tsx` (ResizeObserver stubbed; the
   canvas itself stays with the e2e suite).
+
+## Gate and ask card fixes (2026-10-18)
+
+Found piloting `ticket-implement-review` (spec 2026-10-15), where a reviewer's `blocked` report
+was shown through a `gate.human` message:
+
+- **The ask/gate card renders its question as Markdown** (the thread's `Markdown` renderer, hard
+  breaks on). A message embedding `{{nodes.review.summary}}` — tables, lists, paragraphs — used to
+  fold into one plain `<p>`. Option chips and one-tap answering are unchanged.
+- **`gate.human` leaves only on an explicit decision.** `gateDecision` (run.ts) takes `approve`
+  for a reply starting with "approve"/"approved" and `reject` for "reject"/"rejected"; any other
+  reply — typed in the composer under the card, e.g. an answer to a reviewer's questions — used
+  to be taken as reject and silently stopped the workflow. Now it re-asks (a fresh card, a rail
+  note) and is kept: `{{nodes.<id>.comment}}` is the deciding reply followed by every free-text
+  reply before it. Re-asking was preferred over "free text approves": a typed "no, fix X first"
+  must never open a PR. The kept text is in memory only — a restart at the gate re-asks without
+  it. A workflow that wants an open answer uses `ask-user` + `if`.
 
 ## Open questions
 

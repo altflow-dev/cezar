@@ -1469,7 +1469,7 @@ function Inspector({
           </Field>
           <MinutesField label={t('timeout (minutes, optional) — adds a timeout port')} value={node.timeoutMs} optional onChange={(ms) => set({ timeoutMs: ms })} />
           <p className="rounded-md bg-accent/50 p-2 text-[11px] text-muted-foreground">
-            {t('The run waits without holding a slot. A reply starting with “approve” takes approve; anything else takes reject and becomes ')}<code>{t('{{nodes.{id}.comment}}', { id: node.id })}</code>.
+            {t('The run waits without holding a slot. A reply starting with “approve” or “reject” takes that port; any other reply asks again. Everything typed is kept in ')}<code>{t('{{nodes.{id}.comment}}', { id: node.id })}</code>.
           </p>
         </>
       )}

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RunStore, type RunRecord } from '../runs/store.ts';
 import { graphIssues, graphRailSteps, graphToSteps, type WorkflowGraph } from './graph.ts';
 import { WorkspaceSemaphore } from '../workspace/semaphore.ts';
-import { RunManager } from './run.ts';
+import { gateDecision, RunManager } from './run.ts';
 import { QUICK_TASK_WORKFLOW, type WorkflowDef } from './types.ts';
 
 const run = promisify(execFile);
@@ -17,6 +17,18 @@ const GIT_ID = ['-c', 'user.name=test', '-c', 'user.email=test@local'];
  * Phase-1c nodes end to end (spec 2026-09-30-workflow-node-editor): nodes cezar runs itself,
  * with a real RunManager, the bundled mock agent and `CEZ_DRY_RUN=1` GitHub fakes.
  */
+describe('gateDecision', () => {
+  it('takes approve / reject only when the reply starts with the word', () => {
+    expect(gateDecision('Approve')).toBe('approve');
+    expect(gateDecision('  approved — ship it')).toBe('approve');
+    expect(gateDecision('Reject')).toBe('reject');
+    expect(gateDecision('Rejected: flaky tests')).toBe('reject');
+    expect(gateDecision("I can't approve this yet")).toBeUndefined();
+    expect(gateDecision('Use the v2 endpoint')).toBeUndefined();
+    expect(gateDecision('')).toBeUndefined();
+  });
+});
+
 describe('graph system nodes', () => {
   let repoRoot: string;
   let store: RunStore;
@@ -106,12 +118,30 @@ describe('graph system nodes', () => {
     expect(readFileSync(join(repoRoot, 'gate.txt'), 'utf8')).toBe('approved: Approve\n');
   }, 30_000);
 
-  it('any other answer rejects, and the reply becomes the comment', async () => {
+  it('an explicit reject rejects, and the reply becomes the comment', async () => {
     const id = manager.startRun(def(GATE), { task: 'x', worktree: false }).id;
     await until(id, parkedAt('gate'));
     manager.sendMessage(id, [{ type: 'text', text: 'Reject — tests are flaky' }]);
     await until(id, terminal);
     expect(readFileSync(join(repoRoot, 'gate.txt'), 'utf8')).toBe('rejected: Reject — tests are flaky\n');
+  }, 30_000);
+
+  it('free text that is neither approve nor reject asks again and is kept for the comment', async () => {
+    const id = manager.startRun(def(GATE), { task: 'x', worktree: false }).id;
+    await until(id, parkedAt('gate'));
+    const asks = () => readFileSync(join(repoRoot, '.ai/cezar/runs', `${id}.ndjson`), 'utf8').split('"ask.requested"').length - 1;
+    expect(asks()).toBe(1);
+    // An answer to the gate's message (e.g. a reviewer's questions) — not a decision.
+    expect(manager.sendMessage(id, [{ type: 'text', text: 'Use the v2 endpoint; the flake is known' }])).toBe(true);
+    // Still parked at the same gate, behind a fresh card — not silently rejected.
+    await until(id, (r) => parkedAt('gate')(r) && asks() === 2);
+    expect(existsSync(join(repoRoot, 'gate.txt'))).toBe(false);
+    expect(store.getRun(id)?.steps.find((s) => s.id === 'no')?.status).toBe('pending');
+
+    manager.sendMessage(id, [{ type: 'text', text: 'Approval: Approve' }]);
+    const final = await until(id, terminal);
+    expect(final.status).not.toBe('failed');
+    expect(readFileSync(join(repoRoot, 'gate.txt'), 'utf8')).toBe('approved: Approve\n\nUse the v2 endpoint; the flake is known\n');
   }, 30_000);
 
   it('Finish at a gate settles the run without running what follows; cancel cancels it', async () => {
