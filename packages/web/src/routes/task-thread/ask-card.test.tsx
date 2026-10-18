@@ -144,9 +144,26 @@ describe('AskCard', () => {
       questions: [{ header: 'Limits', question, options: [{ label, description }, { label: 'Other' }] }],
     })
 
-    expect(screen.getByText(question).className).toContain('break-words')
+    expect(screen.getByText(question).closest('[data-slot="ask-question"]')?.className).toContain('break-words')
     expect(screen.getByText(label).className).toContain('break-words')
     expect(screen.getByText(description).className).toContain('break-words')
+  })
+
+  it('renders a multi-line Markdown question with its line breaks, lists and tables intact', () => {
+    const question = 'Verdict: **blocked**\nTwo issues:\n\n- missing test\n- wrong port\n\n| file | line |\n| --- | --- |\n| run.ts | 5041 |\n\nApprove anyway?'
+    const { container } = renderAsk({
+      ...singleAsk,
+      questions: [{ header: 'Approval', question, options: [{ label: 'Approve' }, { label: 'Reject' }] }],
+    })
+    const block = container.querySelector('[data-slot="ask-question"]')!
+    expect(block.querySelector('[data-streamdown="strong"]')?.textContent).toBe('blocked')
+    // A single newline is a hard break, not a folded space.
+    expect(block.querySelector('br')).not.toBeNull()
+    expect(block.querySelectorAll('[data-streamdown="list-item"]')).toHaveLength(2)
+    expect(block.querySelector('table')).not.toBeNull()
+    // The option chips and one-tap answer are untouched.
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ text: 'Approval: Approve' }))
   })
 
   it('a single single-select question sends "header: label" on one tap (no Send button)', () => {

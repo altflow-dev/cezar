@@ -6,6 +6,7 @@ import { Link } from '@/lib/project-router'
 import { cn } from '@/lib/utils'
 
 import { useAskAnswer } from './ask-answer'
+import { Markdown } from './markdown'
 import { type AskSelections, forgetAskSelections, readAskSelections, writeAskSelections } from './ask-selections'
 import type { ThreadAsk } from './thread-state'
 import type { UiAskQuestion } from '@open-mercato/cezar-api-client'
@@ -205,7 +206,12 @@ function AskQuestionBlock({
           <span className="ml-auto text-[10.5px] text-soft-foreground">{t('select all that apply')}</span>
         ) : null}
       </div>
-      <p className="mb-2.5 break-words text-sm font-semibold text-foreground">{question.question}</p>
+      {/* Markdown, with hard breaks: a workflow gate's message routinely embeds a whole agent
+          report ({{nodes.review.summary}} — tables, lists, paragraphs), which a plain <p> folded
+          into one unreadable line. */}
+      <div data-slot="ask-question" className="mb-2.5 break-words text-sm text-foreground">
+        <Markdown breaks>{question.question}</Markdown>
+      </div>
       <div className="flex flex-col gap-2">
         {question.options.map((option) => {
           const isSelected = selected.includes(option.label)
