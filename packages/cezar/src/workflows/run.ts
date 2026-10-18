@@ -176,6 +176,17 @@ export function cardReply(text: string, header: string): string {
   return text.startsWith(prefix) ? text.slice(prefix.length) : text;
 }
 
+/**
+ * The port a `gate.human` reply decides, or undefined for free text that decides nothing. A reply
+ * must START with the word (a card tap, "approve — ship it", "Rejected: flaky tests"): "I can't
+ * approve this yet" is an answer to the message, not an approval.
+ */
+export function gateDecision(reply: string): 'approve' | 'reject' | undefined {
+  if (/^\s*approved?\b/i.test(reply)) return 'approve';
+  if (/^\s*reject(ed)?\b/i.test(reply)) return 'reject';
+  return undefined;
+}
+
 /** A child run that settled with its work accepted (`review` is the gate, not a failure). */
 function childSucceeded(status: string): boolean {
   return status === 'done' || status === 'review';
@@ -5032,15 +5043,34 @@ export class RunManager {
 
     switch (node.type) {
       case 'gate.human': {
+        // Only an explicit approve or reject leaves the gate. The composer under the card takes
+        // free text, and treating every other reply as reject silently stopped workflows whose
+        // user was answering the message (a reviewer's questions) rather than deciding. Free
+        // text re-asks instead, and is kept: it rides into `comment` with the eventual decision.
         const header = node.name ?? 'Approval';
-        const outcome = await this.parkForUser(runId, state, node.id, [
-          { header, question: render(node.message), options: [{ label: 'Approve' }, { label: 'Reject' }] },
-        ], node.timeoutMs);
-        if (outcome.kind !== 'answer') return outcome.kind === 'timeout' ? 'timeout' : 'finished';
-        const reply = cardReply(outcome.text, header);
-        const approved = /^\s*approve\b/i.test(reply);
-        outputs.set(node.id, { comment: reply });
-        return approved ? 'approve' : 'reject';
+        const question = render(node.message);
+        const notes: string[] = [];
+        for (;;) {
+          const outcome = await this.parkForUser(runId, state, node.id, [
+            {
+              header,
+              question: notes.length
+                ? `${question}\n\n_Your reply was kept as the gate's comment. Pick **Approve** or **Reject** to continue._`
+                : question,
+              options: [{ label: 'Approve' }, { label: 'Reject' }],
+            },
+          ], node.timeoutMs);
+          if (outcome.kind !== 'answer') return outcome.kind === 'timeout' ? 'timeout' : 'finished';
+          const reply = cardReply(outcome.text, header);
+          const decision = gateDecision(reply);
+          if (!decision) {
+            notes.push(reply.trim());
+            note('reply is neither approve nor reject — kept as the comment, asking again');
+            continue;
+          }
+          outputs.set(node.id, { comment: [reply.trim(), ...notes].join('\n\n') });
+          return decision;
+        }
       }
       case 'ask-user': {
         const header = node.name ?? 'Question';

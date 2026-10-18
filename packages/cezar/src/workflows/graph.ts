@@ -212,7 +212,7 @@ export const NODE_CATALOG: NodeCatalogEntry[] = [
   { type: 'loop', category: 'flow', label: 'Loop', description: 'Bounded repeat; every cycle passes through one.', ports: ['repeat', 'exhausted'], outputs: ['iteration', 'max'] },
   { type: 'agent', category: 'agents', label: 'Agent', description: 'One agent session: prompt, skill, runner, model, optional verdicts.', ports: ['done', 'failed'], outputs: ['summary', 'verdict', 'costUsd'] },
   { type: 'check', category: 'scripts', label: 'Check', description: 'Shell command in the worktree — exit 0 passes.', ports: ['pass', 'fail'], outputs: ['exitCode', 'output'] },
-  { type: 'gate.human', category: 'flow', label: 'Human gate', description: 'Pause for your approve / reject. Holds no slot while it waits.', ports: ['approve', 'reject'], outputs: ['comment'] },
+  { type: 'gate.human', category: 'flow', label: 'Human gate', description: 'Pause for your approve / reject. A reply that is neither asks again and is kept as the comment. Holds no slot while it waits.', ports: ['approve', 'reject'], outputs: ['comment'] },
   { type: 'ask-user', category: 'agents', label: 'Ask user', description: 'Ask a question and continue with the answer.', ports: ['answered'], outputs: ['answer'] },
   { type: 'dispatch', category: 'agents', label: 'Dispatch subtask', description: 'A child task in its own worktree, budget carved from this run.', ports: ['done', 'failed'], outputs: ['runId', 'status', 'summary'] },
   { type: 'git.commit', category: 'git', label: 'Commit', description: 'Commit everything in the worktree.', ports: ['done', 'nothing', 'failed'], outputs: ['sha'] },
