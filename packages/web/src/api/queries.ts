@@ -57,6 +57,7 @@ import {
   getTrackerCandidates,
   getTrackerItem,
   getTrackerItems,
+  getTrackerStates,
   getUiState,
   getWorkflows,
   getWorkflowNodes,
@@ -151,10 +152,15 @@ export const queryKeys = {
     connection: () => ['tracker', queryScope(), 'connection'] as const,
     items: (
       association: TrackerAssociation,
-      params: { state: 'active' | 'all'; labels: readonly string[]; query?: string },
+      params: { state: 'active' | 'all'; labels: readonly string[]; query?: string; statuses?: readonly string[] },
     ) => [
       'tracker', queryScope(), 'items', association.kind, association.source.id,
       association.source.webUrl, association.externalId, association.connectionId ?? null, params.state, [...params.labels], params.query ?? '',
+      [...(params.statuses ?? [])],
+    ] as const,
+    states: (association: TrackerAssociation) => [
+      'tracker', queryScope(), 'states', association.kind, association.source.id,
+      association.source.webUrl, association.externalId, association.connectionId ?? null,
     ] as const,
     detail: (association: TrackerAssociation, id: string) => [
       'tracker', queryScope(), 'detail', association.kind, association.source.id,
@@ -306,7 +312,7 @@ export class TrackerRefreshError extends Error {
 
 export function useTrackerItems(
   association: TrackerAssociation | null | undefined,
-  params: { state: 'active' | 'all'; labels: readonly string[]; query: string },
+  params: { state: 'active' | 'all'; labels: readonly string[]; query: string; statuses?: readonly string[] },
   enabled = true,
 ) {
   const query = params.query.trim()
@@ -320,8 +326,8 @@ export function useTrackerItems(
     // Infinity still allows explicit invalidation when the connection or scope changes.
     staleTime: Infinity,
     queryFn: ({ pageParam, signal }) => query
-      ? searchTrackerItems(query, { association: association ?? undefined, cursor: pageParam, limit: 50, state: params.state, labels: params.labels, refresh: true }, { signal })
-      : getTrackerItems({ association: association ?? undefined, cursor: pageParam, limit: 50, state: params.state, labels: params.labels, refresh: false }, { signal }),
+      ? searchTrackerItems(query, { association: association ?? undefined, cursor: pageParam, limit: 50, state: params.state, labels: params.labels, statuses: params.statuses, refresh: true }, { signal })
+      : getTrackerItems({ association: association ?? undefined, cursor: pageParam, limit: 50, state: params.state, labels: params.labels, statuses: params.statuses, refresh: false }, { signal }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (page) => page.available && page.truncated ? page.nextCursor : undefined,
     enabled: association != null && enabled,
@@ -343,7 +349,7 @@ export function useTrackerItems(
           staleTime: 0,
           retry: false,
           queryFn: async ({ signal }) => {
-            const browse = { association: association ?? undefined, limit: 50, state: params.state, labels: params.labels, refresh: true }
+            const browse = { association: association ?? undefined, limit: 50, state: params.state, labels: params.labels, statuses: params.statuses, refresh: true }
             const page = query
               ? await searchTrackerItems(query, browse, { signal })
               : await getTrackerItems(browse, { signal })
@@ -356,6 +362,17 @@ export function useTrackerItems(
       }
     },
   }
+}
+
+/** The state catalogue behind the list filter. A failure or an empty catalogue hides the filter. */
+export function useTrackerStates(association: TrackerAssociation | null | undefined, enabled = true) {
+  return useQuery({
+    staleTime: TRACKER_STALE_TIME,
+    queryKey: association ? queryKeys.tracker.states(association) : ['tracker', queryScope(), 'states', 'disabled'],
+    queryFn: ({ signal }) => getTrackerStates({ signal, association: association ?? undefined }),
+    enabled: association != null && enabled,
+    retry: 1,
+  })
 }
 
 export function useTrackerItem(association: TrackerAssociation | null | undefined, id: string | undefined) {

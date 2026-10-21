@@ -13,7 +13,7 @@ import { TRACKER_PROVIDERS } from '@/lib/tracker-providers'
 import { getTrackerItem } from '@/api/client'
 import { useTrackerWatch } from '@/api/tracker-watch'
 import { useProjectScope } from '@/api/project-scope-context'
-import { queryKeys, TRACKER_STALE_TIME, TrackerRefreshError, useSkills, useTrackerConnection, useTrackerAssociation, useTrackerItem, useTrackerItems, useWorkflows } from '@/api/queries'
+import { queryKeys, TRACKER_STALE_TIME, TrackerRefreshError, useSkills, useTrackerConnection, useTrackerAssociation, useTrackerItem, useTrackerItems, useTrackerStates, useWorkflows } from '@/api/queries'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toaster'
 import { Link } from '@/lib/project-router'
@@ -21,6 +21,8 @@ import { trackerLosses, trackerTaskPrompt } from '@/lib/tracker-task'
 import { Markdown } from '../task-thread/markdown'
 import { TrackerHandoff, type TrackerHandoffSelection, type TrackerDraftCache } from './tracker-handoff'
 import { TrackerLabelFilter } from './tracker-label-filter'
+import { TrackerStatusFilter } from './tracker-status-filter'
+import { effectiveStatuses, readTrackerStateFilter, writeTrackerStateFilter } from '@/lib/tracker-state-filter'
 import { t } from '@/lib/i18n'
 
 const emptySelection = (): TrackerHandoffSelection => ({ workflow: null, selectedSkills: [], engine: { runner: null, model: null, account: null } })
@@ -60,7 +62,7 @@ export function TrackerRoute() {
       || connection.data.connection?.kind !== association.data.association.kind
     )) return <SetupState />
   }
-  return <TrackerBrowse scopePending={association.isFetching || (!!association.data.association.connectionId && connection.isFetching)} key={associationKey} association={association.data.association} selectedId={id} drafts={drafts} selection={selection} setSelection={setSelection} />
+  return <TrackerBrowse scopePending={association.isFetching || (!!association.data.association.connectionId && connection.isFetching)} key={associationKey} projectKey={projectId ?? 'default'} association={association.data.association} selectedId={id} drafts={drafts} selection={selection} setSelection={setSelection} />
 }
 
 function trackerAssociationKey(association: TrackerAssociation): string {
@@ -78,23 +80,40 @@ function SetupState() {
   )
 }
 
-function TrackerBrowse({ scopePending, association, selectedId, drafts, selection, setSelection }: { scopePending: boolean; association: TrackerAssociation; selectedId?: string; drafts: TrackerDraftCache; selection: TrackerHandoffSelection; setSelection: React.Dispatch<React.SetStateAction<TrackerHandoffSelection>> }) {
+function TrackerBrowse({ scopePending, projectKey, association, selectedId, drafts, selection, setSelection }: { scopePending: boolean; projectKey: string; association: TrackerAssociation; selectedId?: string; drafts: TrackerDraftCache; selection: TrackerHandoffSelection; setSelection: React.Dispatch<React.SetStateAction<TrackerHandoffSelection>> }) {
   const queryClient = useQueryClient()
   const desktop = useIsDesktop()
   const listVisible = desktop || selectedId === undefined
   const [initialSelection, setInitialSelection] = useState<{ filter: string; id: string } | null>(null)
   const [queryDraft, setQueryDraft] = useState('')
   const [query, setQuery] = useState('')
-  const [state, setState] = useState<'active' | 'all'>('active')
-  const [stateExplicit, setStateExplicit] = useState(false)
+  // The state filter is remembered per project (this view remounts on a project switch).
+  const [remembered] = useState(() => readTrackerStateFilter(projectKey))
+  const [state, setState] = useState<'active' | 'all'>(remembered?.state ?? 'active')
+  const [stateExplicit, setStateExplicit] = useState(remembered !== null)
+  const [chosenStatuses, setChosenStatuses] = useState<string[]>(remembered?.statuses ?? [])
   const [labels, setLabels] = useState<string[]>([])
-  const result = useTrackerItems(association, { state, labels, query }, listVisible)
-  const watch = useTrackerWatch({ association, state, labels, query }, result.queryKey, listVisible)
+  const stateCatalogue = useTrackerStates(association)
+  const stateOptions = stateCatalogue.data?.available ? stateCatalogue.data.states : null
+  // Remembered states wait for the catalogue, so a state the tracker dropped never empties the list.
+  const statesPending = chosenStatuses.length > 0 && stateCatalogue.isPending
+  const statuses = effectiveStatuses(chosenStatuses, stateOptions?.map(option => option.name) ?? null)
+  const remember = (next: { state: 'active' | 'all'; statuses: string[] }) => writeTrackerStateFilter(projectKey, next)
+  const chooseState = (next: 'active' | 'all') => {
+    setState(next); setStateExplicit(true); setChosenStatuses([])
+    remember({ state: next, statuses: [] })
+  }
+  const chooseStatuses = (next: string[]) => {
+    setChosenStatuses(next); setStateExplicit(true)
+    remember({ state, statuses: next })
+  }
+  const result = useTrackerItems(association, { state, labels, query, statuses }, listVisible && !statesPending)
+  const watch = useTrackerWatch({ association, state, labels, query, ...(statuses.length ? { statuses } : {}) }, result.queryKey, listVisible && !statesPending)
   const pages = result.data?.pages ?? []
   const failure = pages.find((page) => !page.available)
   const items = pages.flatMap((page) => page.available ? page.items : [])
 
-  const filterKey = JSON.stringify([query, state, labels])
+  const filterKey = JSON.stringify([query, state, labels, statuses])
   const initialId = initialSelection?.filter === filterKey ? initialSelection.id : null
   useEffect(() => {
     if (initialId === null && items[0]) setInitialSelection({ filter: filterKey, id: items[0].id })
@@ -124,7 +143,10 @@ function TrackerBrowse({ scopePending, association, selectedId, drafts, selectio
       </div>
       <div className="mt-2.5 flex items-center justify-between border-b border-border pb-2">
         <h2 className="text-[13px] font-medium">{t('Issues · ')}{items.length}{result.hasNextPage ? '+' : ''}</h2>
-        <select aria-label={t('Issue state')} className="min-w-0 rounded-md border border-input bg-card px-2 py-1 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={state} onChange={(event) => { setState(event.target.value as 'active' | 'all'); setStateExplicit(true) }}><option value="active">{t('Active')}</option><option value="all">{t('All states')}</option></select>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <select aria-label={t('Issue state')} className="min-w-0 rounded-md border border-input bg-card px-2 py-1 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={statuses.length ? 'selected' : state} onChange={(event) => { if (event.target.value !== 'selected') chooseState(event.target.value as 'active' | 'all') }}><option value="active">{t('Active')}</option><option value="all">{t('All states')}</option>{statuses.length ? <option value="selected">{t('Selected states')}</option> : null}</select>
+          {stateOptions?.length ? <TrackerStatusFilter options={stateOptions} selected={statuses} onChange={chooseStatuses} /> : null}
+        </div>
       </div>
       <form className="mt-2.5 flex items-center gap-2 pb-3" onSubmit={(event) => {
         event.preventDefault()

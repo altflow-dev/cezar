@@ -16,8 +16,11 @@ describe('tracker query identity', () => {
       externalName: 'OPS',
     }
     expect(queryKeys.tracker.items(association, { state: 'active', labels: ['bug'] })).toEqual([
-      'tracker', 'alpha', 'items', 'jira', 'tenant-a', 'https://a.atlassian.net', '10001', null, 'active', ['bug'], '',
+      'tracker', 'alpha', 'items', 'jira', 'tenant-a', 'https://a.atlassian.net', '10001', null, 'active', ['bug'], '', [],
     ])
+    // The state filter is part of the identity: each selection caches its own pages.
+    expect(queryKeys.tracker.items(association, { state: 'active', labels: [], statuses: ['FIXED'] }))
+      .not.toEqual(queryKeys.tracker.items(association, { state: 'active', labels: [], statuses: ['Open'] }))
     expect(queryKeys.tracker.detail(association, 'OPS-7')).toEqual([
       'tracker', 'alpha', 'detail', 'jira', 'tenant-a', 'https://a.atlassian.net', '10001', null, 'OPS-7',
     ])

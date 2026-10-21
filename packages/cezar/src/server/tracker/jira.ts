@@ -12,6 +12,8 @@ import type {
   TrackerListQuery,
   TrackerSearchQuery,
   TrackerSource,
+  TrackerStateOption,
+  TrackerStatesResponse,
 } from '@open-mercato/cezar-contract';
 import { adfMarkdown, descriptionBody } from './adf.ts';
 import { decodeCursor, encodeCursor } from './cursor.ts';
@@ -58,7 +60,15 @@ const issuePageSchema = z.object({
 });
 
 type JiraIssue = z.infer<typeof issueSchema>;
-type CachedResult = TrackerCandidatesResult | TrackerAssociationResult | TrackerItemsResult | TrackerItemResult;
+const projectStatusesSchema = z.array(z.object({
+  statuses: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    statusCategory: z.object({ key: z.string() }).nullish(),
+  })),
+}));
+type StateCatalogue = { available: true; states: TrackerStateOption[] };
+type CachedResult = TrackerCandidatesResult | TrackerAssociationResult | TrackerItemsResult | TrackerItemResult | StateCatalogue;
 type Transport = 'gateway' | 'site';
 
 const issueFields = ['project', 'summary', 'creator', 'created', 'updated', 'labels', 'description', 'status'] as const;
@@ -128,9 +138,16 @@ function quoteJql(value: string): string {
     .replace(/\t/g, '\\t')}"`;
 }
 
-function jqlFor(projectId: string, query: TrackerListQuery | TrackerSearchQuery): string {
+/** Returns null when a state filter can match nothing (no requested status exists in the project). */
+function jqlFor(projectId: string, query: TrackerListQuery | TrackerSearchQuery, catalogue?: StateCatalogue): string | null {
   const clauses = [`project = ${projectId}`];
-  if (query.state === 'active') clauses.push('statusCategory != Done');
+  if (query.statuses?.length) {
+    // JQL rejects an unknown status name outright, so only names the project has reach it.
+    const known = new Set(catalogue?.states.map(state => state.name));
+    const wanted = query.statuses.filter(name => known.has(name));
+    if (!wanted.length) return null;
+    clauses.push(`status in (${wanted.map(quoteJql).join(', ')})`);
+  } else if (query.state === 'active') clauses.push('statusCategory != Done');
   for (const label of query.labels ?? []) clauses.push(`labels = ${quoteJql(label)}`);
   if ('q' in query) {
     const value = quoteJql(query.q);
@@ -314,6 +331,33 @@ export function createJiraClient(
   };
 
   const driver = (association: TrackerAssociation): TrackerDriver => {
+    /** Every status any of the project's issue types can be in, deduplicated by name. */
+    const readStates = (signal: AbortSignal, refresh: boolean): Promise<StateCatalogue> => withSource(
+      signal,
+      'states',
+      { association },
+      refresh,
+      async currentSource => {
+        ensureAssociationSource(association, currentSource);
+        const raw = await authenticatedJson(currentSource, `/rest/api/3/project/${encodeURIComponent(association.externalId)}/statuses`, { method: 'GET' }, signal);
+        const statuses = parseVendor(projectStatusesSchema, raw).flatMap(row => row.statuses).filter(status => status.name && status.id);
+        const states = [...new Map(statuses.map(status => [status.name, {
+          id: status.id, name: status.name, label: status.name, resolved: status.statusCategory?.key === 'done',
+        }])).values()];
+        return { available: true, states };
+      },
+    );
+
+    const listStates = async (): Promise<TrackerStatesResponse> => {
+      try {
+        return await runOperation(signal => readStates(signal, false));
+      } catch (error) {
+        const failure = requestFailure(error);
+        return failure.code === 'not_found' || failure.code === 'invalid_cursor'
+          ? { available: false, code: 'unavailable', reason: 'Jira could not list this project\'s statuses. Try again later.' } : failure;
+      }
+    };
+
     const readItems = async (query: TrackerListQuery | TrackerSearchQuery): Promise<TrackerItemsResult> => {
       try {
         const { refresh: _refresh, ...cacheQuery } = query;
@@ -326,11 +370,15 @@ export function createJiraClient(
             ensureAssociationSource(association, currentSource);
             const cursorScope = {
               kind: 'jira', source: currentSource, operation: 'issues', externalId: association.externalId,
-              state: query.state, labels: query.labels ?? [], ...('q' in query ? { q: query.q } : {}), limit: query.limit,
+              state: query.state, labels: query.labels ?? [], statuses: query.statuses ?? [],
+              ...('q' in query ? { q: query.q } : {}), limit: query.limit,
             };
             const nextPageToken = decodeCursor(cursorScope, query.cursor);
+            const catalogue = query.statuses?.length ? await readStates(signal, query.refresh === '1') : undefined;
+            const jql = jqlFor(association.externalId, query, catalogue);
+            if (jql === null) return { available: true, items: [], truncated: false };
             const body = {
-              jql: jqlFor(association.externalId, query),
+              jql,
               fields: [...issueFields],
               maxResults: query.limit,
               ...(nextPageToken === undefined ? {} : { nextPageToken }),
@@ -419,6 +467,7 @@ export function createJiraClient(
       listIssues: readItems,
       searchItems: readItems,
       getItem,
+      listStates,
     };
   };
 

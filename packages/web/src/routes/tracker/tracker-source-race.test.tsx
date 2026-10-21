@@ -44,6 +44,7 @@ it.each([true, false])('blocks handoff during metadata reconciliation (source ch
     const url = new URL(String(input), 'http://localhost')
     if (url.pathname.endsWith('/tracker/association')) return new Promise<Response>(resolve => { resolveAssociation = resolve })
     if (url.pathname.endsWith('/tracker/connection')) return new Promise<Response>(resolve => { resolveConnection = resolve })
+    if (url.pathname.endsWith('/tracker/states')) return json({ available: true, states: [] })
     if (url.pathname.endsWith('/tracker/OPS-1')) {
       detailScopes.push(url.searchParams.get('expectedScope'))
       // Deliberately emulate an old server without the scope guard: UI must still block launch.

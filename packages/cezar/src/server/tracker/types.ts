@@ -4,7 +4,7 @@ import type { TrackerEventCandidate, PollPage } from '../../automations/event-so
 import type {
   TrackerKind, TrackerAssociation, TrackerAssociationInput, TrackerAssociationResult,
   TrackerCandidatesQuery, TrackerCandidatesResult, TrackerListQuery, TrackerSearchQuery,
-  TrackerItemsResult, TrackerItemResult,
+  TrackerItemsResult, TrackerItemResult, TrackerStatesResponse,
 } from '@open-mercato/cezar-contract';
 
 export interface TrackerClient {
@@ -19,6 +19,8 @@ export interface TrackerDriver {
   listIssues(query: TrackerListQuery): Promise<TrackerItemsResult>;
   searchItems(query: TrackerSearchQuery): Promise<TrackerItemsResult>;
   getItem(id: string): Promise<TrackerItemResult>;
+  /** The project's/team's workflow states for the list filter. Absent: the filter is hidden. */
+  listStates?: () => Promise<TrackerStatesResponse>;
 }
 
 /** Complete compiled-in provider seam. Construction must perform no network I/O. */

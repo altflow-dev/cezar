@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
 import {
   trackerCandidatesResponseSchema, trackerAssociationResponseSchema, trackerItemsResponseSchema,
-  trackerItemResponseSchema, trackerChangedEventSchema,
+  trackerItemResponseSchema, trackerChangedEventSchema, trackerStatesResponseSchema,
 } from '@open-mercato/cezar-contract';
 import { registerProject } from '../workspace/projects.ts';
 import { RunStore } from '../runs/store.ts';
@@ -108,6 +108,24 @@ describe('tracker API boundaries and isolation', () => {
     const body = trackerItemResponseSchema.parse(await detail.json());
     expect(body.available && body.item.body.length).toBeGreaterThan(8000);
     expect((await apiRequest(instance, '/api/v1/tracker/DEMO52-2')).status).toBe(404);
+  });
+
+  it('serves the state catalogue and filters the list by the selected states', async () => {
+    const instance = app();
+    expect(trackerStatesResponseSchema.parse(await (await apiRequest(instance, '/api/v1/tracker/states')).json()))
+      .toMatchObject({ available: false, code: 'not_configured' });
+    await apiRequest(instance, '/api/v1/tracker/association', put(selection));
+    const states = trackerStatesResponseSchema.parse(await (await apiRequest(instance, '/api/v1/p/default/tracker/states')).json());
+    expect(states).toMatchObject({ available: true, states: [{ name: 'In Progress' }, { name: 'Done', resolved: true }] });
+    const done = trackerItemsResponseSchema.parse(await (await apiRequest(instance, `/api/v1/tracker?statuses=${encodeURIComponent('["Done"]')}`)).json());
+    if (!done.available) throw new Error('expected items');
+    // `statuses` replaces the default Active narrowing, which would hide every Done issue.
+    expect(done.items.length).toBeGreaterThan(0);
+    expect(done.items.every(item => item.status === 'Done')).toBe(true);
+    const active = trackerItemsResponseSchema.parse(await (await apiRequest(instance, '/api/v1/tracker')).json());
+    expect(active.available && active.items.some(item => item.status === 'Done')).toBe(false);
+    expect((await apiRequest(instance, `/api/v1/tracker?statuses=${encodeURIComponent('[""]')}`)).status).toBe(400);
+    expect((await apiRequest(instance, '/api/v1/tracker?statuses=Done')).status).toBe(400);
   });
 
   it('keeps static routes reserved and rejects invalid middleware inputs', async () => {

@@ -461,3 +461,36 @@ it('revalidates detail on a subsequent request instead of renewing a cached snap
   revoked = true;
   expect(await driver.getItem('PROJ-1')).toMatchObject({ available: false, code: 'unauthorized' });
 });
+
+describe('Jira state filter', () => {
+  function statusVendor() {
+    const bodies: Array<Record<string, unknown>> = [];
+    const fetcher = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url === `${origin}/_edge/tenant_info`) return json({ cloudId: 'cloud-1' });
+      if (url.includes('/project/10000/statuses')) return json([
+        { statuses: [{ id: '1', name: 'To Do', statusCategory: { key: 'new' } }, { id: '3', name: 'Done', statusCategory: { key: 'done' } }] },
+        { statuses: [{ id: '1', name: 'To Do', statusCategory: { key: 'new' } }, { id: '5', name: 'Code "review"', statusCategory: { key: 'indeterminate' } }] },
+      ]);
+      bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return json({ isLast: true, issues: [] });
+    }) as unknown as typeof fetch;
+    return { driver: createJiraClient(credentials, fetcher).driver(association()), bodies };
+  }
+
+  it('lists the project statuses once each, with Done-category statuses resolved', async () => {
+    expect(await statusVendor().driver.listStates!()).toEqual({ available: true, states: [
+      { id: '1', name: 'To Do', label: 'To Do', resolved: false },
+      { id: '3', name: 'Done', label: 'Done', resolved: true },
+      { id: '5', name: 'Code "review"', label: 'Code "review"', resolved: false },
+    ] });
+  });
+
+  it('replaces the Active narrowing with an escaped status list of known names only', async () => {
+    const { driver, bodies } = statusVendor();
+    await driver.listIssues({ limit: 50, state: 'active', statuses: ['Done', 'Code "review"', 'Missing'] });
+    expect(bodies[0]?.jql).toBe('project = 10000 AND status in ("Done", "Code \\"review\\"") ORDER BY updated DESC');
+    expect(await driver.listIssues({ limit: 50, state: 'active', statuses: ['Missing'] })).toEqual({ available: true, items: [], truncated: false });
+    expect(bodies).toHaveLength(1);
+  });
+});

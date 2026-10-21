@@ -24,7 +24,7 @@ export class TrackerWatches {
   async open(project: Project, input: TrackerWatchInput): Promise<TrackerWatchHandle> {
     const driver = await this.service.driver(project.root, project.dataDir);
     if ('available' in driver || !same(driver.association, input.association)) throw new Error('Tracker connection changed. Reload this view.');
-    const normalized = { ...input, association: driver.association, query: input.query.trim(), labels: [...new Set(input.labels)].sort() };
+    const normalized = { ...input, association: driver.association, query: input.query.trim(), labels: [...new Set(input.labels)].sort(), ...(input.statuses?.length ? { statuses: [...new Set(input.statuses)].sort() } : {}) };
     const key = JSON.stringify([project.root, project.dataDir, normalized]);
     let entry = [...this.entries.values()].find(e => e.key === key && !e.terminal);
     if (!entry) {
@@ -135,7 +135,7 @@ export class TrackerWatches {
       try {
         const driver = await this.service.driver(entry.project.root, entry.project.dataDir);
         if ('available' in driver || !same(driver.association, entry.input.association)) { this.invalidate(entry); return; }
-        const query = { state: entry.input.state, labels: entry.input.labels, limit: 50, refresh: '1' as const };
+        const query = { state: entry.input.state, labels: entry.input.labels, ...(entry.input.statuses?.length ? { statuses: entry.input.statuses } : {}), limit: 50, refresh: '1' as const };
         const result = entry.input.query ? await driver.searchItems({ ...query, q: entry.input.query }) : await driver.listIssues(query);
         if (entry.dead || entry.terminal) return;
         if (!await this.current(entry)) { this.invalidate(entry); return; }

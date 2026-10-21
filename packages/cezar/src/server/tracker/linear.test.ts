@@ -132,3 +132,24 @@ it('revalidates detail on a subsequent request instead of renewing a cached snap
   revoked = true;
   expect(await driver.getItem('ENG-1')).toMatchObject({ available: false, code: 'unauthorized' });
 });
+
+describe('Linear state filter', () => {
+  it('lists the team workflow states by position, completed and canceled as resolved', async () => {
+    const { client } = mock(() => json({ data: { team: { states: { nodes: [
+      { id: 's3', name: 'Done', type: 'completed', position: 3 },
+      { id: 's1', name: 'Todo', type: 'unstarted', position: 1 },
+      { id: 's4', name: 'Canceled', type: 'canceled', position: 4 },
+    ] } } } }));
+    expect(await client.driver(association).listStates!()).toEqual({ available: true, states: [
+      { id: 's1', name: 'Todo', label: 'Todo', resolved: false },
+      { id: 's3', name: 'Done', label: 'Done', resolved: true },
+      { id: 's4', name: 'Canceled', label: 'Canceled', resolved: true },
+    ] });
+  });
+
+  it('filters by state names instead of the Active narrowing', async () => {
+    const { client, requests } = mock(() => json({ data: { result: { nodes: [issue()], pageInfo } } }));
+    await client.driver(association).listIssues({ state: 'active', limit: 50, statuses: ['Todo', 'Done'] });
+    expect(requests[1]?.variables.filter).toEqual({ team: { id: { eq: teamId } }, state: { name: { in: ['Todo', 'Done'] } } });
+  });
+});

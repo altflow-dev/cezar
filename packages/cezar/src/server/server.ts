@@ -1,6 +1,6 @@
 import {
   trackerWatchInputSchema, trackerWatchParamsSchema, trackerWatchQuerySchema,
-  trackerCandidatesQuerySchema, trackerListQuerySchema, trackerSearchQuerySchema, trackerItemQuerySchema, trackerReadScope,
+  trackerCandidatesQuerySchema, trackerListQuerySchema, trackerSearchQuerySchema, trackerItemQuerySchema, trackerStatesQuerySchema, trackerReadScope,
   trackerCredentialsSchema, trackerItemParamsSchema, trackerAssociationInputSchema, type TrackerChangedEvent,
 } from '@open-mercato/cezar-contract';
 import { createTrackerService } from './tracker/index.ts';
@@ -5782,6 +5782,17 @@ export function createApp(deps: ServerDeps) {
       const result = await driver.searchItems(c.req.valid('query'));
       if (!result.available && result.code === 'invalid_cursor') return c.json({ error: result.reason }, 400);
       return c.json(result, 200);
+    })
+    .get('/tracker/states', queryZodValidator(trackerStatesQuerySchema), async (c) => {
+      const driver = await trackers.driver(c.get('project').root, c.get('project').dataDir);
+      if ('available' in driver) return c.json(driver, 200);
+      const { expectedScope } = c.req.valid('query');
+      if (expectedScope !== undefined && expectedScope !== trackerReadScope(driver.association)) {
+        return c.json({ available: false as const, code: 'source_changed' as const, reason: 'This tracker connection or scope changed. Reload the tracker view.' }, 200);
+      }
+      // A provider without a state catalogue answers a controlled failure; the cockpit hides the filter.
+      if (!driver.listStates) return c.json({ available: false as const, code: 'unavailable' as const, reason: 'This tracker does not offer a state filter.' }, 200);
+      return c.json(await driver.listStates(), 200);
     })
     .get('/tracker/:id', paramZodValidator(trackerItemParamsSchema), queryZodValidator(trackerItemQuerySchema), async (c) => {
       const driver = await trackers.driver(c.get('project').root, c.get('project').dataDir);
