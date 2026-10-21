@@ -17,6 +17,7 @@ import type {
 // Re-exported for backends and the run manager that still import them from here.
 export type { AgentSession, SessionOptions } from './agent-runner.ts';
 import { isSignalTerminationExit, trackChildExit } from './agent-runner.ts';
+import { signalProcessTree } from './process-tree.ts';
 import { buildChildEnv } from './agent-env.ts';
 import { disclaimedCommand } from './disclaim-spawn.ts';
 import { resolveClaudeBin } from './claude-bin.ts';
@@ -185,9 +186,13 @@ export class ClaudeCliRunner implements AgentRunner {
     // 143 instead of dying from the signal, so without this flag our own
     // teardown reads as an agent failure (#703).
     let terminatedByCezar = false;
+    // The whole tree, not just claude: a session stopped while a tool runs (a verify script, a
+    // docker-run test suite) would otherwise leave that tool running. The pids signalled first
+    // are signalled again on escalation — by then they may have been reparented out of the tree.
+    let signalledTree: number[] = [];
     const signalChild = (signal: 'SIGTERM' | 'SIGKILL'): void => {
       terminatedByCezar = true;
-      child.kill(signal);
+      signalledTree = signalProcessTree(child, signal, signalledTree);
     };
     // Every watchdog below asks "is the child still alive?" — and that question
     // is NOT `child.killed`, which only reports signal delivery. claude handles
