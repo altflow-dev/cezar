@@ -277,22 +277,35 @@ const trackerQueryCursorSchema = trackerCursorSchema.optional();
 const trackerQueryLimitSchema = z.coerce.number<string>().int().min(1).max(100).default(50);
 const trackerRefreshSchema = z.enum(['0', '1']).optional();
 const trackerStateSchema = z.enum(['active', 'all']);
-const trackerLabelsArraySchema = z.array(nonemptyStringSchema).max(20);
-const trackerLabelsQuerySchema = z.string().transform((raw, context): string[] => {
-  let decoded: unknown;
-  try {
-    decoded = JSON.parse(raw) as unknown;
-  } catch {
-    context.addIssue({ code: 'custom', message: 'labels must be a JSON array of strings' });
-    return z.NEVER;
-  }
-  const parsed = trackerLabelsArraySchema.safeParse(decoded);
-  if (!parsed.success) {
-    context.addIssue({ code: 'custom', message: 'labels must be a JSON array of 0 to 20 nonempty strings' });
-    return z.NEVER;
-  }
-  return parsed.data;
-});
+/** A query-string parameter carrying a JSON array of nonempty strings (`labels`, `statuses`). */
+function jsonStringArrayQuerySchema(name: string, items: z.ZodType<string>, max: number) {
+  const arraySchema = z.array(items).max(max);
+  return z.string().transform((raw, context): string[] => {
+    let decoded: unknown;
+    try {
+      decoded = JSON.parse(raw) as unknown;
+    } catch {
+      context.addIssue({ code: 'custom', message: `${name} must be a JSON array of strings` });
+      return z.NEVER;
+    }
+    const parsed = arraySchema.safeParse(decoded);
+    if (!parsed.success) {
+      context.addIssue({ code: 'custom', message: `${name} must be a JSON array of 0 to ${max} nonempty strings` });
+      return z.NEVER;
+    }
+    return parsed.data;
+  });
+}
+const trackerLabelsQuerySchema = jsonStringArrayQuerySchema('labels', nonemptyStringSchema, 20);
+/** A workflow state's filter `name` (see `trackerStateOptionSchema`). */
+const trackerStatusNameSchema = z.string().min(1).max(256);
+const TRACKER_STATUSES_MAX = 50;
+/**
+ * Optional state filter: only issues in one of these states (OR), resolved or not. When it is
+ * present and nonempty it REPLACES `state` (`active`/`all`) — a state list is already explicit
+ * about resolution. Names the provider does not know match nothing.
+ */
+const trackerStatusesQuerySchema = jsonStringArrayQuerySchema('statuses', trackerStatusNameSchema, TRACKER_STATUSES_MAX);
 
 export const trackerCandidatesQuerySchema = z.object({
   kind: trackerKindSchema,
@@ -315,6 +328,7 @@ export const trackerListQuerySchema = z.object({
   refresh: trackerRefreshSchema,
   state: trackerStateSchema.default('active'),
   labels: trackerLabelsQuerySchema.optional(),
+  statuses: trackerStatusesQuerySchema.optional(),
 });
 export type TrackerListQueryInput = z.input<typeof trackerListQuerySchema>;
 export type TrackerListQuery = z.output<typeof trackerListQuerySchema>;
@@ -326,12 +340,13 @@ export const trackerSearchQuerySchema = z.object({
   refresh: trackerRefreshSchema,
   state: trackerStateSchema.default('all'),
   labels: trackerLabelsQuerySchema.optional(),
+  statuses: trackerStatusesQuerySchema.optional(),
   q: trackerQueryTextSchema,
 });
 export type TrackerSearchQueryInput = z.input<typeof trackerSearchQuerySchema>;
 export type TrackerSearchQuery = z.output<typeof trackerSearchQuerySchema>;
 
-const reservedTrackerItemIds = ['association', 'candidates', 'search', 'connection'];
+const reservedTrackerItemIds = ['association', 'candidates', 'search', 'connection', 'states'];
 
 /** One bounded vendor identifier path segment; static tracker routes are never detail IDs. */
 export const trackerItemParamsSchema = z.object({
@@ -344,6 +359,41 @@ export const trackerItemParamsSchema = z.object({
 });
 export type TrackerItemParams = z.infer<typeof trackerItemParamsSchema>;
 
+
+/**
+ * One workflow state of the associated project/team, for the list's state filter. `name` is what
+ * the filter sends back (`statuses`) — the provider's stable name (YouTrack's system name such as
+ * `FIXED`, which its search accepts as well as the localized one). `label` is what a person reads
+ * (YouTrack's localized name such as „Do zweryfikowania”; the name itself elsewhere). `resolved`
+ * says whether issues in this state count as done.
+ */
+export const trackerStateOptionSchema = z
+  .object({
+    id: nonemptyStringSchema,
+    name: trackerStatusNameSchema,
+    label: nonemptyStringSchema,
+    resolved: z.boolean(),
+  })
+  .strict();
+export type TrackerStateOption = z.infer<typeof trackerStateOptionSchema>;
+
+export const trackerStatesSuccessSchema = z
+  .object({
+    available: z.literal(true),
+    states: z.array(trackerStateOptionSchema),
+  })
+  .strict();
+export type TrackerStatesSuccess = z.infer<typeof trackerStatesSuccessSchema>;
+
+/** HTTP 200 response of `GET /tracker/states`; a provider without a state catalogue answers `unavailable`. */
+export const trackerStatesResponseSchema = z.discriminatedUnion('available', [
+  trackerStatesSuccessSchema,
+  trackerFailureSchema,
+]);
+export type TrackerStatesResponse = z.infer<typeof trackerStatesResponseSchema>;
+
+export const trackerStatesQuerySchema = z.object({ expectedScope: trackerExpectedScopeSchema });
+export type TrackerStatesQuery = z.infer<typeof trackerStatesQuerySchema>;
 
 // Association changes are workspace events; consumers refetch authoritative local state.
 export const trackerChangedEventSchema = z.object({ project: z.string().min(1) }).strict();
@@ -372,6 +422,7 @@ export const trackerWatchInputSchema = z.object({
   query: z.string().trim().max(256),
   state: trackerStateSchema,
   labels: z.array(z.string().trim().min(1).max(256)).max(20),
+  statuses: z.array(trackerStatusNameSchema).max(TRACKER_STATUSES_MAX).optional(),
 }).strict();
 export type TrackerWatchInput = z.infer<typeof trackerWatchInputSchema>;
 export const trackerWatchParamsSchema = z.object({ watchId: z.uuid() });

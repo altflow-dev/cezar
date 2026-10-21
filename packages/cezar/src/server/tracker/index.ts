@@ -148,6 +148,16 @@ export function createTrackerService(env: NodeJS.ProcessEnv = process.env, fetch
           await assertCurrent();
           return result;
         } } : {}),
+        ...(driver.listStates ? { listStates: async () => {
+          if (!await current()) return changed();
+          try {
+            const result = await driver.listStates!();
+            return await current() ? result : changed();
+          } catch (error) {
+            const failure = requestFailure(error);
+            return failure.code === 'not_found' || failure.code === 'invalid_cursor' ? { ...failure, code: 'unavailable' as const } : failure;
+          }
+        } } : {}),
         async getItem(id) {
           if (!await current()) return changed();
           const result = await driver.getItem(id);

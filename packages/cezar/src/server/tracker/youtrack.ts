@@ -11,6 +11,8 @@ import type {
   TrackerListQuery,
   TrackerSearchQuery,
   TrackerSource,
+  TrackerStateOption,
+  TrackerStatesResponse,
 } from '@open-mercato/cezar-contract';
 import { descriptionBody } from './adf.ts';
 import { decodeCursor, encodeCursor } from './cursor.ts';
@@ -46,12 +48,28 @@ const issueSchema = z.object({
   customFields: z.array(z.object({ $type: z.string(), value: z.unknown() })),
 });
 const errorSchema = z.object({ error: z.string() });
+const stateValueSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  localizedName: z.string().nullish(),
+  isResolved: z.boolean().nullish(),
+  archived: z.boolean().nullish(),
+  ordinal: z.number().nullish(),
+});
+const projectFieldSchema = z.object({
+  $type: z.string(),
+  field: z.object({ name: z.string().min(1) }).nullish(),
+  bundle: z.object({ values: z.array(stateValueSchema).nullish() }).nullish(),
+});
 
 type YouTrackIssue = z.infer<typeof issueSchema>;
-type CachedResult = TrackerCandidatesResult | TrackerAssociationResult | TrackerItemsResult | TrackerItemResult;
+/** The project's state field: its (freely chosen) name, which a search clause must use, and values. */
+type StateField = { available: true; fieldName: string; states: TrackerStateOption[] };
+type CachedResult = TrackerCandidatesResult | TrackerAssociationResult | TrackerItemsResult | TrackerItemResult | StateField;
 
 const projectFields = 'id,name,shortName';
-const issueFields = 'idReadable,summary,description,created,updated,resolved,reporter(fullName,login),project(id),tags(name),customFields(value(name))';
+const issueFields = 'idReadable,summary,description,created,updated,resolved,reporter(fullName,login),project(id),tags(name),customFields(value(name,localizedName))';
+const stateFieldFields = '$type,field(name),bundle(values(id,name,localizedName,isResolved,archived,ordinal))';
 
 /** The vendor could not parse the search query (HTTP 400 `invalid_query`). */
 class InvalidQueryError extends Error {}
@@ -95,6 +113,8 @@ function mapIssue(raw: YouTrackIssue, origin: string, expectedProjectId: string,
   // A project names its state field freely; the field TYPE is what identifies it.
   const state = raw.customFields.find(field => field.$type === 'StateIssueCustomField')?.value;
   const stateName = state && typeof state === 'object' && 'name' in state && typeof state.name === 'string' ? state.name : '';
+  // The localized name is what YouTrack shows its users (and what the state filter shows).
+  const localized = state && typeof state === 'object' && 'localizedName' in state && typeof state.localizedName === 'string' ? state.localizedName : '';
   const description = raw.description ?? '';
   // Issues written before the Markdown editor still return rendered legacy-wiki HTML.
   const legacyWiki = /^\s*<div class="wiki /.test(description);
@@ -108,7 +128,7 @@ function mapIssue(raw: YouTrackIssue, origin: string, expectedProjectId: string,
     labels: raw.tags.map(tag => tag.name),
     ...descriptionBody(description, maximum, legacyWiki),
     url: `${origin}/issue/${encodeURIComponent(raw.idReadable)}`,
-    status: stateName || (raw.resolved === null ? 'Open' : 'Resolved'),
+    status: localized || stateName || (raw.resolved === null ? 'Open' : 'Resolved'),
   };
 }
 
@@ -119,9 +139,18 @@ function mapIssue(raw: YouTrackIssue, origin: string, expectedProjectId: string,
  * that is the form YouTrack resolves to the issue itself, not only to mentions of it.
  * Returns null when the query cannot match anything (an inexpressible tag, no searchable text).
  */
-function searchQuery(shortName: string, query: TrackerListQuery | TrackerSearchQuery): string | null {
+function searchQuery(shortName: string, query: TrackerListQuery | TrackerSearchQuery, stateField?: StateField): string | null {
   const clauses = [`project: {${shortName}}`];
-  if (query.state === 'active') clauses.push('#Unresolved');
+  if (query.statuses?.length) {
+    // Only names the project's state bundle holds reach the query: a verified value can never
+    // carry query syntax, and a state the project no longer has matches nothing.
+    const known = new Set(stateField?.states.map(state => state.name));
+    const wanted = query.statuses.filter(name => known.has(name));
+    if (!stateField || !wanted.length) return null;
+    // A comma between values means OR; the field name is braced only when it needs to be.
+    const field = /\s/.test(stateField.fieldName) ? `{${stateField.fieldName}}` : stateField.fieldName;
+    clauses.push(`${field}: ${wanted.map(name => `{${name}}`).join(', ')}`);
+  } else if (query.state === 'active') clauses.push('#Unresolved');
   const labels = query.labels ?? [];
   if (labels.some(label => /[{}]/.test(label))) return null;
   // Repeating an attribute means OR in YouTrack; the explicit operator keeps labels AND-ed.
@@ -293,6 +322,43 @@ export function createYouTrackClient(
   };
 
   const driver = (association: TrackerAssociation): TrackerDriver => {
+    /** The project's state field and its non-archived values, in the project's own order. */
+    const readStateField = (signal: AbortSignal, refresh: boolean): Promise<StateField> => withSource(
+      signal,
+      'state-field',
+      { association },
+      refresh,
+      async currentSource => {
+        ensureAssociationSource(association, currentSource);
+        const raw = await get(`/admin/projects/${encodeURIComponent(association.externalId)}/customFields`, {
+          fields: stateFieldFields, $top: '200',
+        }, signal);
+        const fields = parseVendor(z.array(projectFieldSchema), raw);
+        const field = fields.find(row => row.$type === 'StateProjectCustomField');
+        if (!field?.field) return { available: true, fieldName: '', states: [] };
+        // A brace would end the clause early; such a field cannot be expressed in a query.
+        if (/[{}]/.test(field.field.name)) return { available: true, fieldName: '', states: [] };
+        const values = (field.bundle?.values ?? [])
+          .filter(value => !value.archived && !/[{}]/.test(value.name))
+          .sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0));
+        const states = [...new Map(values.map(value => [value.name, {
+          id: value.id, name: value.name, label: value.localizedName || value.name, resolved: value.isResolved === true,
+        }])).values()];
+        return { available: true, fieldName: states.length ? field.field.name : '', states };
+      },
+    );
+
+    const listStates = async (): Promise<TrackerStatesResponse> => {
+      try {
+        const field = await runOperation(signal => readStateField(signal, false));
+        return { available: true, states: field.states };
+      } catch (error) {
+        const failure = collectionFailure(error);
+        return failure.code === 'invalid_cursor'
+          ? { available: false, code: 'invalid_response', reason: failure.reason } : failure;
+      }
+    };
+
     const readItems = async (query: TrackerListQuery | TrackerSearchQuery): Promise<TrackerItemsResult> => {
       try {
         const { refresh: _refresh, ...cacheQuery } = query;
@@ -305,12 +371,14 @@ export function createYouTrackClient(
             ensureAssociationSource(association, currentSource);
             const cursorScope = {
               kind: 'youtrack', source: currentSource, operation: 'issues', externalId: association.externalId,
-              state: query.state, labels: query.labels ?? [], ...('q' in query ? { q: query.q } : {}), limit: query.limit,
+              state: query.state, labels: query.labels ?? [], statuses: query.statuses ?? [],
+              ...('q' in query ? { q: query.q } : {}), limit: query.limit,
             };
             const offset = offsetFrom(decodeCursor(cursorScope, query.cursor));
             const project = await readProject(association.externalId, signal);
             if (/[{}]/.test(project.shortName)) return invalidResponse();
-            const search = searchQuery(project.shortName, query);
+            const stateField = query.statuses?.length ? await readStateField(signal, query.refresh === '1') : undefined;
+            const search = searchQuery(project.shortName, query, stateField);
             if (search === null) return { available: true, items: [], truncated: false };
             let raw: unknown;
             try {
@@ -366,7 +434,7 @@ export function createYouTrackClient(
       }
     };
 
-    return { association, listIssues: readItems, searchItems: readItems, getItem };
+    return { association, listIssues: readItems, searchItems: readItems, getItem, listStates };
   };
 
   return {

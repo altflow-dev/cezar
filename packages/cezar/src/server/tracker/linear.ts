@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type {
   TrackerAssociation, TrackerAssociationInput, TrackerAssociationResult, TrackerCandidatesQuery,
   TrackerCandidatesResult, TrackerItemsResult, TrackerItemResult, TrackerItem, TrackerSource,
-  TrackerListQuery, TrackerSearchQuery,
+  TrackerListQuery, TrackerSearchQuery, TrackerStatesResponse,
 } from '@open-mercato/cezar-contract';
 import type { TrackerProvider, TrackerDriver } from './types.ts';
 import { TrackerHttp, TrackerRequestError, ResultCache, requestFailure, runOperation } from './transport.ts';
@@ -31,7 +31,8 @@ const envelopeSchema = z.object({
   data: z.unknown().optional(),
   errors: z.array(z.object({ extensions: z.object({ code: z.string().optional() }).passthrough().optional() }).passthrough()).optional(),
 });
-type Cached = TrackerCandidatesResult | TrackerAssociationResult | TrackerItemsResult | TrackerItemResult;
+const stateNodeSchema = z.object({ id: z.string().min(1), name: z.string().min(1), type: z.string(), position: z.number().nullish() });
+type Cached = TrackerCandidatesResult | TrackerAssociationResult | TrackerItemsResult | TrackerItemResult | TrackerStatesResponse;
 function invalid(): never { throw new TrackerRequestError('invalid_response', 'Linear returned incomplete or invalid data. Try again.'); }
 function parse<S extends z.ZodType>(schema: S, value: unknown): z.infer<S> {
   const parsed = schema.safeParse(value);
@@ -154,11 +155,14 @@ TrackerProvider {
         const { refresh: _, ...key } = query;
         return await runOperation(signal => withSource(signal, [association, key], query.refresh === '1', async current => {
           checkScope(association, current);
-          const scope = [current.id, association.externalId, key.limit, key.state, key.labels, 'q' in key ? key.q : null];
+          const scope = [current.id, association.externalId, key.limit, key.state, key.labels, key.statuses ?? [], 'q' in key ? key.q : null];
           const after = decodeCursor(scope, query.cursor);
           const filter = {
             team: { id: { eq: association.externalId } },
-            ...(query.state === 'active' ? { state: { type: { nin: ['completed', 'canceled'] } } } : {}),
+            // A state list is explicit about resolution, so it replaces the Active narrowing.
+            ...(query.statuses?.length
+              ? { state: { name: { in: query.statuses } } }
+              : query.state === 'active' ? { state: { type: { nin: ['completed', 'canceled'] } } } : {}),
             ...(query.labels?.length ? { and: query.labels.map(name => ({ labels: { some: { name: { eq: name } } } })) } : {}),
           };
           const search = 'q' in query;
@@ -174,6 +178,24 @@ TrackerProvider {
     };
     return {
       association, listIssues: read, searchItems: read,
+      async listStates(): Promise<TrackerStatesResponse> {
+        try {
+          return await runOperation(signal => withSource(signal, [association, 'states'], false, async current => {
+            checkScope(association, current);
+            const data = await graphql(`query TrackerStates($id: String!) { team(id: $id) { states(first: 100) { nodes { id name type position } } } }`, { id: association.externalId }, signal);
+            const team = parse(z.object({ team: z.object({ states: z.object({ nodes: z.array(stateNodeSchema) }) }).nullable() }), data).team;
+            if (!team) throw new TrackerRequestError('not_found', 'The selected Linear team was not found.');
+            const nodes = [...team.states.nodes].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+            const states = [...new Map(nodes.map(node => [node.name, {
+              id: node.id, name: node.name, label: node.name, resolved: node.type === 'completed' || node.type === 'canceled',
+            }])).values()];
+            return { available: true, states };
+          }));
+        } catch (error) {
+          const failure = collectionError(error);
+          return failure.code === 'invalid_cursor' ? { available: false, code: 'invalid_response', reason: 'Linear lookup failed.' } : failure;
+        }
+      },
       async automationOptions(query) {
         if (query?.cursor) throw new TrackerRequestError('invalid_cursor', 'This options catalog has no next page.');
         return { events: linearEventCapabilities, limitations: [linearHistoryLimitation], statuses: [], labels: [] };

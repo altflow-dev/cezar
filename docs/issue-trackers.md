@@ -135,6 +135,16 @@ complete issue ID such as `PROJ-12` finds that issue. Descriptions are passed th
 Markdown; an issue still stored in the legacy wiki markup arrives as rendered HTML and is
 flagged as unsupported content. YouTrack event automations are not available yet.
 
+**State filter.** Next to Active/All, **States** picks one or more of the tracker's own workflow
+states (YouTrack: the project's state field from `/api/admin/projects/<id>/customFields`; Jira:
+the project's statuses; Linear: the team's workflow states). Choosing states replaces
+Active/All, so resolved states such as YouTrack's „Do zweryfikowania” (`FIXED`) can be listed.
+The filter runs on the tracker's side, so paging stays correct. YouTrack shows each state's
+localized name and filters by its system name. The choice is remembered in this browser
+separately for each cezar project, until you change it; a remembered state the tracker no longer
+has is ignored. When the tracker's states cannot be read, the States control is hidden and the
+list falls back to Active/All.
+
 Rotate or renew an expired token using Replace credentials in project Settings, then reconnect the scope.
 Changing the Jira site, Linear organization or YouTrack site requires explicitly reconnecting the project;
 saved IDs are never silently retargeted.

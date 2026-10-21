@@ -7,6 +7,7 @@ import type {
   TrackerCandidatesResponse, TrackerItemsResponse, TrackerItemResponse,
   TrackerErrorResponse, TrackerAssociationInput, TrackerCandidatesQueryInput,
   TrackerCredentials, TrackerConnectionResponse, TrackerListQueryInput, TrackerSearchQueryInput, TrackerItemParams, TrackerItemQuery,
+  TrackerStatesResponse, TrackerStatesQuery,
 } from '@open-mercato/cezar-contract';
 import type { AppType } from './app-type.ts';
 
@@ -17,6 +18,10 @@ type Mutual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 type Assert<T extends true> = T;
 type Checks = [
   Assert<Mutual<TrackerItemQuery, InferRequestType<typeof tracker[':id']['$get']>['query']>>,
+  Assert<Mutual<TrackerStatesQuery, InferRequestType<typeof tracker.states.$get>['query']>>,
+  Assert<Mutual<TrackerStatesQuery, InferRequestType<typeof scoped.states.$get>['query']>>,
+  Assert<Mutual<TrackerStatesResponse, InferResponseType<typeof tracker.states.$get, 200>>>,
+  Assert<Mutual<TrackerStatesResponse, InferResponseType<typeof scoped.states.$get, 200>>>,
   Assert<Mutual<TrackerItemQuery, InferRequestType<typeof scoped[':id']['$get']>['query']>>,
   Assert<Mutual<TrackerWatchInput, InferRequestType<typeof scoped.watch.$post>['json']>>,
   Assert<Mutual<TrackerWatchHandle, InferResponseType<typeof scoped.watch.$post, 200>>>,

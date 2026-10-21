@@ -4,6 +4,7 @@ import {
   trackerCandidatesResultSchema,
   trackerItemResultSchema,
   trackerItemsResultSchema,
+  trackerStatesResponseSchema,
   type TrackerAssociation,
 } from '@open-mercato/cezar-contract';
 import { createYouTrackClient } from './youtrack.ts';
@@ -50,6 +51,7 @@ function association(sourceId = 'uuid-1', webUrl = origin): TrackerAssociation {
 function vendor(handlers: {
   projects?: (url: URL) => Response;
   issues?: (url: URL) => Response;
+  customFields?: (url: URL) => Response;
   uuid?: string;
 } = {}) {
   const urls: URL[] = [];
@@ -61,6 +63,7 @@ function vendor(handlers: {
     if (url.origin !== origin) throw new Error(`Unexpected origin: ${url.origin}`);
     if (url.pathname === '/api/config') return json({ uuid: handlers.uuid ?? 'uuid-1', $type: 'FrontendConfig' });
     if (url.pathname === '/api/admin/projects/22-68') return json(project);
+    if (url.pathname === '/api/admin/projects/22-68/customFields' && handlers.customFields) return handlers.customFields(url);
     if (url.pathname === '/api/admin/projects' && handlers.projects) return handlers.projects(url);
     if (url.pathname.startsWith('/api/issues') && handlers.issues) return handlers.issues(url);
     throw new Error(`Unexpected URL: ${url}`);
@@ -272,5 +275,87 @@ describe('YouTrack Cloud adapter', () => {
     await client.listCandidates({ kind: 'youtrack', limit: 50 });
     expect(urls.filter(url => url.pathname === '/api/config')).toHaveLength(2);
     expect(urls.filter(url => url.pathname === '/api/admin/projects')).toHaveLength(2);
+  });
+});
+
+// A localized (Polish) project as YouTrack Cloud answers it: system names, localized display names.
+const stateField = {
+  $type: 'StateProjectCustomField',
+  field: { name: 'State', $type: 'CustomField' },
+  bundle: {
+    $type: 'StateBundle',
+    values: [
+      { id: '86-3', name: 'FIXED', localizedName: 'Do zweryfikowania', isResolved: true, archived: false, ordinal: 7, $type: 'StateBundleElement' },
+      { id: '86-0', name: 'Submitted', localizedName: 'Zgłoszona', isResolved: false, archived: false, ordinal: 0, $type: 'StateBundleElement' },
+      { id: '86-1', name: 'Open', localizedName: 'Otwarta', isResolved: false, archived: false, ordinal: 1, $type: 'StateBundleElement' },
+      { id: '86-9', name: 'TEST_ME', localizedName: null, isResolved: false, archived: false, ordinal: 9, $type: 'StateBundleElement' },
+      { id: '86-8', name: 'Old', localizedName: null, isResolved: false, archived: true, ordinal: 8, $type: 'StateBundleElement' },
+    ],
+  },
+};
+const otherField = { $type: 'EnumProjectCustomField', field: { name: 'Priority', $type: 'CustomField' }, bundle: { values: [{ id: '1', name: 'Major' }] } };
+
+describe('YouTrack state filter', () => {
+  it('lists the project state field values in project order, localized for display and system-named for filtering', async () => {
+    const { fetcher } = vendor({ customFields: () => json([otherField, stateField]) });
+    const result = trackerStatesResponseSchema.parse(await createYouTrackClient(credentials, fetcher).driver(association()).listStates!());
+    expect(result).toEqual({
+      available: true,
+      states: [
+        { id: '86-0', name: 'Submitted', label: 'Zgłoszona', resolved: false },
+        { id: '86-1', name: 'Open', label: 'Otwarta', resolved: false },
+        { id: '86-3', name: 'FIXED', label: 'Do zweryfikowania', resolved: true },
+        { id: '86-9', name: 'TEST_ME', label: 'TEST_ME', resolved: false },
+      ],
+    });
+  });
+
+  it('filters by the selected states server-side, OR-ed, instead of the unresolved narrowing', async () => {
+    const { fetcher, searches } = vendor({ customFields: () => json([stateField]), issues: () => json([issue()]) });
+    const driver = createYouTrackClient(credentials, fetcher).driver(association());
+    const result = trackerItemsResultSchema.parse(await driver.listIssues({ limit: 50, state: 'active', statuses: ['Submitted', 'FIXED'] }));
+    expect(result).toMatchObject({ available: true, items: [{ id: 'PROJ-1' }] });
+    expect(searches().map(url => url.searchParams.get('query')))
+      .toEqual(['project: {PROJ} State: {Submitted}, {FIXED} sort by: updated desc']);
+  });
+
+  it('braces a state field name with spaces and drops states the project no longer has', async () => {
+    const renamed = { ...stateField, field: { name: 'Stan zgłoszenia' } };
+    const { fetcher, searches } = vendor({ customFields: () => json([renamed]), issues: () => json([]) });
+    const driver = createYouTrackClient(credentials, fetcher).driver(association());
+    await driver.searchItems({ q: 'crash', limit: 50, state: 'all', statuses: ['Open', 'Gone {x}'] });
+    expect(searches().map(url => url.searchParams.get('query')))
+      .toEqual(['project: {PROJ} {Stan zgłoszenia}: {Open} "crash" sort by: updated desc']);
+  });
+
+  it('answers an empty page without a vendor search when no selected state exists', async () => {
+    const { fetcher, searches } = vendor({ customFields: () => json([stateField]), issues: () => json([issue()]) });
+    const driver = createYouTrackClient(credentials, fetcher).driver(association());
+    expect(await driver.listIssues({ limit: 50, state: 'all', statuses: ['Removed'] }))
+      .toEqual({ available: true, items: [], truncated: false });
+    expect(searches()).toEqual([]);
+  });
+
+  it('keeps the unresolved narrowing when no state is selected', async () => {
+    const { fetcher, searches, urls } = vendor({ issues: () => json([]) });
+    await createYouTrackClient(credentials, fetcher).driver(association()).listIssues({ limit: 50, state: 'active', statuses: [] });
+    expect(searches().map(url => url.searchParams.get('query'))).toEqual(['project: {PROJ} #Unresolved sort by: updated desc']);
+    expect(urls.some(url => url.pathname.endsWith('/customFields'))).toBe(false);
+  });
+
+  it('binds the next-page cursor to the state selection', async () => {
+    const { fetcher } = vendor({ customFields: () => json([stateField]), issues: () => json([issue(), issue({ idReadable: 'PROJ-2' })]) });
+    const driver = createYouTrackClient(credentials, fetcher).driver(association());
+    const first = trackerItemsResultSchema.parse(await driver.listIssues({ limit: 1, state: 'all', statuses: ['Open'] }));
+    if (!first.available || !first.nextCursor) throw new Error('expected a truncated page');
+    expect(await driver.listIssues({ limit: 1, state: 'all', statuses: ['FIXED'], cursor: first.nextCursor }))
+      .toMatchObject({ available: false, code: 'invalid_cursor' });
+  });
+
+  it('shows the localized state name on an issue', async () => {
+    const localized = issue({ customFields: [{ value: { name: 'FIXED', localizedName: 'Do zweryfikowania' }, $type: 'StateIssueCustomField' }] });
+    const { fetcher } = vendor({ issues: () => json([localized]) });
+    const result = trackerItemsResultSchema.parse(await createYouTrackClient(credentials, fetcher).driver(association()).listIssues({ limit: 50, state: 'all' }));
+    expect(result).toMatchObject({ available: true, items: [{ status: 'Do zweryfikowania' }] });
   });
 });

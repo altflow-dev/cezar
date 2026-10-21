@@ -1,4 +1,4 @@
-import type { TrackerAssociation, TrackerAssociationInput, TrackerAssociationResult, TrackerCandidatesQuery, TrackerCandidatesResult, TrackerItemsResult, TrackerItemResult, TrackerKind, TrackerListQuery, TrackerSearchQuery, TrackerItem } from '@open-mercato/cezar-contract';
+import type { TrackerAssociation, TrackerAssociationInput, TrackerAssociationResult, TrackerCandidatesQuery, TrackerCandidatesResult, TrackerItemsResult, TrackerItemResult, TrackerKind, TrackerListQuery, TrackerSearchQuery, TrackerItem, TrackerStatesResponse } from '@open-mercato/cezar-contract';
 import type { TrackerProvider, TrackerDriver } from './types.ts';
 import { decodeCursor, encodeCursor } from './cursor.ts';
 import { descriptionBody } from './adf.ts';
@@ -60,13 +60,21 @@ export function createDryTrackerClient(kind: TrackerKind): TrackerProvider {
         if (!valid()) return wrongSource;
         try {
           const q = 'q' in query ? query.q.toLowerCase() : '';
-          const found = all.map((_, i) => item(i + 1, association, 8000)).filter(row => (query.state === 'all' || row.status !== 'Done') && (!q || `${row.id} ${row.title} ${row.body}`.toLowerCase().includes(q)) && (query.labels ?? []).every(label => row.labels.includes(label)));
-          const { sliced, ...pagination } = page(found, query.limit, query.cursor, [association, q, query.state, query.labels, query.limit]);
+          const statuses = query.statuses ?? [];
+          const found = all.map((_, i) => item(i + 1, association, 8000)).filter(row => (statuses.length ? statuses.includes(row.status) : query.state === 'all' || row.status !== 'Done') && (!q || `${row.id} ${row.title} ${row.body}`.toLowerCase().includes(q)) && (query.labels ?? []).every(label => row.labels.includes(label)));
+          const { sliced, ...pagination } = page(found, query.limit, query.cursor, [association, q, query.state, query.labels, statuses, query.limit]);
           return { available: true, items: sliced, ...pagination };
         } catch (error) { return collectionError(error); }
       };
       return {
         association, listIssues: read, searchItems: read,
+        async listStates(): Promise<TrackerStatesResponse> {
+          if (!valid()) return wrongSource;
+          return { available: true, states: [
+            { id: 'in-progress', name: 'In Progress', label: 'In Progress', resolved: false },
+            { id: 'done', name: 'Done', label: 'Done', resolved: true },
+          ] };
+        },
         async getItem(id: string): Promise<TrackerItemResult> {
           if (!valid()) return wrongSource;
           const prefix = `${fixture.prefix}${association.externalId}`;

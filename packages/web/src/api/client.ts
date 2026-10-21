@@ -132,6 +132,7 @@ import type {
   TrackerClearedResponse,
   TrackerItemResponse,
   TrackerItemsResponse,
+  TrackerStatesResponse,
   TrackerKind, TrackerCredentials, TrackerConnectionResponse,
 } from '@open-mercato/cezar-api-client'
 import { parseProviderStatusResponse } from '@/lib/provider-status'
@@ -914,6 +915,8 @@ export type TrackerBrowseParams = {
   refresh?: boolean
   state?: 'active' | 'all'
   labels?: readonly string[]
+  /** Workflow state names; nonempty, they replace `state` on the server. */
+  statuses?: readonly string[]
 }
 
 function trackerBrowseQuery(params: TrackerBrowseParams) {
@@ -924,7 +927,19 @@ function trackerBrowseQuery(params: TrackerBrowseParams) {
     refresh: params.refresh ? ('1' as const) : undefined,
     state: params.state,
     labels: params.labels?.length ? JSON.stringify(params.labels) : undefined,
+    statuses: params.statuses?.length ? JSON.stringify(params.statuses) : undefined,
   }
+}
+
+/** The associated project's/team's workflow states, for the list's state filter. */
+export async function getTrackerStates(opts?: ReadOptions & { association?: TrackerAssociation }): Promise<TrackerStatesResponse> {
+  return unwrap(
+    await cez.api.v1.p[':projectId'].tracker.states.$get(
+      { param: { projectId: queryScope() }, query: { expectedScope: opts?.association ? trackerReadScope(opts.association) : undefined } },
+      init(opts),
+    ),
+    '/tracker/states',
+  )
 }
 
 export async function getTrackerItems(
