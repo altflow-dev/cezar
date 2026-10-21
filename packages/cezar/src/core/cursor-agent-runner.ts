@@ -26,6 +26,7 @@ import { isSignalTerminationExit, prependSystemPrompt } from './agent-runner.ts'
 import { buildChildEnv } from './agent-env.ts';
 import { disclaimedCommand } from './disclaim-spawn.ts';
 import { readNdjson } from './ndjson.ts';
+import { signalProcessTree } from './process-tree.ts';
 import {
   createCursorUiState,
   mapCursorMessage,
@@ -201,17 +202,11 @@ export class CursorAgentRunner implements AgentRunner {
       deadline = setTimeout(() => {
         timedOut = true;
         terminatedByCezar = true;
-        try {
-          child.kill('SIGTERM');
-        } catch {
-          /* ignore */
-        }
+        // The whole tree, not just `agent`: a turn that hit the limit is usually waiting on a
+        // tool (a verify script, a docker-run test suite) that would otherwise outlive it.
+        const tree = signalProcessTree(child, 'SIGTERM');
         killTimer = setTimeout(() => {
-          try {
-            child.kill('SIGKILL');
-          } catch {
-            /* ignore */
-          }
+          signalProcessTree(child, 'SIGKILL', tree);
         }, CURSOR_KILL_GRACE_MS);
         killTimer.unref?.();
       }, limitMs);
@@ -284,11 +279,8 @@ export class CursorAgentRunner implements AgentRunner {
     const interrupt = () => {
       terminatedByCezar = true;
       open = false;
-      try {
-        child.kill('SIGTERM');
-      } catch {
-        /* ignore */
-      }
+      // A cancelled task stops its tools too (see the timeout above).
+      signalProcessTree(child, 'SIGTERM');
     };
 
     const session: AgentSession = {
