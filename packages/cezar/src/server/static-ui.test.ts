@@ -58,6 +58,14 @@ describe('resolveGetRequest', () => {
     { name: '/assets/index-abc123.js → passthrough', path: '/assets/index-abc123.js', target: 'passthrough' },
     { name: '/icon.svg (favicon) → passthrough', path: '/icon.svg', target: 'passthrough' },
     { name: '/open-mercato.svg (legacy favicon alias) → passthrough', path: '/open-mercato.svg', target: 'passthrough' },
+    // The installable-app files must reach their own routes, not the HTML shell —
+    // a manifest answered with index.html silently makes the cockpit uninstallable.
+    { name: '/manifest.webmanifest → passthrough', path: '/manifest.webmanifest', target: 'passthrough' },
+    { name: '/icon-512.png → passthrough', path: '/icon-512.png', target: 'passthrough' },
+    { name: '/apple-touch-icon.png → passthrough', path: '/apple-touch-icon.png', target: 'passthrough' },
+    // Only the listed files — any other png is still a SPA path.
+    { name: '/other.png → the shell', path: '/other.png', target: 'dist' },
+    { name: '/constructor → the shell (own keys only)', path: '/constructor', target: 'dist' },
     // Passthrough is about ownership, not about the build being there.
     { name: '/assets/x.js with no build → still passthrough', path: '/assets/x.js', distExists: false, target: 'passthrough' },
     // R7: the legacy asset routes are gone — these are SPA paths like any other.

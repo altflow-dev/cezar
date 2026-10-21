@@ -22,10 +22,26 @@ export function resolveIndexHtml(opts: { distExists: boolean }): IndexTarget {
  *  served by them. */
 export type GetTarget = IndexTarget | 'passthrough';
 
+/** The web-app manifest and the icons it names — `public/` files of the web
+ *  package, copied into `web/dist` by the build. Together they make the cockpit
+ *  installable (Chrome/Edge "Install cezar", Safari "Add to Dock"). */
+export const PWA_FILES: Readonly<Record<string, string>> = {
+  'manifest.webmanifest': 'application/manifest+json',
+  'icon-192.png': 'image/png',
+  'icon-512.png': 'image/png',
+  'icon-maskable-512.png': 'image/png',
+  'apple-touch-icon.png': 'image/png',
+};
+
 /** Paths owned by routes registered before the catch-all: the built app's
- *  hashed bundles and the favicon. */
+ *  hashed bundles, the favicon, and the PWA files. */
 function isStaticAsset(path: string): boolean {
-  return path.startsWith('/assets/') || path === '/icon.svg' || path === '/open-mercato.svg';
+  return (
+    path.startsWith('/assets/') ||
+    path === '/icon.svg' ||
+    path === '/open-mercato.svg' ||
+    Object.hasOwn(PWA_FILES, path.slice(1))
+  );
 }
 
 /** Decide what any GET gets, so every route in the spec's map (`/tasks/:id/changes`,
