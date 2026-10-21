@@ -248,6 +248,7 @@ import {
   assetContentType,
   isSafeAssetFilename,
   resolveGetRequest,
+  PWA_FILES,
 } from './static-ui.ts';
 
 export interface ServerDeps {
@@ -1655,6 +1656,11 @@ export function createApp(deps: ServerDeps) {
   app.get('/icon.svg', staticFile('icon.svg', 'image/svg+xml'));
   // Compatibility alias for the pre-rename public URL (BACKWARD_COMPATIBILITY.md §2).
   app.get('/open-mercato.svg', staticFile('icon.svg', 'image/svg+xml'));
+  // Web-app manifest + its icons, so the cockpit can be installed as a standalone app.
+  // The list lives in static-ui.ts (PWA_FILES) so the SPA catch-all passes them through.
+  for (const [file, type] of Object.entries(PWA_FILES)) {
+    app.get(`/${file}`, staticFile(file, type));
+  }
 
   // ---- meta ----------------------------------------------------------------
   // CORS — deliberately for /api/health ONLY (spec 011): the bookmarklets

@@ -11,6 +11,14 @@
     />
     <!-- Relative so Vite bundles the legacy logo out of web/ instead of duplicating it under a public dir. -->
     <link rel="icon" href="/icon.svg" />
+    <!-- Installable app (Chrome/Edge "Install", Safari "Add to Dock"). No service worker on
+         purpose: the shell is `no-cache` so a rebuilt cockpit lands on the next reload, and a
+         caching worker would bring back exactly the stale-app problem that header fixed. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d0d0d" />
+    <meta name="apple-mobile-web-app-title" content="cezar" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>cezar</title>
     <!-- Theme before first paint — no flash. Mirrors resolveTheme()/applyResolvedTheme() in
          src/lib/theme.ts; keep the two in sync. Shares the legacy cockpit's `cez-theme` key
