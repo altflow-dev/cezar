@@ -14,7 +14,10 @@
     <!-- Installable app (Chrome/Edge "Install", Safari "Add to Dock"). No service worker on
          purpose: the shell is `no-cache` so a rebuilt cockpit lands on the next reload, and a
          caching worker would bring back exactly the stale-app problem that header fixed. -->
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- `use-credentials`: browsers fetch the manifest WITHOUT credentials by default, so behind
+         the server installer's HTTP Basic auth it answered 401 and Chrome fell back to a plain
+         shortcut — no launch_handler, a new window per launch. -->
+    <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d0d0d" />
     <meta name="apple-mobile-web-app-title" content="cezar" />
