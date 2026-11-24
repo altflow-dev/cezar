@@ -408,7 +408,10 @@ the wrong backend.
 
 - **Isolation.** cezar adds an override: the exposed services publish only their allocated ports,
   every other service publishes none, and fixed `container_name`s are dropped, so several
-  previews (even several copies of one project) run side by side. Needs docker compose 2.24+.
+  previews (even several copies of one project) run side by side. Every service also answers as
+  `<service>.localhost` on its own networks, so a client that accepts plain http only for
+  loopback names (such as `@altcomp/auth-fetch` 2.x) can reach `http://api.localhost:8000`.
+  Needs docker compose 2.24+.
 - **Safety.** By default the compose files and `preview.yml` are read from the task's **base
   branch** (the task's own Dockerfiles and code are still what gets built), so an agent cannot
   change what runs on the server. `trustWorktreeConfig: true` on the node uses the branch's own

@@ -13,6 +13,8 @@ export interface ComposeService {
   privileged?: boolean;
   cap_add?: string[];
   network_mode?: string;
+  /** Compose normalizes this to a map: `{ default: null }`, `{ backend: { aliases: [...] } }`. */
+  networks?: Record<string, unknown>;
   pid?: string;
   ipc?: string;
   userns_mode?: string;
@@ -66,7 +68,11 @@ const q = (s: string) => JSON.stringify(s);
  *  - exposed services publish ONLY their allocated host ports (`!override`), on `bind`;
  *  - every other service with published ports publishes none (`!reset []`) — a dev compose that
  *    publishes Postgres on 5456 would otherwise collide with the next task's copy;
- *  - every fixed `container_name` is dropped (`!reset null`), since two stacks cannot share one.
+ *  - every fixed `container_name` is dropped (`!reset null`), since two stacks cannot share one;
+ *  - every service also answers as `<service>.localhost` on each of its networks. `@altcomp/auth-fetch`
+ *    2.x accepts a plain-http API base only for loopback names, so `API_URL=http://api:8000` is
+ *    refused while `http://api.localhost:8000` is not — the alias AltDesk's own compose adds by
+ *    hand. Compose merges aliases with the file's own; the name is scoped to the project network.
  * Named volumes and networks are already isolated by the `-p` project name. Needs compose 2.24+.
  */
 export function renderOverride(
@@ -96,6 +102,11 @@ export function renderOverride(
       body.push('    ports: !reset []');
     }
     if (svc.container_name) body.push('    container_name: !reset null');
+    const networks = svc.network_mode ? [] : Object.keys(svc.networks ?? {});
+    if (networks.length) {
+      body.push('    networks:');
+      for (const net of networks) body.push(`      ${q(net)}:`, '        aliases:', `          - ${q(`${name}.localhost`)}`);
+    }
     const env = serviceEnv[name];
     if (env && Object.keys(env).length) {
       body.push('    environment:');

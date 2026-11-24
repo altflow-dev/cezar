@@ -64,6 +64,20 @@ describe('renderOverride', () => {
     expect(Object.keys(doc.services).sort()).toEqual(['api', 'db', 'web']);
   });
 
+  it('aliases every service as <name>.localhost on each of its networks, so auth-fetch 2.x accepts http to it', () => {
+    const withNets: ComposeModel = {
+      services: {
+        api: { networks: { default: null, backend: { aliases: ['x'] } } },
+        sidecar: { network_mode: 'service:api', networks: { default: null } },
+        bare: {},
+      },
+    };
+    const out = renderOverride(withNets, [], [], '0.0.0.0');
+    expect(out).toContain('"api":\n    networks:\n      "default":\n        aliases:\n          - "api.localhost"\n      "backend":\n        aliases:\n          - "api.localhost"');
+    expect(out).not.toContain('"sidecar"');
+    expect(out).not.toContain('"bare"');
+  });
+
   it('two runs given disjoint ports render disjoint publishes', () => {
     const other = renderOverride(model, planned, [41002, 41003], '0.0.0.0');
     expect(other).toContain('41002:5173');

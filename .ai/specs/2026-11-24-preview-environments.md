@@ -150,7 +150,12 @@ W szablonie domyślnie ten sam runner co implementacja.
   z `docker compose ls`.
 - **Override:** dla usług z `expose` jest `ports: !override ["<bind>:<hostPort>:<port>"]`, dla
   wszystkich pozostałych usług z opublikowanymi portami `ports: !reset []`, a każde `container_name`
-  dostaje `!reset null`. Wolumeny nazwane są izolowane przez `-p` (nazwa projektu compose). Bind
+  dostaje `!reset null`. Każda usługa (poza tymi z `network_mode`) dostaje też alias
+  `<usługa>.localhost` w każdej swojej sieci. `@altcomp/auth-fetch` 2.x przyjmuje `http://` tylko
+  dla nazw loopback, więc `API_URL=http://api:8000` jest odrzucane, a `http://api.localhost:8000`
+  nie. AltDesk dodaje ten alias ręcznie w swoim compose. Alias działa tylko w sieci projektu, a
+  compose łączy go z aliasami z pliku. Sprawdzone na dockerze: Node (alpine) i glibc rozwiązują go
+  przez DNS dockera. Wolumeny nazwane są izolowane przez `-p` (nazwa projektu compose). Bind
   mounty spoza worktree odrzuca lint.
 - **Adres bind:** `CEZ_PREVIEW_BIND`. Domyślnie ten sam interfejs, na którym nasłuchuje sam cezar:
   `127.0.0.1` lokalnie, a na serwerze wystawionym w sieci to, co ma cezar. Podgląd nigdy nie jest
