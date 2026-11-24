@@ -2496,7 +2496,8 @@ export async function createDraftPr(input: DraftPrInput): Promise<DraftPrOutcome
     return { ok: false, error: `git push failed — ${tail(push.stderr) || 'unknown error'}` };
   }
 
-  const body = withTicketLink(buildPrBody(input.handoffText, run.task), run.trackerItem);
+  const testing = previewNotesSection(run.preview?.notes, run.preview?.credentials?.map((c) => c.password));
+  const body = withTicketLink(buildPrBody(input.handoffText, run.task, testing), run.trackerItem);
   // Target the branch the worktree forked from (config `baseBranch`) — without
   // --base, gh aims at the repo default (main) even when work started on
   // develop. `origin/x` normalizes to `x`; a raw sha (detached-HEAD fork
@@ -2530,7 +2531,21 @@ export async function createDraftPr(input: DraftPrInput): Promise<DraftPrOutcome
  * fallback) + the first ~10 lines of "## Progress log" (newest first) +
  * the cezar footer.
  */
-export function buildPrBody(handoffText: string, task: string): string {
+/**
+ * The preview's test notes (spec 2026-11-24-preview-environments) as a PR section, so a reviewer
+ * on GitHub reads the same checklist the tester did. Headings are demoted under one `## Testing`
+ * heading, and every seeded test password is masked: the notes agent names the logins to use,
+ * and the PR is read far more widely than the cockpit.
+ */
+export function previewNotesSection(notes: string | undefined, passwords: string[] = []): string {
+  let text = (notes ?? '').trim();
+  if (!text) return '';
+  for (const p of passwords.filter((x) => x.length >= 3).sort((a, b) => b.length - a.length)) text = text.split(p).join('•••');
+  text = text.replace(/^(#{1,5}) /gm, (_, h: string) => `${h}# `);
+  return `## Testing\n\n${text}`;
+}
+
+export function buildPrBody(handoffText: string, task: string, testing = ''): string {
   const goal = section(handoffText, '## Goal') || task.trim();
   const progress = section(handoffText, '## Progress log')
     .split('\n')
@@ -2539,6 +2554,7 @@ export function buildPrBody(handoffText: string, task: string): string {
     .join('\n');
   const parts = ['## Goal', '', goal];
   if (progress) parts.push('', '## Progress log', '', progress);
+  if (testing) parts.push('', testing);
   parts.push('', '---', '', '🤖 made with cezar');
   return parts.join('\n');
 }

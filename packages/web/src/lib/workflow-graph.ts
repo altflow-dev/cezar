@@ -38,6 +38,7 @@ const PORTS: Record<GraphNodeType, readonly string[]> = {
   'github.pr-update': ['done', 'failed'],
   'github.issue-comment': ['done', 'failed'],
   'notify.webhook': ['done', 'failed'],
+  'preview.up': ['ready', 'failed'],
 }
 const FAILURE_PORTS = new Set(['failed', 'fail', 'exhausted', 'reject', 'red', 'timeout', 'conflict'])
 
@@ -195,6 +196,8 @@ export function newNode(type: GraphNodeType, taken: Iterable<string>): WorkflowG
       return { id: uniqueId('issue-comment', taken), type, body: 'Update from cezar: {{task}}' }
     case 'notify.webhook':
       return { id: uniqueId('webhook', taken), type, url: 'https://example.com/hook', body: 'cezar: {{task}}' }
+    case 'preview.up':
+      return { id: uniqueId('preview', taken), type }
   }
 }
 

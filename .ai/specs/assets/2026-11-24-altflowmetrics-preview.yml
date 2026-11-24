@@ -1,0 +1,59 @@
+# Example `.ai/cezar/preview.yml` for AltflowMetrics (spec 2026-11-24-preview-environments).
+# Copy it to AltflowMetrics as `.ai/cezar/preview.yml` and commit it on the base branch
+# (`dev`/`main`). cezar reads it from the base branch, never from the task branch.
+#
+# Written against compose/docker-compose.local.yml as of 2026-11-24 (commit 2f12ce3).
+# NOT run end to end yet — the frontend build needs NPM_TOKEN and the first boot of `pnpm dev`
+# is slow; check the TODOs on the server's first preview.
+
+compose: compose/docker-compose.local.yml
+
+# Gitignored files the worktree does not have. Copied from the project checkout on the server,
+# never overwriting. `compose/.env` holds NPM_TOKEN for the frontend build; `.npmrc` is
+# bind-mounted into the web container.
+copyFromRoot:
+  - compose/.env
+  - .npmrc
+  - services/api/.envs/.env
+  - apps/web/.envs/.env
+
+# The two links on the preview card. db (5456) and redis (6380) are no longer published, and the
+# fixed container_names are dropped, so several tasks run side by side.
+expose:
+  frontend: { service: web, port: 3000, path: / }
+  backend: { service: api, port: 8000, path: /admin/ }
+
+# The API runs `migrate` in start.sh before uvicorn, so once the login page answers, the
+# schema is there. The first `pnpm dev` compile is slow, hence the long timeout.
+ready: { url: backend, path: /admin/login/, timeoutSec: 600 }
+
+# What the app must be told about where THIS preview lives. `.envs/.env` says localhost:8000
+# and localhost:3001, which inside a preview is the wrong port (and the wrong host for
+# a colleague). {host} is the host the cockpit is reached on; {url:x} is http://{host}:<port>.
+serviceEnv:
+  web:
+    NEXT_PUBLIC_API_URL: "http://{host}:{port:backend}"
+  api:
+    DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,api,{host}"
+    CSRF_TRUSTED_ORIGINS: "{url:frontend},http://{host}:{port:backend},http://web:3000,http://api:8000"
+  worker:
+    DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,api,{host}"
+  beat:
+    DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,api,{host}"
+
+# Run once the API answers. TODO: AltflowMetrics has no demo-user fixture today; this creates
+# an admin. Add the demo data your testers need (generate_demo_data needs mapped integrations,
+# so it is left out until there is a fixture to map them).
+seed:
+  - service: api
+    command: >-
+      DJANGO_SUPERUSER_EMAIL=admin@example.com DJANGO_SUPERUSER_PASSWORD=admin123
+      python manage.py createsuperuser --noinput || true
+
+# TEST logins only — every cockpit user sees them.
+credentials:
+  - { label: Admin, url: backend, user: admin@example.com, password: admin123 }
+
+checklistHints: |
+  Log in to the frontend with the Admin account. Check the screens the diff touches, then the
+  employee dashboard as a regression check.

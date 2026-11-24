@@ -617,4 +617,118 @@ describe('graph system nodes', () => {
       else process.env.CEZ_WORKFLOW_WEBHOOKS = saved;
     }
   }, 40_000);
+
+  // ---- preview.up (spec 2026-11-24-preview-environments) ----
+  async function commitPreviewConfig(): Promise<void> {
+    writeFileSync(join(repoRoot, 'compose.yaml'), 'services:\n  web:\n    image: nginx\n    ports: ["8080:80"]\n');
+    const { mkdirSync } = await import('node:fs');
+    mkdirSync(join(repoRoot, '.ai/cezar'), { recursive: true });
+    writeFileSync(
+      join(repoRoot, '.ai/cezar/preview.yml'),
+      'expose:\n  frontend: { service: web, port: 80 }\ncredentials: [{ label: Admin, url: frontend, user: admin, password: admin123 }]\n',
+    );
+    await run('git', ['add', '-f', 'compose.yaml', '.ai/cezar/preview.yml'], { cwd: repoRoot });
+    await run('git', [...GIT_ID, 'commit', '-q', '-m', 'preview config'], { cwd: repoRoot });
+  }
+
+  const PREVIEW: WorkflowGraph = {
+    nodes: [
+      { id: 'start', type: 'start' },
+      { id: 'notes', type: 'agent', prompt: 'write test notes for {{task}}' },
+      { id: 'preview', type: 'preview.up', notesFrom: 'notes' },
+      // Markers by step status, not by a file: a file written into the worktree after the build
+      // is a real change, and would (rightly) make the preview stale.
+      { id: 'ok', type: 'check', command: 'true' },
+      { id: 'bad', type: 'check', command: 'true' },
+    ],
+    edges: [
+      { from: 'start', to: 'notes' },
+      { from: 'notes.done', to: 'preview' },
+      { from: 'preview.ready', to: 'ok' },
+      { from: 'preview.failed', to: 'bad' },
+    ],
+  };
+
+  it('preview.up records a ready preview with links, logins and notes — and archiving stops it', async () => {
+    await commitPreviewConfig();
+    const id = manager.startRun(def(PREVIEW), { task: 'x', worktree: true }).id;
+    const final = await until(id, terminal, 30_000);
+    expect(final.steps.find((x) => x.id === 'ok')?.status).toBe('done');
+    expect(final.preview).toMatchObject({
+      status: 'ready',
+      ports: [{ label: 'frontend', service: 'web', path: '/' }],
+      credentials: [{ label: 'Admin', user: 'admin', password: 'admin123' }],
+    });
+    expect(final.preview?.notes).toBeTruthy();
+    expect(final.preview?.builtFromSha).toMatch(/^[0-9a-f]{40}$/);
+    expect(final.graphState?.outputs?.preview?.urls).toMatch(/^frontend → :\d+\/$/);
+
+    store.setArchived(id, true);
+    await until(id, (r) => r.preview?.status === 'stopped', 5_000);
+    expect(store.getRun(id)?.preview?.stopReason).toBe('archived');
+  }, 40_000);
+
+  it('the cockpit actions: restart rebuilds with the same notes, extend pushes the expiry, logs answer, stop stops', async () => {
+    await commitPreviewConfig();
+    const id = manager.startRun(def(PREVIEW), { task: 'x', worktree: true }).id;
+    // `getRun` hands out the live record — snapshot it, or the later comparison is with itself.
+    const first = structuredClone(await until(id, terminal, 30_000));
+    expect(first.preview?.status).toBe('ready');
+
+    const before = Date.parse(first.preview?.expiresAt as string);
+    const ext = manager.extendPreview(id);
+    expect(ext.ok && Date.parse(ext.expiresAt)).toBeGreaterThan(before);
+
+    expect(await manager.previewLogs(id, undefined, 50)).toMatchObject({ ok: true });
+
+    expect(manager.restartPreview(id)).toEqual({ ok: true });
+    // A second restart while the first builds is refused, not doubled.
+    expect(manager.restartPreview(id)).toMatchObject({ ok: false, status: 409 });
+    const rebuilt = await until(id, (r) => r.preview?.status === 'ready' && r.preview.startedAt !== first.preview?.startedAt, 10_000);
+    expect(rebuilt.preview?.notes).toBe(first.preview?.notes);
+    expect(rebuilt.preview?.ports.map((p) => p.hostPort)).toEqual(first.preview?.ports.map((p) => p.hostPort));
+
+    expect(await manager.stopPreview(id)).toEqual({ ok: true });
+    expect(store.getRun(id)?.preview).toMatchObject({ status: 'stopped', stopReason: 'user' });
+    expect(await manager.stopPreview(id)).toMatchObject({ ok: false, status: 409 });
+    expect(manager.extendPreview(id)).toMatchObject({ ok: false, status: 409 });
+    expect(manager.restartPreview('no-such-run')).toMatchObject({ ok: false, status: 404 });
+
+    store.setArchived(id, true);
+    expect(manager.restartPreview(id)).toMatchObject({ ok: false, status: 409 });
+  }, 40_000);
+
+  it('at most CEZ_PREVIEW_MAX previews hold ports: the next build stops the oldest', async () => {
+    await commitPreviewConfig();
+    const saved = process.env.CEZ_PREVIEW_MAX;
+    process.env.CEZ_PREVIEW_MAX = '1';
+    try {
+      const a = manager.startRun(def(PREVIEW), { task: 'a', worktree: true }).id;
+      await until(a, terminal, 30_000);
+      expect(store.getRun(a)?.preview?.status).toBe('ready');
+      const b = manager.startRun(def(PREVIEW), { task: 'b', worktree: true }).id;
+      await until(b, terminal, 30_000);
+      expect(store.getRun(b)?.preview?.status).toBe('ready');
+      expect(store.getRun(a)?.preview).toMatchObject({ status: 'stopped', stopReason: 'limit' });
+    } finally {
+      if (saved === undefined) delete process.env.CEZ_PREVIEW_MAX;
+      else process.env.CEZ_PREVIEW_MAX = saved;
+    }
+  }, 60_000);
+
+  it('preview.up leaves by failed with the reason in its output when there is no compose file', async () => {
+    const id = manager.startRun(def(PREVIEW), { task: 'x', worktree: true }).id;
+    const final = await until(id, terminal, 30_000);
+    expect(final.steps.find((x) => x.id === 'bad')?.status).toBe('done');
+    expect(String(final.graphState?.outputs?.preview?.output)).toMatch(/no compose file found/);
+    expect(final.preview).toMatchObject({ status: 'failed' });
+  }, 40_000);
+
+  it('preview.up refuses a task that has no worktree of its own', async () => {
+    await commitPreviewConfig();
+    const id = manager.startRun(def(PREVIEW), { task: 'x', worktree: false }).id;
+    const final = await until(id, terminal, 30_000);
+    expect(final.steps.find((x) => x.id === 'bad')?.status).toBe('done');
+    expect(store.getRun(id)?.preview).toBeUndefined();
+  }, 40_000);
 });

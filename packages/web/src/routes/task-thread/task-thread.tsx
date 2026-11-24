@@ -37,6 +37,7 @@ import { SkillsDock } from './skills-dock'
 import { collectSkills, collectSubagents, findSubagent, subagentChildren } from './subagent-dock'
 import { SubagentSheet } from './subagent-sheet'
 import { AcceptCelebration, ReviewPanel } from './review-panel'
+import { PreviewCard } from './preview-card'
 import { queuePosition } from './run-actions'
 import { RunHeader } from './run-header'
 import { AskCard } from './ask-card'
@@ -407,6 +408,10 @@ export function ThreadView({
         {/* The review gate (spec 009): a finished run with changes parks here — nothing
             auto-merges. The panel exists exactly while the run rests at `review`. */}
         {/* Send back carries the drafted line comments, like the composer does. */}
+        {/* The task's preview environment (spec 2026-11-24-preview-environments): links, test
+            logins and notes for trying the change by hand — shown whatever the status, since a
+            preview outlives the review gate until its task is archived or its TTL runs out. */}
+        {run.preview ? <PreviewCard run={run} /> : null}
         {run.status === 'review' ? <ReviewPanel run={run} diffComments={diffComments} /> : null}
       </div>
 

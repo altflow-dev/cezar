@@ -35,6 +35,9 @@ import type {
   ConfigResponse,
   ReclaimWorktreesResponse,
   RemoveWorktreeResponse,
+  PreviewActionResponse,
+  PreviewExtendResponse,
+  PreviewLogsResponse,
   WorktreesResponse,
   ContinueResponse,
   CreatePrResponse,
@@ -2456,6 +2459,44 @@ export async function removeRunWorktree(id: string): Promise<RemoveWorktreeRespo
       param: { projectId: queryScope(), id: encodeURIComponent(id) },
     }),
     runPath(id, '/remove-worktree'),
+  )
+}
+
+// ---- task previews (spec 2026-11-24-preview-environments) -----------------------------------
+// The state is the run record's `preview`, kept fresh by the run SSE; these only ask for changes.
+
+/** Rebuild the task's preview from its worktree. 202 — it builds in the background. */
+export async function restartRunPreview(id: string): Promise<PreviewActionResponse> {
+  return unwrap(
+    await cez.api.v1.p[':projectId'].runs[':id'].preview.restart.$post({ param: { projectId: queryScope(), id: encodeURIComponent(id) } }),
+    runPath(id, '/preview/restart'),
+  )
+}
+
+/** Stop the task's preview (`docker compose down`). */
+export async function stopRunPreview(id: string): Promise<PreviewActionResponse> {
+  return unwrap(
+    await cez.api.v1.p[':projectId'].runs[':id'].preview.stop.$post({ param: { projectId: queryScope(), id: encodeURIComponent(id) } }),
+    runPath(id, '/preview/stop'),
+  )
+}
+
+/** Push the preview's expiry one TTL further. */
+export async function extendRunPreview(id: string): Promise<PreviewExtendResponse> {
+  return unwrap(
+    await cez.api.v1.p[':projectId'].runs[':id'].preview.extend.$post({ param: { projectId: queryScope(), id: encodeURIComponent(id) } }),
+    runPath(id, '/preview/extend'),
+  )
+}
+
+/** The tail of the preview's container logs, optionally for one service. */
+export async function fetchRunPreviewLogs(id: string, service?: string, tail = 300): Promise<PreviewLogsResponse> {
+  return unwrap(
+    await cez.api.v1.p[':projectId'].runs[':id'].preview.logs.$get({
+      param: { projectId: queryScope(), id: encodeURIComponent(id) },
+      query: { tail: String(tail), ...(service ? { service } : {}) },
+    }),
+    runPath(id, '/preview/logs'),
   )
 }
 

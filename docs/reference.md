@@ -338,6 +338,7 @@ whose counter never resets within a run, so every run is finite.
 | `github.pr-update` (`ready?`, `addLabels?`, `reviewers?`) | `done`, `failed` | — |
 | `github.issue-comment` (`body`, `issue?` — default: the task's issue) | `done`, `failed` | `issue` |
 | `notify.webhook` (`url`, `body?` — needs `CEZ_WORKFLOW_WEBHOOKS=1`) | `done`, `failed` | `status` |
+| `preview.up` (`notesFrom?`, `trustWorktreeConfig?`) — see *Task previews* | `ready`, `failed` (the build log rides into the next agent's prompt) | `urls`, `ports`, `output` |
 
 - **Fork / join.** Each fork port leads to one agent node, and every one of those agents
   leads into the same `join`. The agents run at once as subtasks through dispatch — fresh
@@ -368,6 +369,62 @@ whose counter never resets within a run, so every run is finite.
 - **Watching a run.** A task started from a graph workflow gets a **Graph** tab: each
   node's status, iterations and cost, loop counters, and the edges the run took.
 
+### Task previews (`preview.up`)
+
+A `preview.up` node stands the task's app up in docker for manual testing at review: its own
+host ports (from `CEZ_PREVIEW_PORTS`), its own compose project (`cez-<project>-<id8>`), its own
+volumes. The task view then shows a **Preview** card: a link per exposed port (on the host you
+reach the cockpit on, e.g. `http://my-server:41003/`), the seeded test logins with copy buttons
+(passwords masked until you ask), the test notes and the changed files, plus **Restart** (rebuild
+from the worktree as it is now, same ports), **Keep longer** (one more TTL), **Logs** and
+**Stop**. A running preview also gets a `preview` chip in the task list that opens the app.
+
+What to build comes from the committed `.ai/cezar/preview.yml`. Every key is optional, and
+without the file the repo's `compose.yaml` / `docker-compose.yml` is used with every published
+port as a link:
+
+```yaml
+compose: docker/compose.yml            # or a list; default: compose's own discovery
+copyFromRoot: [.envs/.env]             # gitignored files copied from the project checkout
+env: { DJANGO_DEBUG: "1" }             # extra variables for compose interpolation
+expose:                                # the links; every OTHER published port is dropped
+  frontend: { service: web, port: 5173, path: / }
+  backend:  { service: api, port: 8000, path: /admin/ }
+ready: { url: backend, path: /health/, timeoutSec: 300 }
+seed:                                  # run once with `docker compose exec -T`
+  - { service: api, command: "python manage.py loaddata dummy_data" }
+credentials:                           # TEST logins only — shown to every cockpit user
+  - { label: Admin, url: backend, user: admin@example.com, password: admin123 }
+serviceEnv:                            # env for the preview only — tell the app where it lives
+  web: { NEXT_PUBLIC_API_URL: "http://{host}:{port:backend}" }
+  api: { DJANGO_ALLOWED_HOSTS: "localhost,api,{host}", CSRF_TRUSTED_ORIGINS: "{url:frontend}" }
+checklistHints: Always check login and the dashboard.
+```
+
+`serviceEnv` placeholders: `{host}` is the host testers reach the cockpit on (`CEZ_PREVIEW_HOST`
+overrides it), `{port:<label>}` an exposed label's host port, and `{url:<label>}` its URL with the
+label's path. Without them an app whose `.env` says `localhost:8000` would point its frontend at
+the wrong backend.
+
+- **Isolation.** cezar adds an override: the exposed services publish only their allocated ports,
+  every other service publishes none, and fixed `container_name`s are dropped, so several
+  previews (even several copies of one project) run side by side. Needs docker compose 2.24+.
+- **Safety.** By default the compose files and `preview.yml` are read from the task's **base
+  branch** (the task's own Dockerfiles and code are still what gets built), so an agent cannot
+  change what runs on the server. `trustWorktreeConfig: true` on the node uses the branch's own
+  config. Either way cezar refuses `privileged`, `cap_add`, host network/pid/ipc/userns, devices,
+  the docker socket and bind mounts outside the worktree.
+- **Lifecycle.** A preview stops (`docker compose down -v --rmi local`) when its task is
+  archived or deleted, when its worktree is removed or reclaimed, when the task's PR is merged or
+  closed (as far as cezar's own PR-status cache knows: it never asks GitHub for this), when the
+  run is cancelled mid-build, when a newer build needs its slot (`CEZ_PREVIEW_MAX`), and
+  `CEZ_PREVIEW_TTL_HOURS` (24 h) after it became ready. When the task's files change after the
+  build (another agent turn), the card says *out of date* and offers Restart. It never rebuilds
+  by itself. A failed build always
+  tears down what it started. At boot, a preview whose containers are gone is marked stopped.
+- **Failure.** Wire `failed` back to the implementing agent (through a `loop`) and it gets the
+  build output in its prompt, as it would from a failing `check`.
+
 ## How it runs agents
 
 cezar shells out to your locally installed, logged-in agent CLI —
@@ -395,6 +452,12 @@ Useful environment variables:
 | `CEZ_FOLLOWUPS=1` | Turn on the global follow-up **Inbox**: agents are asked to leave follow-ups in `todos.json` when they finish, and the Inbox view appears. Off by default — each task's own **Notes** handoff journal runs either way. |
 | `CEZ_AUTOMATIONS=0` | Turn **automations** off. On by default since the automations redesign (spec `.ai/specs/2026-09-14-automations-redesign.md`): the Automations view lists GitHub-triggered and scheduled automations, and cezar polls GitHub or fires schedules on each enabled one while it is running — nothing runs until you enable an automation yourself. An agent can also **create an automation from a prompt**: type "whenever a PR is opened, review it" into New task — pick the built-in `create-cezar-automation` skill, or just ask; every task's system prompt teaches it to recognise the intent — and the agent writes the definition and creates it through `cez automation create` (paused, with a `cez automation check` preview of what it would match), then links the Automations page. Only the exact value `0` opts out (`CEZ_AUTOMATIONS=1`, the old opt-in, is accepted and changes nothing); opted out, the nav item is absent, the endpoints answer `409`, and the workspace scheduler never starts. Read at boot, so restart after changing it; definitions, receipts and high-watermarks are kept either way. |
 | `CEZ_WORKFLOW_WEBHOOKS=1` | Let a workflow graph's **`notify.webhook`** node POST to the URL it names (JSON: `text`, `run`, `node`). Off by default: a workflow file — which can be imported from anywhere — calling out to an arbitrary URL widens exposure, so it is opt-in. Off, the node leaves by `failed` with a note; under `CEZ_DRY_RUN=1` nothing is sent either way. |
+| `CEZ_PREVIEW=0` | Turn off the workflow **`preview.up`** node (task previews, spec `.ai/specs/2026-11-24-preview-environments.md`): it then leaves by `failed` with a note. On by default — nothing runs until a workflow contains the node. Previews that are already up are still stopped when their task is archived, deleted or loses its worktree, or when their TTL runs out. |
+| `CEZ_PREVIEW_PORTS=41000-41999` | Host-port range for previews, shared by every project on the machine. A malformed value falls back to the default. |
+| `CEZ_PREVIEW_BIND=0.0.0.0` | Interface preview ports are published on. Default: the interface the cockpit itself binds, so a preview is never reachable from anywhere the cockpit is not. A cockpit behind a reverse proxy binds loopback and needs this set for remote viewers. **Docker's published ports bypass `ufw`.** |
+| `CEZ_PREVIEW_TTL_HOURS=24` | How long a preview lives after it became ready before cezar stops it (`docker compose down -v`). |
+| `CEZ_PREVIEW_MAX=4` | Previews that may hold ports at once, across every project on the machine. A new build stops the oldest one first (its card says *stopped to make room*). |
+| `CEZ_PREVIEW_HOST=10.0.0.5` | The host a preview's app is told it lives on — `{host}` in `serviceEnv`. Default: the hostname the last browser reached the cockpit on, or `localhost` when previews are published on loopback. |
 | `CEZ_DISPATCH=0` | Turn OFF **task dispatch**, which is on by default: a running task may start other cezar tasks with `cez task create` — each in its OWN worktree forked off the parent's branch, with a budget carved out of the parent's — and they report back into the parent's session when they settle (`cez task report`). Children appear nested under their parent in the task lists. Tasks talk through a tree directory (`.ai/cezar/dispatch/<root>/`: the brief, each task's order/notes/report, an inbox per task) and cezar wakes a parked recipient when a file lands. A `--kind review` child judges another task's branch and answers with a verdict. ON by default (the owner-approved exception to "cost-widening features are opt-in" — see `AGENTS.md`), and only the exact value `0` turns it off; with it off the `/runs/:id/dispatch` and `/runs/:id/report` routes answer `409`, no task is told about the CLI, and the cockpit hides the "Review open PRs" template. A headless `cezar run` never dispatches either way — there is no cockpit for the CLI to reach, so no task is told about it. Read at boot, so restart after changing it. This is the widest cost-widening flag here — one task can start four more agents — so give dispatching tasks a budget. |
 | `CEZ_AUTOSAVE=1` | Re-enable the periodic (90 s) autosave commit in task worktrees. Off by default (#471) — turn-end and pre-PR flushes always run, so branches still end complete. Every autosave names its trigger in the commit subject (`cezar autosave (periodic)` vs `(turn end)` / `(run finalize)` / `(pre-PR)`), so the flushes you keep are distinguishable from the timer you disabled. |
 | `CEZ_CLAUDE_BIN=/path/to/claude` | Override which `claude` binary is used. Rarely needed: when it is unset, cezar takes `claude` from PATH, and failing that looks where Claude Code's own installers put it — `~/.local/bin`, `~/.claude/local`, `/opt/homebrew/bin`, `/usr/local/bin` — so an install the launching shell never added to PATH is still found. |

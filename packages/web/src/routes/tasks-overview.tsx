@@ -13,6 +13,7 @@ import {
   ListChecksIcon,
   LinkIcon,
   MemoryStickIcon,
+  MonitorPlayIcon,
   PencilIcon,
   PlusIcon,
   ScaleIcon,
@@ -89,6 +90,7 @@ import { useNow } from '@/lib/use-now'
 import { cn } from '@/lib/utils'
 import { useAutomationsGate, useAutomationsQuery } from '@/routes/automations/use-automations'
 import { t } from '@/lib/i18n'
+import { previewUrl } from '@/routes/task-thread/preview-card'
 
 /**
  * The Tasks overview — the table that IS the home at `/` (spec, "Task list & table", per PR
@@ -1003,6 +1005,27 @@ function FoldedTd({ column }: { column: TaskColumnId }) {
  * run header's title — one edit, one PATCH. The quick-list's rows stay read-only on purpose:
  * at 13px-in-a-260px-sidebar there is no room for an input worth typing into.
  */
+/** `▶ preview` beside a task whose preview is up, linking to its first port. */
+function PreviewChip({ run }: { run: RunRecord }) {
+  const preview = run.preview
+  if (!preview || (preview.status !== 'ready' && preview.status !== 'stale') || run.archived) return null
+  const first = preview.ports[0]
+  if (!first) return null
+  return (
+    <a
+      data-slot="preview-chip"
+      href={previewUrl(first)}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={t('Open the preview ({label})', { label: first.label })}
+      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-1.5 py-px text-[10.5px] font-medium text-success hover:bg-success/25 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+    >
+      <MonitorPlayIcon className="size-3" aria-hidden="true" />
+      {t('preview')}
+    </a>
+  )
+}
+
 function TitleCell({
   run,
   depth,
@@ -1077,6 +1100,9 @@ function TitleCell({
           {dispatchKindLabel(run)}
         </span>
       ) : null}
+      {/* A running preview environment (spec 2026-11-24-preview-environments): one click to the
+          app, from the list, without opening the task. An anchor, so the row leaves it alone. */}
+      <PreviewChip run={run} />
       {/* What this task dispatched, counted rather than listed — and, since #1110, the accordion
           handle for the rows the count stands for: collapsed by default, this click unfolds them. */}
       {subtasks ? (

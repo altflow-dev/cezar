@@ -13,7 +13,7 @@ import { MAX_REF } from './task-refs.ts';
 import { workflowDefSchema } from '../workflows/types.ts';
 // A contract VALUE, like `workspaceUiStateSchema` in `workspace/migrations.ts`: the persisted
 // `dispatch` object and its wire half are literally the same schema, so they cannot drift.
-import { dispatchSchema, runTrackerItemSchema, trackerAssociationSchema, trackerAutomationEventSchema } from '@open-mercato/cezar-contract';
+import { dispatchSchema, previewStateSchema, runTrackerItemSchema, trackerAssociationSchema, trackerAutomationEventSchema } from '@open-mercato/cezar-contract';
 
 import { RUNNER_IDS } from '../core/agent-runner.ts';
 
@@ -348,6 +348,9 @@ export const runRecordSchema = z.object({
    *  dir gone, recoverable via `git worktree add`"; it excludes the run from the
    *  retention budget until the dir is re-materialized (resume clears it). */
   worktreeReclaimedAt: z.string().optional(),
+  /** The task's preview environment (spec 2026-11-24-preview-environments). A malformed entry
+   *  degrades to "no preview" rather than evicting the run. */
+  preview: previewStateSchema.optional().catch(undefined),
   /** Parallel variants (spec 010): tasks sharing a groupId are one group. */
   groupId: z.string().optional(),
   /** Variant letter within the group — 'A' | 'B' | 'C' (kept as a string). */

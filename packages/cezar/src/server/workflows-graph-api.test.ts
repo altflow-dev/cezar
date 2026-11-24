@@ -67,6 +67,7 @@ describe('the workflow graph API', () => {
       'github.pr-update',
       'github.issue-comment',
       'notify.webhook',
+      'preview.up',
       'workflow',
     ]);
     expect(body.nodes.find((n) => n.type === 'loop')?.ports).toEqual(['repeat', 'exhausted']);
