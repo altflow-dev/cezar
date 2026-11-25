@@ -257,6 +257,17 @@ steps:
 back, its failing output is appended to the retried agent's prompt so the next
 attempt can see what broke.
 
+Check steps (and agents) also get the task's base in their environment, so a
+verify script never has to hard-code which branch tasks fork from:
+
+| Variable | Value |
+| --- | --- |
+| `CEZ_BASE_BRANCH` | The branch the task's worktree forked from (`staging`, `main`, …); for a run with worktree off, the commit it started at. |
+| `CEZ_BASE_REF` | The full sha the task's diff is anchored at — the same anchor as the Changes tab, so `git diff "$CEZ_BASE_REF"` shows exactly this task's changes. |
+
+Both are empty when the run has no recorded base. A script that must also run
+outside cezar can fall back: `BASE="${CEZ_BASE_REF:-$(git merge-base origin/dev HEAD)}"`.
+
 `onFail.retryOn` narrows the loop to the exit codes that mean *the work is
 wrong*. Omitted, any non-zero code loops back — right for `npm test`, which
 exits 1 whether a test failed or the runner could not start. A richer check
