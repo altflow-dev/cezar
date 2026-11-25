@@ -707,6 +707,20 @@ export async function worktreeChangedFiles(
   return res.stdout.split('\n').map((l) => l.trim()).filter(Boolean);
 }
 
+/** The commit this task's diff is anchored at — the SAME anchor `worktreeShortstat` and the
+ *  Changes tab use (#751), resolved to a full sha so a script can `git diff "$CEZ_BASE_REF"`
+ *  and see exactly the task's changes. Local refs only (no fetch). Null on git failure. */
+export async function worktreeTaskBaseRef(
+  worktreePath: string,
+  baseBranch: string,
+  opts: { taskBranch?: string; runStartedAt?: string } = {},
+): Promise<string | null> {
+  if (!isSafeGitRef(baseBranch)) return null;
+  const { base } = await resolveTaskDiffBase((args) => git(worktreePath, args), baseBranch, opts);
+  const sha = await git(worktreePath, ['rev-parse', '--verify', '--quiet', `${base}^{commit}`]);
+  return sha.ok && sha.stdout.trim() ? sha.stdout.trim() : null;
+}
+
 export async function worktreeShortstat(
   worktreePath: string,
   baseBranch: string,

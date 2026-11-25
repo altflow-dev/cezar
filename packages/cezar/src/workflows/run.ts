@@ -72,6 +72,7 @@ import {
   worktreeChangedFiles,
   worktreeDiff,
   worktreeShortstat,
+  worktreeTaskBaseRef,
 } from '../git-worktree.ts';
 import { commentOnIssue, commentOnPr, fetchGithubChecks, updatePr } from '../server/forge/github.ts';
 import { createDraftPr } from '../server/pr.ts';
@@ -1284,6 +1285,31 @@ export class RunManager {
    *  write-probed here, on the last common path before a spawn, so an unusable
    *  temp directory throws `AgentTempDirError` at the caller rather than
    *  turning into empty command output inside a running agent. */
+  /**
+   * Where this task forked from, for agents AND check steps — so a project's verify script diffs
+   * against the task's real base instead of a hard-coded `dev` (a task forked from `staging`
+   * used to "change" every file `staging` has over `dev`).
+   *
+   *  - `CEZ_BASE_BRANCH` — the base as the run records it: the branch the worktree forked from,
+   *    or, for a run with worktree off, the commit it started at.
+   *  - `CEZ_BASE_REF` — the full sha the task's diff is anchored at: the same #751 anchor as the
+   *    Changes tab and the stored `diffStat`, resolved fresh at spawn time.
+   *
+   * Both are `''` rather than omitted when unknown (no recorded base, unresolvable ref), for the
+   * `CEZ_TODOS_FILE` reason above: a nested cezar must not inherit its parent's values. Never
+   * throws; local git only, no fetch.
+   */
+  private async taskBaseEnv(runId: string): Promise<{ CEZ_BASE_BRANCH: string; CEZ_BASE_REF: string }> {
+    const run = this.store.getRun(runId);
+    const baseBranch = run?.baseBranch ?? '';
+    if (!run || !baseBranch) return { CEZ_BASE_BRANCH: baseBranch, CEZ_BASE_REF: '' };
+    const ref = await worktreeTaskBaseRef(run.worktreePath ?? this.repoRoot, baseBranch, {
+      taskBranch: run.branch,
+      runStartedAt: run.startedAt,
+    }).catch(() => null);
+    return { CEZ_BASE_BRANCH: baseBranch, CEZ_BASE_REF: ref ?? '' };
+  }
+
   private agentEnv(runId: string, generateFollowups = true): Record<string, string> {
     const dispatch = this.dispatchOf(runId);
     // The same ONE gate the dispatch prompt uses, so an agent is never told about a CLI whose
@@ -1361,8 +1387,9 @@ export class RunManager {
       ? await this.resolveTrackerEnv(this.repoRoot, association)
       : {};
     this.store.registerRunSecrets(runId, credentialEnvSecrets(trackerEnv));
+    const baseEnv = await this.taskBaseEnv(runId);
     return {
-      env: { ...this.agentEnv(runId, options.generateFollowups), ...trackerEnv, ...resolved.env },
+      env: { ...this.agentEnv(runId, options.generateFollowups), ...baseEnv, ...trackerEnv, ...resolved.env },
       profileId: resolved.profile.id,
     };
   }
@@ -4808,7 +4835,7 @@ export class RunManager {
       } else {
         const rendered = nodeToStep(node);
         if (rendered.command) rendered.command = renderNodeRefs(rendered.command, outputs);
-        const { ok, output, exitCode } = await this.runCheckStep(state, rendered, emit);
+        const { ok, output, exitCode } = await this.runCheckStep(state, rendered, emit, await this.taskBaseEnv(runId));
         if (state.cancelled) return null;
         outputs.set(node.id, { exitCode, output });
         if (ok) {
@@ -6832,12 +6859,14 @@ export class RunManager {
     state: ActiveRun,
     step: WorkflowStepDef,
     emit: (event: { type: string; stepId?: string; [k: string]: unknown }) => void,
+    /** Per-task vars layered over this process's env — `taskBaseEnv` (CEZ_BASE_BRANCH/REF). */
+    taskEnv: Record<string, string> = {},
   ): Promise<{ ok: boolean; output: string; exitCode: number }> {
     const command = step.command as string;
     emit({ type: 'note', stepId: step.id, message: `$ ${command}` });
     return new Promise((resolve) => {
       // Check steps run in the same cwd as the agent steps — the worktree.
-      const child = spawn('bash', ['-lc', command], { cwd: state.cwd, env: process.env });
+      const child = spawn('bash', ['-lc', command], { cwd: state.cwd, env: { ...process.env, ...taskEnv } });
       state.interrupt = () => child.kill('SIGTERM');
 
       // Head + tail, not head only: test runners print what failed at the end.
