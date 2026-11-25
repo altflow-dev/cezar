@@ -67,6 +67,7 @@ import {
   commitAll,
   createWorktree,
   pushBranch,
+  reforkWorktree,
   resolveBaseRef,
   syncWithBase,
   worktreeChangedFiles,
@@ -163,6 +164,9 @@ import {
   type GraphTransition,
   type WorkflowGraph,
 } from './graph.ts';
+
+/** What a check step records as `output` when its command printed nothing. */
+const NO_CHECK_OUTPUT = '(no output)';
 
 /** Backends whose runner honors `resume` (AgentRunSpec) — graph `session.continue` and the
  *  verdict nudge need it. OpenCode always starts a new session; Cursor has no resume yet. */
@@ -5276,6 +5280,49 @@ export class RunManager {
         note(`sync failed — ${res.error}`, 'danger');
         return 'failed';
       }
+      case 'git.set-base': {
+        // Spec 2026-11-25-workflow-set-base: re-fork while the task has done nothing, then
+        // repoint `run.baseBranch` — every base surface (CEZ_BASE_*, diffStat, Changes, PR
+        // base) reads that record at use time, so updating it is the whole migration.
+        const run = record();
+        // A silent check reports NO_CHECK_OUTPUT, not '' — for a base reader that means "the
+        // ticket named no base", so it takes the fallback rather than failing as a bad ref.
+        const named = (text: string | undefined) => {
+          const value = text ? render(text).trim() : '';
+          return value === NO_CHECK_OUTPUT ? '' : value;
+        };
+        const requested = named(node.branch) || named(node.fallback);
+        const previous = run?.baseBranch ?? '';
+        if (!requested) {
+          outputs.set(node.id, { base: previous, previous });
+          note(`no base branch named — keeping ${previous || 'the fork base'}`);
+          return 'unchanged';
+        }
+        if (!run?.branch || !run.worktreePath || !previous) {
+          note('this task has no worktree of its own to re-fork (it runs in the repository working tree)', 'danger');
+          return 'failed';
+        }
+        const res = await reforkWorktree(this.repoRoot, state.cwd, previous, requested);
+        if (res.result === 'failed') {
+          note(`set base failed — ${res.error}`, 'danger');
+          return 'failed';
+        }
+        if (res.result === 'refused') {
+          outputs.set(node.id, { base: previous, previous });
+          note(`base stays ${previous} — ${res.reason}`, 'danger');
+          return 'refused';
+        }
+        outputs.set(node.id, { base: res.base, previous });
+        if (res.result === 'unchanged') {
+          note(`base is already ${res.base}`);
+          return 'unchanged';
+        }
+        this.store.updateRun(runId, { baseBranch: res.base });
+        const stat = await worktreeShortstat(state.cwd, res.base, { taskBranch: run.branch, runStartedAt: run.startedAt }).catch(() => null);
+        if (stat) this.store.updateRun(runId, { diffStat: stat });
+        note(`base re-pointed: ${previous} → ${res.base} (task branch ${run.branch} re-forked)`);
+        return 'done';
+      }
       case 'github.pr-update': {
         const number = prNumber();
         if (number === undefined) {
@@ -6882,7 +6929,7 @@ export class RunManager {
       });
       child.on('close', (code) => {
         state.interrupt = () => undefined;
-        const trimmed = output.text().trim() || '(no output)';
+        const trimmed = output.text().trim() || NO_CHECK_OUTPUT;
         // `code` is null when a signal killed the child; -1 then, the same value an
         // unspawnable command reports, and one no `retryOn` list can name — neither
         // is a verdict on the diff, so neither buys the agent another attempt.

@@ -346,6 +346,7 @@ whose counter never resets within a run, so every run is finite.
 | `if` (`condition`) | `true`, `false` | `result`, `value` |
 | `git.push` | `done`, `failed` | — |
 | `git.sync-base` | `done`, `conflict`, `failed` | `conflicts` |
+| `git.set-base` (`branch` — templated, `fallback?`) | `done`, `unchanged`, `refused`, `failed` | `base`, `previous` |
 | `github.pr-update` (`ready?`, `addLabels?`, `reviewers?`) | `done`, `failed` | — |
 | `github.issue-comment` (`body`, `issue?` — default: the task's issue) | `done`, `failed` | `issue` |
 | `notify.webhook` (`url`, `body?` — needs `CEZ_WORKFLOW_WEBHOOKS=1`) | `done`, `failed` | `status` |
@@ -364,6 +365,14 @@ whose counter never resets within a run, so every run is finite.
 - **`git.sync-base`** merges the freshest base into the task branch. On a conflict it
   leaves the merge in progress and leaves by `conflict` — wire that to an agent to
   resolve it (`{{nodes.<id>.conflicts}}` lists the files).
+- **`git.set-base`** re-points the task's base branch after the run started — e.g.
+  `branch: '{{nodes.read-ticket.base}}'`, `fallback: dev` — so a ticket whose epic names
+  `staging` is worked, diffed (`CEZ_BASE_*`, Changes, `diffStat`) and PR'd against
+  `staging`. It re-forks the task branch only while the task has no commits and no
+  uncommitted changes; otherwise it leaves by `refused` and changes nothing. A silent
+  reader check (`(no output)`) counts as empty, so `fallback` applies. An empty
+  `branch` (and no `fallback`) or the base already in use leaves by `unchanged`; an
+  invalid or unknown branch by `failed`.
 - **Built-in templates** — `implement-and-verify`, `implement-review-pr`, `review-council`
   (three fresh reviewers at once, then a judge that ships or sends it back), `fix-ci` — sit
   next to `quick-task` (still the default). Open one in the editor; it saves as your copy.

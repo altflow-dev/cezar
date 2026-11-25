@@ -692,6 +692,56 @@ export async function syncWithBase(
   return { result: 'failed', error: (merge.stderr || merge.stdout).trim().split('\n')[0] || 'git merge failed' };
 }
 
+export type ReforkResult =
+  | { result: 'done'; base: string }
+  | { result: 'unchanged'; base: string }
+  | { result: 'refused'; reason: string }
+  | { result: 'failed'; error: string };
+
+/** `refs/heads/x` / `origin/x` / ` x ` → `x` — the spellings an agent is likely to answer with. */
+export function normalizeBranchName(raw: string): string {
+  return raw.trim().replace(/^refs\/heads\//, '').replace(/^origin\//, '');
+}
+
+/**
+ * Re-fork a task worktree onto another base (the graph `git.set-base` node, spec
+ * 2026-11-25-workflow-set-base): resolve `requested` the way the fork did (`resolveBaseRef`),
+ * then `reset --hard` the task branch to it — but ONLY while the task has done nothing: a clean
+ * tree and a HEAD still reachable from `currentBase` (no commits beyond the fork). Anything else
+ * is `refused` with the tree untouched. Never throws.
+ */
+export async function reforkWorktree(
+  repoRoot: string,
+  worktreePath: string,
+  currentBase: string,
+  requested: string,
+): Promise<ReforkResult> {
+  const name = normalizeBranchName(requested);
+  if (!isSafeGitRef(name)) return { result: 'failed', error: `refusing option-like or empty branch: ${requested}` };
+  const wellFormed = await git(repoRoot, ['check-ref-format', `refs/heads/${name}`]);
+  if (!wellFormed.ok) return { result: 'failed', error: `not a valid branch name: ${name}` };
+  const ref = await resolveBaseRef(repoRoot, name);
+  if (!ref) return { result: 'failed', error: `branch "${name}" not found (locally or on origin)` };
+  if (ref === currentBase) return { result: 'unchanged', base: ref };
+
+  const status = await git(worktreePath, ['status', '--porcelain']);
+  if (!status.ok) return { result: 'failed', error: 'git status failed in the task worktree' };
+  if (status.stdout.trim()) return { result: 'refused', reason: 'the worktree has uncommitted changes' };
+  // HEAD reachable from the old base ⇔ the task branch carries no commit of its own. Exit 1 (not
+  // an ancestor) and 128 (unresolvable base) both refuse: when in doubt, keep the work.
+  const pristine = isSafeGitRef(currentBase)
+    ? await git(worktreePath, ['merge-base', '--is-ancestor', 'HEAD', currentBase])
+    : { ok: false };
+  if (!pristine.ok) return { result: 'refused', reason: `the task branch has commits beyond its fork from ${currentBase}` };
+
+  const target = await git(repoRoot, ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]);
+  const sha = target.stdout.trim();
+  if (!target.ok || !sha) return { result: 'failed', error: `could not resolve ${ref}` };
+  const reset = await git(worktreePath, ['reset', '--hard', '--quiet', sha]);
+  if (!reset.ok) return { result: 'failed', error: (reset.stderr || reset.stdout).trim().split('\n')[0] || 'git reset failed' };
+  return { result: 'done', base: ref };
+}
+
 /** Paths this task changed vs its base — the SAME anchor `worktreeShortstat` uses (#751), so an
  *  `if` node's "paths changed" and the task's diff numbers never disagree. Null on git failure. */
 export async function worktreeChangedFiles(
