@@ -27,6 +27,7 @@ import {
   isScheduleAutomation,
   type AutomationDefinition,
 } from '../automations/types.ts';
+import { previewLogsQuerySchema } from '@open-mercato/cezar-contract';
 import { trackerTriggerSchema, trackerAutomationOptionsSchema, trackerAutomationOptionsQuerySchema, automationScheduleSchema, localTimeZone, nextOccurrence } from '@open-mercato/cezar-contract';
 import type { IncomingMessage } from 'node:http';
 import { access, constants as fsConstants, mkdir, readFile, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises';
@@ -147,6 +148,7 @@ import {
   type DeleteDraftResponse,
 } from '@open-mercato/cezar-contract';
 import { toPastedContent, type PastedContent, type RunManager } from '../workflows/run.ts';
+import { notePreviewPublicHost, noteServerBindHost } from '../preview/bind.ts';
 import { removeWorktree, worktreeDiff, worktreeDiffStat, worktreeSizeBytes } from '../git-worktree.ts';
 import { isReclaimable, reclaimWorktrees } from '../runs/retention.ts';
 import { getBranches, getCommit, getDiff, getLog, getRepoInfo, getStatus } from './git.ts';
@@ -1501,6 +1503,11 @@ export function createApp(deps: ServerDeps) {
     // literal here silently stopped matching when the API moved and left health
     // relying on the mutating-methods gate below to let its GETs through.
     if (c.req.path === `${V1_PREFIX}/health`) return next();
+    // The host a person reaches the cockpit on is the host a preview's app must name in its own
+    // config (spec 2026-11-24-preview-environments: `{host}` in preview.yml). Only a browser's
+    // same-origin request says so — `Sec-Fetch-Site` is a forbidden header page JS cannot set,
+    // and an agent's `cez` CLI calling 127.0.0.1 sends none, so it cannot overwrite it.
+    if (c.req.header('sec-fetch-site') === 'same-origin' && hostName) notePreviewPublicHost(hostName);
 
     if (MUTATING_METHODS.has(c.req.method)) {
       const origin = c.req.header('origin');
@@ -5292,6 +5299,34 @@ export function createApp(deps: ServerDeps) {
 
   const reclaimBodySchema = z.object({}).passthrough();
 
+  // ---- chained family: task previews (project-scoped) ----
+  // Spec 2026-11-24-preview-environments, phase 3: the cockpit's Restart / Stop / Extend / Logs.
+  // Every state change rides the existing `run` SSE (the record's `preview`), so these answer
+  // with an acknowledgement, never a second copy of the state.
+  const previewRoutes = new Hono<ProjectApiEnv>()
+    .post('/runs/:id/preview/restart', (c) => {
+      const res = c.get('project').manager.restartPreview(c.req.param('id'));
+      if (!res.ok) return res.status === 404 ? c.json({ error: res.error }, 404) : c.json({ error: res.error }, 409);
+      return c.json({ ok: true as const }, 202);
+    })
+    .post('/runs/:id/preview/stop', async (c) => {
+      const res = await c.get('project').manager.stopPreview(c.req.param('id'));
+      if (!res.ok) return res.status === 404 ? c.json({ error: res.error }, 404) : c.json({ error: res.error }, 409);
+      return c.json({ ok: true as const }, 200);
+    })
+    .post('/runs/:id/preview/extend', (c) => {
+      const res = c.get('project').manager.extendPreview(c.req.param('id'));
+      if (!res.ok) return res.status === 404 ? c.json({ error: res.error }, 404) : c.json({ error: res.error }, 409);
+      return c.json({ expiresAt: res.expiresAt }, 200);
+    })
+    .get('/runs/:id/preview/logs', queryZodValidator(previewLogsQuerySchema), async (c) => {
+      const { service, tail } = c.req.valid('query');
+      const lines = Math.min(Math.max(Number(tail ?? 200), 1), 2000);
+      const res = await c.get('project').manager.previewLogs(c.req.param('id'), service, lines);
+      if (!res.ok) return res.status === 404 ? c.json({ error: res.error }, 404) : c.json({ error: res.error }, 409);
+      return c.json({ text: res.text }, 200);
+    });
+
   /**
    * "The inbox is on and this entry exists" — the 409/404 half of `POST /todos/:id/start`, lifted
    * out of the handler and in FRONT of the body validator.
@@ -6453,6 +6488,7 @@ export function createApp(deps: ServerDeps) {
     .route('/', groupsRoutes)
     .route('/', openTargetsRoutes)
     .route('/', worktreesRoutes)
+    .route('/', previewRoutes)
     .route('/', todosRoutes)
     .route('/', sseRoutes)
     .route('/', githubRoutes)
@@ -6747,6 +6783,7 @@ export function startServer(deps: ServerDeps, port: number): ServerType {
   // expose an agent-executing box to the network. `bindHost` exists only for a deliberate
   // hosted/VPS deployment (which also flips CEZ_REMOTE to gate the local-handoff endpoints) —
   // src/index.ts never passes it, so the loopback guarantee holds for the normal CLI.
+  noteServerBindHost(deps.bindHost);
   const server = serve({
     fetch: app.fetch,
     port,

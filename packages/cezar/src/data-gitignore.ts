@@ -28,6 +28,9 @@ export const DATA_GITIGNORE_ENTRIES = [
   'worktrees/',
   'tmp/', // per-run agent temp directories (#785)
   'drafts/', // unsent composer text + pasted screenshots (#939) — never in git history
+  // Generated compose overrides and base-branch compose copies for task previews (spec
+  // 2026-11-24-preview-environments). `preview.yml` itself sits beside it and IS committable.
+  'previews/',
   'todos.json',
   'todos.json.tmp',
   // Private, per-project MCP servers (spec 2026-10-07-private-project-mcp) — personal tokens.

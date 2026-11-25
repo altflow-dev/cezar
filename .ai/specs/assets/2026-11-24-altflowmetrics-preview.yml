@@ -1,0 +1,145 @@
+# Example `.ai/cezar/preview.yml` for AltflowMetrics (spec 2026-11-24-preview-environments).
+# Copy it to AltflowMetrics as `.ai/cezar/preview.yml` and commit it on the base branch
+# (`dev` — the repo's `.ai/cezar/config.json` baseBranch). cezar reads it from the base branch,
+# never from the task branch.
+#
+# Written against origin/dev f01d052 (2026-11-09), compose/docker-compose.local.yml.
+# NOT run end to end yet — the frontend build needs NPM_TOKEN and the first boot of `pnpm dev`
+# is slow; check the TODOs on the server's first preview.
+
+compose: compose/docker-compose.local.yml
+
+# Gitignored files the worktree does not have. Copied from the project checkout on the server,
+# never overwriting. `compose/.env` holds NPM_TOKEN for the frontend build; `.npmrc` is
+# bind-mounted into the web container.
+copyFromRoot:
+  - compose/.env
+  - .npmrc
+  - services/api/.envs/.env
+  - apps/web/.envs/.env
+
+# The two links on the preview card. db (5456) and redis (6380) are no longer published, and the
+# fixed container_names are dropped, so several tasks run side by side.
+expose:
+  frontend: { service: web, port: 3000, path: / }
+  backend: { service: api, port: 8000, path: /admin/ }
+
+# The API runs `migrate` in start.sh before uvicorn, so once the login page answers, the
+# schema is there. The first `pnpm dev` compile is slow, hence the long timeout.
+ready: { url: backend, path: /admin/login/, timeoutSec: 600 }
+
+# The web app is a BFF: the browser only talks to Next (`pnpm dev`, so runtime env works), and
+# Next calls the API server-side. The repo's API_URL=http://api:8000/api/v1 is refused by
+# @altcomp/auth-fetch 2.x (plain http only for loopback names), so the preview points it at
+# api.localhost — the alias cezar adds to every service (AltDesk's compose does it by hand).
+#
+# The API does: `config.settings.base` HARD-CODES ALLOWED_HOSTS to localhost/127.0.0.1/api and
+# ignores DJANGO_ALLOWED_HOSTS, so the admin link would answer 400 on http://<server-ip>:<port>.
+# `config.settings.staging` is base + ALLOWED_HOSTS from env; DJANGO_DEBUG=True keeps it from
+# switching on Secure cookies, which a plain-http preview could never send back.
+serviceEnv:
+  web:
+    API_URL: "http://api.localhost:8000/api/v1"
+  api:
+    DJANGO_SETTINGS_MODULE: config.settings.staging
+    DJANGO_DEBUG: "True"
+    DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,api,api.localhost,{host}"
+    CSRF_TRUSTED_ORIGINS: "{url:frontend},http://{host}:{port:backend},http://web:3000,http://api:8000,http://api.localhost:8000"
+  worker:
+    DJANGO_SETTINGS_MODULE: config.settings.staging
+    DJANGO_DEBUG: "True"
+    DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,api,api.localhost,{host}"
+  beat:
+    DJANGO_SETTINGS_MODULE: config.settings.staging
+    DJANGO_DEBUG: "True"
+    DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,api,api.localhost,{host}"
+
+# Run once the API answers, each must exit 0.
+# 1. Test logins. `createsuperuser` would leave user_type=USER, and IsAdminTypeUser gates the
+#    admin screens on user_type=ADMIN, so the admin is created here instead.
+# 2. Demo data. `generate_demo_data` (apps/core/management/commands/generate_demo_data.py)
+#    only SIMULATES DAILY IMPORTS for identities that are already mapped to employees; on a
+#    fresh DB it creates nothing. So this seeds a small demo company first — departments,
+#    employees and one mapped identity per integration (Exchange, Synology, ERP, Windows,
+#    GPS, phone, document workflow), the same shape as core/test_demo_data_generation.py —
+#    then runs the real generator (`--force`, no DEMO_DATA_GENERATION_ENABLED needed) for the
+#    last 14 days, metrics recalculation included. No external integration is contacted.
+seed:
+  - service: api
+    command: |
+      python manage.py shell <<'PY'
+      from django.contrib.auth import get_user_model
+      from django.contrib.auth.models import Permission
+      User = get_user_model()
+      def login(email, first, last, password, admin):
+          u, _ = User.objects.get_or_create(email=email, defaults={"first_name": first, "last_name": last})
+          u.is_active = True
+          u.is_staff = u.is_superuser = admin
+          u.user_type = "ADMIN" if admin else "USER"
+          u.set_password(password)
+          u.save()
+          return u
+      login("admin@example.com", "Admin", "Preview", "admin123", True)
+      viewer = login("viewer@example.com", "Viewer", "Preview", "viewer123", False)
+      viewer.user_permissions.set(Permission.objects.filter(codename__startswith="view_"))
+      PY
+  - service: api
+    command: |
+      python manage.py shell <<'PY'
+      from datetime import date, timedelta
+      from django.core.management import call_command
+      from django.utils import timezone
+      from document_workflow.choices import DocumentWorkflowSource, OperatorMatchStatus
+      from document_workflow.models import DocumentWorkflowOperator
+      from gps_activity.models import GpsDriver, GpsProvider
+      from operational_data.models import (EmployeeExternalAccount, EmployeePhoneNumber,
+          ERPEmployeeAccount, ERPSystem, ExternalAccountSource, PhoneNumberType)
+      from organization.models import Department, Employee, Position
+      from windows_activity.choices import WindowsMatchMethod
+      from windows_activity.models import WindowsIdentity
+      PEOPLE = [
+          ("Jan", "Kowalski", "jan", "Sprzedaz", "Handlowiec"),
+          ("Anna", "Nowak", "anna", "Sprzedaz", "Handlowiec"),
+          ("Piotr", "Wisniewski", "piotr", "Logistyka", "Kierowca"),
+          ("Ewa", "Wojcik", "ewa", "Ksiegowosc", "Ksiegowa"),
+          ("Marek", "Kaminski", "marek", "Ksiegowosc", "Ksiegowa"),
+          ("Ola", "Lewandowska", "ola", "Obsluga klienta", "Konsultant"),
+      ]
+      if not Employee.objects.filter(email__endswith="@demo.example.com").exists():
+          erp = ERPSystem.objects.get_or_create(code="optima-demo", defaults={"name": "Optima"})[0]
+          gps = GpsProvider.objects.get_or_create(code="demo-gps", defaults={"name": "Demo GPS"})[0]
+          for i, (first, last, login, dept, pos) in enumerate(PEOPLE, start=1):
+              email = f"{login}@demo.example.com"
+              e = Employee.objects.create(email=email, first_name=first, last_name=last,
+                  department=Department.objects.get_or_create(name=dept)[0],
+                  position=Position.objects.get_or_create(name=pos)[0])
+              EmployeeExternalAccount.objects.create(employee=e, source=ExternalAccountSource.EXCHANGE, external_username=email)
+              EmployeeExternalAccount.objects.create(employee=e, source=ExternalAccountSource.SYNOLOGY, external_username=login)
+              ERPEmployeeAccount.objects.create(erp_system=erp, employee=e, external_user_id=str(40 + i),
+                  external_name=f"{first} {last}", match_status=ERPEmployeeAccount.MatchStatus.MATCHED)
+              WindowsIdentity.objects.create(employee=e, domain="DEMO", username=login, normalized_domain="demo",
+                  normalized_username=login, user_principal=f"DEMO\\{login}", user_sid=f"S-1-5-21-demo-{login}",
+                  match_method=WindowsMatchMethod.MANUAL, is_automatically_matched=False)
+              GpsDriver.objects.create(provider=gps, external_name=f"{first} {last}", employee=e)
+              EmployeePhoneNumber.objects.create(employee=e, normalized_number=f"4850011122{i}",
+                  phone_type=PhoneNumberType.MOBILE, valid_from=date(2020, 1, 1), is_active=True)
+              DocumentWorkflowOperator.objects.create(source=DocumentWorkflowSource.DOCUMENT_WORKFLOW,
+                  external_operator_id=str(140 + i), first_name=first, last_name=last, employee=e,
+                  match_status=OperatorMatchStatus.MATCHED)
+      yesterday = timezone.localdate() - timedelta(days=1)
+      call_command("generate_demo_data", "--force",
+          f"--date-from={(yesterday - timedelta(days=13)).isoformat()}", f"--date-to={yesterday.isoformat()}")
+      PY
+
+# TEST logins only — every cockpit user sees them.
+credentials:
+  - { label: Admin, url: frontend, user: admin@example.com, password: admin123 }
+  - { label: Viewer (view-only perms), url: frontend, user: viewer@example.com, password: viewer123 }
+  - { label: Django admin, url: backend, user: admin@example.com, password: admin123 }
+
+checklistHints: |
+  Log in to the frontend as Admin. The demo company has 6 employees in 4 departments with
+  14 days of generated activity (mail, files, ERP, Windows, GPS, phone, document workflow) up to
+  yesterday. Check the screens the diff touches, then the dashboard and one employee's profile
+  as a regression check. Log in as Viewer to see the screens with view-only permissions.
+  Employee e-mails are @demo.example.com; none of them can log in.

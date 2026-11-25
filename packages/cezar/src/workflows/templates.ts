@@ -200,4 +200,67 @@ export const REVIEW_COUNCIL = builtIn(
   },
 );
 
-export const BUILT_IN_GRAPH_WORKFLOWS: readonly WorkflowDef[] = [IMPLEMENT_AND_VERIFY, IMPLEMENT_REVIEW_PR, REVIEW_COUNCIL, FIX_CI];
+/**
+ * Implement, test, write test notes, then stand the app up in docker for a human to try (spec
+ * 2026-11-24-preview-environments). A broken build loops back to the implementer with the
+ * build log, the way a red test run does.
+ */
+export const IMPLEMENT_AND_PREVIEW = builtIn(
+  'implement-and-preview',
+  'Implement the task, run the tests, then build the app in docker on its own ports for manual testing (.ai/cezar/preview.yml).',
+  {
+    nodes: [
+      { id: 'start', type: 'start' },
+      { id: 'implement', type: 'agent', name: 'Implement', prompt: '{{task}}' },
+      { id: 'tests', type: 'check', name: 'Run tests', command: 'npm test' },
+      { id: 'retry', type: 'loop', name: 'Retry', max: 3 },
+      {
+        id: 'fix',
+        type: 'agent',
+        name: 'Fix failures',
+        session: { continue: 'implement' },
+        prompt: 'The tests failed (round {{nodes.retry.iteration}}/{{nodes.retry.max}}):\n\n{{nodes.tests.output}}\n\nFix the cause, not the tests.',
+      },
+      {
+        id: 'notes',
+        type: 'agent',
+        name: 'Test notes',
+        prompt:
+          'The task below is implemented on this branch; a person will now test it by hand in a running copy of the app. ' +
+          'Read the diff against the base branch (and `.ai/cezar/preview.yml` for the test logins and `checklistHints`, if it exists). ' +
+          'Do not change any file. Answer with Markdown only, in the language the task is written in, with exactly two sections:\n\n' +
+          '## What changed\n2–6 bullets a tester understands — behaviour, not file names.\n\n' +
+          '## What to check\nA `- [ ]` checklist of concrete steps: which screen or URL path, which login to use, what to click, what should happen. ' +
+          'Include the edge cases most likely to break and one regression check of nearby behaviour.\n\nTask: {{task}}',
+      },
+      { id: 'preview', type: 'preview.up', name: 'Preview', notesFrom: 'notes' },
+      { id: 'build-retry', type: 'loop', name: 'Build retry', max: 2 },
+      {
+        id: 'fix-build',
+        type: 'agent',
+        name: 'Fix the build',
+        session: { continue: 'implement' },
+        prompt: 'The app did not start in docker (round {{nodes.build-retry.iteration}}/{{nodes.build-retry.max}}):\n\n{{nodes.preview.output}}\n\nFix the cause in the code or the Dockerfiles.',
+      },
+      { id: 'ready', type: 'end', name: 'Ready to test', status: 'success' },
+      { id: 'gave-up', type: 'end', name: 'Gave up', status: 'failed' },
+    ],
+    edges: [
+      { from: 'start', to: 'implement' },
+      { from: 'implement.done', to: 'tests' },
+      { from: 'tests.pass', to: 'notes' },
+      { from: 'tests.fail', to: 'retry' },
+      { from: 'retry.repeat', to: 'fix' },
+      { from: 'retry.exhausted', to: 'gave-up' },
+      { from: 'fix.done', to: 'tests' },
+      { from: 'notes.done', to: 'preview' },
+      { from: 'preview.ready', to: 'ready' },
+      { from: 'preview.failed', to: 'build-retry' },
+      { from: 'build-retry.repeat', to: 'fix-build' },
+      { from: 'build-retry.exhausted', to: 'gave-up' },
+      { from: 'fix-build.done', to: 'tests' },
+    ],
+  },
+);
+
+export const BUILT_IN_GRAPH_WORKFLOWS: readonly WorkflowDef[] = [IMPLEMENT_AND_VERIFY, IMPLEMENT_REVIEW_PR, REVIEW_COUNCIL, FIX_CI, IMPLEMENT_AND_PREVIEW];

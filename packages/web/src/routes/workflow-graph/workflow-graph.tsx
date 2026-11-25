@@ -1299,6 +1299,7 @@ const OUTPUTS: Record<GraphNodeType, string[]> = {
   'github.pr-update': [],
   'github.issue-comment': ['issue'],
   'notify.webhook': ['status'],
+  'preview.up': ['urls', 'ports', 'output'],
 }
 
 /** A node's template outputs — a fork's agent reports as a subtask (`runId`, `status`, `summary`). */
@@ -1654,6 +1655,34 @@ function Inspector({
           </Field>
           <p className="text-[11px] text-muted-foreground">
             {t('Only runs when the server has ')}<code>CEZ_WORKFLOW_WEBHOOKS=1</code>{t('; otherwise it leaves by failed.')}
+          </p>
+        </>
+      )}
+
+      {node.type === 'preview.up' && (
+        <>
+          <Field label={t('test notes from')}>
+            <select
+              className="w-full rounded-md border border-input bg-card px-2 py-1 text-[12px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              value={node.notesFrom ?? ''}
+              onChange={(e) => set({ notesFrom: e.target.value || undefined })}
+            >
+              <option value="">{t('no notes')}</option>
+              {graph.nodes
+                .filter((n) => n.type === 'agent')
+                .map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {n.name ?? n.id}
+                  </option>
+                ))}
+            </select>
+          </Field>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={node.trustWorktreeConfig ?? false} onChange={(e) => set({ trustWorktreeConfig: e.target.checked || undefined })} />
+            <span>{t('Use the docker config from the task branch')}</span>
+          </label>
+          <p className="text-[11px] text-muted-foreground">
+            {t('Builds the app with docker compose on ports of its own, as described in .ai/cezar/preview.yml. Without the checkbox the compose files and preview.yml are read from the base branch, so an agent cannot change what runs on the server.')}
           </p>
         </>
       )}

@@ -9,6 +9,7 @@ import { workflowDefSchema, workflowStepDefSchema } from './workflows.ts';
 // `contract-parity.runs.test.ts` cannot drift apart by construction.
 import { dispatchIntentSchema, dispatchSchema } from './dispatch.ts';
 import { runTrackerItemSchema, trackerAssociationSchema, trackerAutomationEventSchema } from './tracker.ts';
+import { previewStateSchema } from './preview.ts';
 
 /**
  * The RUNS family of `/api/v1` — a task's record, its lifecycle mutations, and the artifacts
@@ -304,6 +305,9 @@ export const runRecordSchema = z.object({
   /** Set when count-based retention (#483) reclaimed the worktree DIRECTORY (the branch is
    *  kept): the dir is gone but recoverable. */
   worktreeReclaimedAt: z.string().optional(),
+  /** The task's preview environment (spec 2026-11-24-preview-environments), when a workflow
+   *  `preview.up` node built one. */
+  preview: previewStateSchema.optional(),
   /** Parallel variants (spec 010): runs sharing a groupId are one group. */
   groupId: z.string().optional(),
   /** Variant letter within the group — 'A' | 'B' | 'C'. */

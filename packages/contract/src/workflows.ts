@@ -156,6 +156,7 @@ export const workflowGraphNodeSchema = z.discriminatedUnion('type', [
   }),
   z.object({ ...graphNodeBase, type: z.literal('github.issue-comment'), issue: z.number().int().positive().optional(), body: z.string().min(1) }),
   z.object({ ...graphNodeBase, type: z.literal('notify.webhook'), url: z.string().url().regex(/^https?:\/\//, 'http(s) URLs only'), body: z.string().optional() }),
+  z.object({ ...graphNodeBase, type: z.literal('preview.up'), notesFrom: nodeId.optional(), trustWorktreeConfig: z.boolean().optional() }),
 ]);
 export type WorkflowGraphNode = z.infer<typeof workflowGraphNodeSchema>;
 
@@ -272,6 +273,7 @@ export const workflowNodeCatalogResponseSchema = z.object({
         'github.pr-update',
         'github.issue-comment',
         'notify.webhook',
+        'preview.up',
       ]),
       category: z.enum(['flow', 'agents', 'scripts', 'git']),
       label: z.string(),

@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
-import { existsSync, realpathSync, type Dirent } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, realpathSync, rmSync, type Dirent } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { readdir, readFile, rm, stat } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 import { resolveTaskDiffBase } from './git-diff-base.ts';
@@ -456,6 +457,39 @@ export async function commitAll(
   const sha = await git(dir, ['rev-parse', 'HEAD']);
   if (!sha.ok || !sha.stdout.trim()) return { result: 'failed', error: 'commit succeeded but rev-parse HEAD failed' };
   return { result: 'committed', sha: sha.stdout.trim() };
+}
+
+/**
+ * A fingerprint of what is ON DISK in the worktree — tracked and untracked, not ignored — as a git
+ * tree id, written through a throwaway copy of the index so the real one is never touched.
+ *
+ * Not `HEAD`: cezar's own autosave commits uncommitted work at turn end without changing a byte,
+ * and a preview built a moment earlier is not out of date because of that. Two identical working
+ * trees give the same id whatever their commits are. Undefined when git cannot answer.
+ */
+export async function worktreeTreeId(dir: string): Promise<string | undefined> {
+  const indexPath = await git(dir, ['rev-parse', '--path-format=absolute', '--git-path', 'index']);
+  if (!indexPath.ok) return undefined;
+  const scratch = mkdtempSync(join(tmpdir(), 'cez-tree-'));
+  const tmpIndex = join(scratch, 'index');
+  try {
+    if (existsSync(indexPath.stdout.trim())) copyFileSync(indexPath.stdout.trim(), tmpIndex);
+    const env = { ...process.env, GIT_INDEX_FILE: tmpIndex };
+    const add = await git(dir, ['add', '-A'], { env, timeout: 60_000 });
+    if (!add.ok) return undefined;
+    const tree = await git(dir, ['write-tree'], { env, timeout: 60_000 });
+    return tree.ok && tree.stdout.trim() ? tree.stdout.trim() : undefined;
+  } catch {
+    return undefined;
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
+/** The worktree's HEAD commit, or undefined when it cannot be read. Never throws. */
+export async function headSha(dir: string): Promise<string | undefined> {
+  const res = await git(dir, ['rev-parse', 'HEAD']);
+  return res.ok && res.stdout.trim() ? res.stdout.trim() : undefined;
 }
 
 /**

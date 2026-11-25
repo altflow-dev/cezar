@@ -143,6 +143,16 @@ export const graphNodeSchema = z.discriminatedUnion('type', [
   z.object({ ...nodeBase, type: z.literal('github.issue-comment'), issue: z.number().int().positive().optional(), body: z.string().min(1) }),
   /** POST to a URL — a network call, so it only runs with `CEZ_WORKFLOW_WEBHOOKS=1`. */
   z.object({ ...nodeBase, type: z.literal('notify.webhook'), url: z.string().url().regex(/^https?:\/\//, 'http(s) URLs only'), body: z.string().optional() }),
+  // ---- preview environments (spec 2026-11-24-preview-environments) ----
+  /** Build and start the task's app in docker on ports of its own, for manual testing at review.
+   *  `notesFrom` names an agent node whose summary becomes the test notes. `trustWorktreeConfig`
+   *  lets the task's own compose / preview.yml changes run — off, they are read from the base. */
+  z.object({
+    ...nodeBase,
+    type: z.literal('preview.up'),
+    notesFrom: nodeId.optional(),
+    trustWorktreeConfig: z.boolean().optional(),
+  }),
 ]);
 
 /** `from` is `<node>` (its default port) or `<node>.<port>`. */
@@ -191,6 +201,7 @@ export const NODE_PORTS: Record<GraphNodeType, readonly string[]> = {
   'github.pr-update': ['done', 'failed'],
   'github.issue-comment': ['done', 'failed'],
   'notify.webhook': ['done', 'failed'],
+  'preview.up': ['ready', 'failed'],
 };
 
 export interface NodeCatalogEntry {
@@ -227,6 +238,7 @@ export const NODE_CATALOG: NodeCatalogEntry[] = [
   { type: 'github.pr-update', category: 'git', label: 'Update PR', description: 'Mark the task PR ready, add labels, request reviewers.', ports: ['done', 'failed'], outputs: [] },
   { type: 'github.issue-comment', category: 'git', label: 'Issue comment', description: "Comment on the task's issue.", ports: ['done', 'failed'], outputs: ['issue'] },
   { type: 'notify.webhook', category: 'scripts', label: 'Webhook', description: 'POST a message to a URL (needs CEZ_WORKFLOW_WEBHOOKS=1).', ports: ['done', 'failed'], outputs: ['status'] },
+  { type: 'preview.up', category: 'scripts', label: 'Preview', description: 'Build and start the app in docker on its own ports, for manual testing (.ai/cezar/preview.yml).', ports: ['ready', 'failed'], outputs: ['urls', 'ports', 'output'] },
   { type: 'workflow', category: 'flow', label: 'Sub-workflow', description: 'Run another saved workflow as a subtask and wait for it.', ports: ['done', 'failed'], outputs: ['runId', 'status', 'summary'] },
 ];
 
@@ -317,6 +329,10 @@ export function graphIssues(graph: WorkflowGraph): string[] {
     if (n.type === 'if' && n.condition.kind === 'output') {
       const refNode = n.condition.ref.split('.')[0] as string;
       if (!ids.includes(refNode)) issues.push(`if node "${n.id}" reads unknown node "${refNode}"`);
+    }
+    if (n.type === 'preview.up' && n.notesFrom !== undefined) {
+      const t = graph.nodes.find((x) => x.id === n.notesFrom);
+      if (!t || t.type !== 'agent') issues.push(`preview node "${n.id}": notesFrom must name an agent node (got "${n.notesFrom}")`);
     }
     if (n.type !== 'agent') continue;
     if (!n.prompt && !n.skill) issues.push(`agent node "${n.id}" needs a prompt or a skill`);

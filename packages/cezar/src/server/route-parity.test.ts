@@ -236,6 +236,10 @@ describe('project-route alias parity (unprefixed vs /api/v1/p/<boot> vs /api/v1/
     // 404: unknown ids.
     await expectParity('/runs/no-such-run/archive', json('POST', {}));
     await expectParity('/runs/no-such-run/pin', json('POST', {}));
+    await expectParity('/runs/no-such-run/preview/restart', json('POST', {}));
+    await expectParity('/runs/no-such-run/preview/stop', json('POST', {}));
+    await expectParity('/runs/no-such-run/preview/extend', json('POST', {}));
+    await expectParity('/runs/no-such-run/preview/logs', () => ({ method: 'GET' }));
     await expectParity('/runs/no-such-run', json('PATCH', { title: 't' }));
     await expectParity('/workflows/no-such-workflow', () => ({
       method: 'DELETE',

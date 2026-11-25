@@ -124,6 +124,16 @@ export function agentAccountsPath(): string {
 }
 
 /**
+ * Host ports handed to task preview environments (spec 2026-11-24-preview-environments).
+ * Workspace-wide — one server runs previews from many projects, and two of them must never get
+ * the same port — so it lives in the cezar home, in its own file beside `agent-accounts.json`.
+ * Pure derived state: deleting it loses nothing the next reconcile cannot rebuild.
+ */
+export function previewPortsPath(): string {
+  return join(cezarHomeDir(), 'previews.json');
+}
+
+/**
  * Expand a leading `~` to the user's home. Lives here with the other homedir
  * logic (see the module note above — one place owns `homedir()`): the
  * workspace browse/checkout roots are stored as the user wrote them (a literal `~`), so

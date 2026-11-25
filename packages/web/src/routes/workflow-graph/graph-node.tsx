@@ -11,6 +11,7 @@ import {
   HandIcon,
   MessageCircleQuestionIcon,
   MessageSquareIcon,
+  MonitorPlayIcon,
   PlayIcon,
   PlusIcon,
   RepeatIcon,
@@ -87,6 +88,7 @@ export const TYPE_CATEGORY: Record<GraphNodeType, Category> = {
   'github.pr-update': 'git',
   'github.issue-comment': 'git',
   'notify.webhook': 'scripts',
+  'preview.up': 'scripts',
 }
 
 export const ICONS: Record<GraphNodeType, LucideIcon> = {
@@ -111,6 +113,7 @@ export const ICONS: Record<GraphNodeType, LucideIcon> = {
   'github.pr-update': TagIcon,
   'github.issue-comment': MessageSquareIcon,
   'notify.webhook': WebhookIcon,
+  'preview.up': MonitorPlayIcon,
 }
 
 export const TONE: Record<PortTone, string> = {
@@ -142,6 +145,7 @@ export const TYPE_LABEL: Record<GraphNodeType, string> = {
   'github.pr-update': t('Update PR'),
   'github.issue-comment': t('Issue comment'),
   'notify.webhook': t('Webhook'),
+  'preview.up': t('Preview'),
 }
 
 export const categoryColor = (type: GraphNodeType) =>
@@ -196,6 +200,8 @@ export function nodeDetail(node: WorkflowGraphNode, loopCount?: number): string 
       return node.issue ? `#${node.issue}` : t('task\'s issue')
     case 'notify.webhook':
       return node.url.replace(/^https?:\/\//, '')
+    case 'preview.up':
+      return node.notesFrom ? t('docker preview, notes from {node}', { node: node.notesFrom }) : t('docker preview')
     case 'if': {
       const c = node.condition
       switch (c.kind) {

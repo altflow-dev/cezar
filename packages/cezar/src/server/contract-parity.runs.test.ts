@@ -20,6 +20,9 @@ import type {
   removeWorktreeResponseSchema,
   runCommitsResponseSchema,
   runRecordSchema,
+  previewActionResponseSchema,
+  previewExtendResponseSchema,
+  previewLogsResponseSchema,
 } from '@open-mercato/cezar-contract';
 import type { AppType } from './app-type.ts';
 
@@ -69,6 +72,11 @@ describe('src/contract/runs.ts matches the runs routes exactly', () => {
   type GitPush200 = InferResponseType<Run['git']['push']['$post'], 200>;
   type CreatePr201 = InferResponseType<Run['pr']['$post'], 201>;
   type RemoveWorktree200 = InferResponseType<Run['remove-worktree']['$post'], 200>;
+  // task previews (spec 2026-11-24-preview-environments)
+  type PreviewRestart202 = InferResponseType<Run['preview']['restart']['$post'], 202>;
+  type PreviewStop200 = InferResponseType<Run['preview']['stop']['$post'], 200>;
+  type PreviewExtend200 = InferResponseType<Run['preview']['extend']['$post'], 200>;
+  type PreviewLogs200 = InferResponseType<Run['preview']['logs']['$get'], 200>;
   type DeleteRun200 = InferResponseType<Run['$delete'], 200>;
 
   type _Checks = [
@@ -109,6 +117,10 @@ describe('src/contract/runs.ts matches the runs routes exactly', () => {
     Assert<Exact<z.infer<typeof gitCommitResponseSchema>, GitCommit200>>,
     Assert<Exact<z.infer<typeof gitPushResponseSchema>, GitPush200>>,
     Assert<Exact<z.infer<typeof removeWorktreeResponseSchema>, RemoveWorktree200>>,
+    Assert<Exact<z.infer<typeof previewActionResponseSchema>, PreviewRestart202>>,
+    Assert<Exact<z.infer<typeof previewActionResponseSchema>, PreviewStop200>>,
+    Assert<Exact<z.infer<typeof previewExtendResponseSchema>, PreviewExtend200>>,
+    Assert<Exact<z.infer<typeof previewLogsResponseSchema>, PreviewLogs200>>,
   ];
 
   it('is enforced by tsc, not at runtime', () => {

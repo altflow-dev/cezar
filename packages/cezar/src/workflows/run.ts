@@ -76,6 +76,7 @@ import {
 } from '../git-worktree.ts';
 import { commentOnIssue, commentOnPr, fetchGithubChecks, updatePr } from '../server/forge/github.ts';
 import { createDraftPr } from '../server/pr.ts';
+import { readCachedRefStatuses, refNumberFromUrl } from '../server/github.ts';
 import { getHeadCommit, getRepoInfo } from '../server/git.ts';
 import { loadWorkflows, newerCatalogWorkflow } from './load.ts';
 import type { QueuedMessage, RunRecord, RunStore, StepState } from '../runs/store.ts';
@@ -222,6 +223,11 @@ const GRAPH_TAKEN_CAP = 500;
 const NODE_SUMMARY_CAP = 4_000;
 import { freshContinuationContext } from './continuation-context.ts';
 import { createCheckOutputCollector } from './check-output.ts';
+import { headSha, worktreeTreeId } from '../git-worktree.ts';
+import { bindUnreachableRemotely, previewBindHost, previewPublicHost } from '../preview/bind.ts';
+import { composeProjectName, previewDown, previewLogs, previewTtlMs, previewUp } from '../preview/engine.ts';
+import { PreviewReaper } from '../preview/reaper.ts';
+import { markEvicted, previewMax, previewsHoldingPorts } from '../preview/ports.ts';
 
 async function configuredModelProvider(
   backend: RunnerId,
@@ -1155,6 +1161,10 @@ export class RunManager {
    *  CLI needs to address the right project over the API (spec 2026-09-10-dispatch). */
   private readonly projectId: string | undefined;
 
+  /** Stops preview environments when their task is archived, deleted or loses its worktree, and
+   *  when their TTL runs out (spec 2026-11-24-preview-environments). */
+  private readonly previewReaper: PreviewReaper;
+
   /** See the constructor option of the same name. */
   private readonly resolveTrackerEnv: ((root: string, expected: TrackerAssociation | undefined) => Promise<Record<string, string>>) | undefined;
 
@@ -1187,7 +1197,20 @@ export class RunManager {
     this.offUsage = onUsage((snapshot) => void this.enforceMemoryLimit(snapshot));
     this.queueWatchdog = setInterval(() => void this.rescueStalledQueue(), QUEUE_WATCHDOG_MS);
     this.queueWatchdog.unref?.();
+    this.previewReaper = new PreviewReaper(store, repoRoot, {
+      fingerprint: worktreeTreeId,
+      composePrefix: composeProjectName(options.projectId ?? basename(repoRoot), ''),
+      // Cache only: the chips in the cockpit keep it warm, and the reaper never asks GitHub itself.
+      prState: (run) => {
+        const ref = run.prRefs?.find((r) => r.origin === 'created');
+        const n = ref?.number ?? (run.pullRequestUrl ? refNumberFromUrl(run.pullRequestUrl) : null);
+        if (!n) return undefined;
+        const status = readCachedRefStatuses(repoRoot, [n]).prs[n];
+        return status === 'merged' ? 'merged' : status === 'closed' ? 'closed' : status ? 'open' : undefined;
+      },
+    });
   }
+
 
   /**
    * Release everything this manager owns without touching run records
@@ -1200,6 +1223,7 @@ export class RunManager {
    * dispose only guarantees the manager makes no further moves on its own.
    */
   dispose(): void {
+    this.previewReaper.dispose();
     this.offUsage();
     this.offSemaphore();
     clearInterval(this.queueWatchdog);
@@ -4732,6 +4756,14 @@ export class RunManager {
         // Only a fork reaches a join (it waits there itself); validation rejects anything else.
         this.finishStep(runId, node.id, 'failed', 'a join can only be reached from a fork', emit);
         port = 'failed';
+      } else if (node.type === 'preview.up') {
+        // Like a check: `failed` carries the build log into the next agent's prompt, so a loop
+        // back to the implementer can fix a Dockerfile it broke.
+        const outcome = await this.runPreviewNode(runId, state, node, outputs, emit);
+        if (state.cancelled) return null;
+        port = outcome.ok ? 'ready' : 'failed';
+        if (!outcome.ok) checkFailure = outcome.output;
+        this.finishStep(runId, node.id, outcome.ok ? 'done' : 'failed', outcome.ok ? undefined : outcome.error, emit);
       } else if (node.type !== 'agent' && node.type !== 'check') {
         // Nodes cezar runs itself: gates, questions, dispatch, git and GitHub (phase 1c).
         const outcome = await this.runSystemNode(runId, state, node, outputs, input.task, emit, persistWalk, resuming);
@@ -5045,7 +5077,7 @@ export class RunManager {
   private async runSystemNode(
     runId: string,
     state: ActiveRun,
-    node: Exclude<ExecutableNode, { type: 'agent' | 'check' | 'fork' | 'join' }>,
+    node: Exclude<ExecutableNode, { type: 'agent' | 'check' | 'fork' | 'join' | 'preview.up' }>,
     outputs: Map<string, Record<string, string | number>>,
     task: string,
     emit: (event: { type: string; stepId?: string; [k: string]: unknown }) => void,
@@ -6853,6 +6885,248 @@ export class RunManager {
       clearInterval(state.autosaveTimer);
       state.autosaveTimer = undefined;
     }
+  }
+
+  /**
+   * The `preview.up` node (spec 2026-11-24-preview-environments): build and start the task's
+   * app in docker on ports of its own and record it on the run. Never throws.
+   */
+  private async runPreviewNode(
+    runId: string,
+    state: ActiveRun,
+    node: Extract<ExecutableNode, { type: 'preview.up' }>,
+    outputs: Map<string, Record<string, string | number>>,
+    emit: (event: { type: string; stepId?: string; [k: string]: unknown }) => void,
+  ): Promise<{ ok: true } | { ok: false; error: string; output: string }> {
+    const notesRaw = node.notesFrom ? outputs.get(node.notesFrom)?.summary : undefined;
+    const controller = new AbortController();
+    state.interrupt = () => controller.abort();
+    const result = await this.buildPreview(runId, {
+      cwd: state.cwd,
+      trust: node.trustWorktreeConfig === true,
+      ...(typeof notesRaw === 'string' && notesRaw.trim() ? { notes: notesRaw.trim() } : {}),
+      signal: controller.signal,
+      isCancelled: () => state.cancelled,
+      emit: (event) => emit({ ...event, stepId: node.id }),
+    });
+    state.interrupt = () => undefined;
+    if (!result.ok) {
+      outputs.set(node.id, { output: result.output.slice(-NODE_SUMMARY_CAP) });
+      return result;
+    }
+    outputs.set(node.id, {
+      urls: result.links.join('\n'),
+      ports: result.ports.join(','),
+      output: result.output.slice(-NODE_SUMMARY_CAP),
+    });
+    return { ok: true };
+  }
+
+  /** runId → abort for a preview build that runs outside a workflow (the cockpit's Restart). */
+  private readonly previewBuilds = new Map<string, AbortController>();
+
+  /**
+   * Rebuild a task's preview from its worktree as it is now — the cockpit's Restart (phase 3).
+   * Runs in the background: the record turns `building` before this returns, and the build's
+   * outcome reaches the cockpit as record updates and rail notes. The config trust and the test
+   * notes of the previous build carry over.
+   */
+  restartPreview(runId: string): { ok: true } | { ok: false; status: 404 | 409; error: string } {
+    const run = this.store.getRun(runId);
+    if (!run) return { ok: false, status: 404, error: 'not found' };
+    if (process.env.CEZ_PREVIEW === '0') return { ok: false, status: 409, error: 'previews are off (CEZ_PREVIEW=0)' };
+    if (this.isActive(runId)) return { ok: false, status: 409, error: 'the task is still running — the workflow builds its own preview' };
+    if (run.archived) return { ok: false, status: 409, error: 'the task is archived' };
+    if (!run.worktreePath || run.worktree === false || !existsSync(run.worktreePath)) {
+      return { ok: false, status: 409, error: 'the task has no worktree to build from' };
+    }
+    if (run.preview?.status === 'building' || this.previewBuilds.has(runId)) return { ok: false, status: 409, error: 'a preview is already building' };
+    const controller = new AbortController();
+    this.previewBuilds.set(runId, controller);
+    const previous = run.preview;
+    const emit = (event: { type: string; [k: string]: unknown }) => this.store.appendEvent(runId, event);
+    emit({ type: 'note', message: 'preview restart requested' });
+    void this.buildPreview(runId, {
+      cwd: run.worktreePath,
+      trust: previous?.trusted === true,
+      ...(previous?.notes ? { notes: previous.notes } : {}),
+      signal: controller.signal,
+      isCancelled: () => controller.signal.aborted,
+      emit,
+    })
+      .catch(() => undefined)
+      .finally(() => this.previewBuilds.delete(runId));
+    return { ok: true };
+  }
+
+  /** Stop a task's preview now (the cockpit's Stop); also aborts a Restart still building. */
+  async stopPreview(runId: string): Promise<{ ok: true } | { ok: false; status: 404 | 409; error: string }> {
+    const run = this.store.getRun(runId);
+    if (!run) return { ok: false, status: 404, error: 'not found' };
+    const build = this.previewBuilds.get(runId);
+    if (build) {
+      build.abort();
+      return { ok: true };
+    }
+    if (!run.preview || run.preview.status === 'stopped') return { ok: false, status: 409, error: 'no preview is running' };
+    if (run.preview.status === 'building') return { ok: false, status: 409, error: 'the workflow is building this preview — cancel the task to stop it' };
+    await this.previewReaper.stop(runId, 'user');
+    return { ok: true };
+  }
+
+  /** Push a live preview's expiry one TTL past now (or past its current expiry, if later). */
+  extendPreview(runId: string): { ok: true; expiresAt: string } | { ok: false; status: 404 | 409; error: string } {
+    const run = this.store.getRun(runId);
+    if (!run) return { ok: false, status: 404, error: 'not found' };
+    if (!run.preview || (run.preview.status !== 'ready' && run.preview.status !== 'stale')) {
+      return { ok: false, status: 409, error: 'no preview is running' };
+    }
+    const from = Math.max(Date.now(), run.preview.expiresAt ? Date.parse(run.preview.expiresAt) : 0);
+    const expiresAt = new Date(from + previewTtlMs()).toISOString();
+    this.store.updateRun(runId, { preview: { ...run.preview, expiresAt } });
+    return { ok: true, expiresAt };
+  }
+
+  /** The tail of a preview's container logs. */
+  async previewLogs(runId: string, service: string | undefined, tail: number): Promise<{ ok: true; text: string } | { ok: false; status: 404 | 409; error: string }> {
+    const run = this.store.getRun(runId);
+    if (!run) return { ok: false, status: 404, error: 'not found' };
+    if (!run.preview || run.preview.status === 'stopped') return { ok: false, status: 409, error: 'no preview is running' };
+    if (process.env.CEZ_DRY_RUN === '1') return { ok: true, text: 'dry run — no containers, no logs\n' };
+    const text = await previewLogs({ composeProject: run.preview.composeProject, cwd: run.worktreePath ?? this.repoRoot }, service, tail).catch(
+      (err: unknown) => `could not read logs — ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return { ok: true, text };
+  }
+
+  /**
+   * Keep at most `CEZ_PREVIEW_MAX` previews holding ports, workspace-wide: before this run's
+   * build, stop the oldest others until it fits. One of this project's is stopped through the
+   * reaper (record and all); another project's is taken down here and marked in the ledger, and
+   * its own reaper records it on its next look (`takeEviction`).
+   */
+  private async makeRoomForPreview(runId: string, note: (message: string, tone?: 'danger') => void): Promise<void> {
+    const others = previewsHoldingPorts().filter((p) => p.runId !== runId);
+    const max = previewMax();
+    while (others.length >= max) {
+      const oldest = others.shift();
+      if (!oldest) break;
+      note(`stopping the oldest preview (${oldest.composeProject}) — at most ${max} run at once (CEZ_PREVIEW_MAX)`);
+      if (this.store.getRun(oldest.runId)) {
+        await this.previewReaper.stop(oldest.runId, 'limit');
+      } else {
+        await previewDown({ composeProject: oldest.composeProject, cwd: this.repoRoot }, oldest.runId);
+        markEvicted(oldest.runId);
+      }
+    }
+  }
+
+  /**
+   * Build a task's preview and record the outcome on the run — shared by the `preview.up` node
+   * and the cockpit's Restart, so both build the same way. Never throws.
+   */
+  private async buildPreview(
+    runId: string,
+    opts: {
+      cwd: string;
+      trust: boolean;
+      notes?: string;
+      signal: AbortSignal;
+      isCancelled: () => boolean;
+      emit: (event: { type: string; [k: string]: unknown }) => void;
+    },
+  ): Promise<{ ok: true; links: string[]; ports: number[]; output: string } | { ok: false; error: string; output: string }> {
+    const note = (message: string, tone?: 'danger') => opts.emit({ type: 'note', message, ...(tone ? { tone } : {}) });
+    const refuse = (error: string) => {
+      note(error, 'danger');
+      return { ok: false as const, error, output: error };
+    };
+    if (process.env.CEZ_PREVIEW === '0') return refuse('previews are off (CEZ_PREVIEW=0)');
+    const run = this.store.getRun(runId);
+    if (!run) return refuse('run not found');
+    if (!run.worktreePath || run.worktree === false) {
+      return refuse('this task runs in the repository working tree, not a worktree of its own — previews need one');
+    }
+    const bind = previewBindHost();
+    if (bindUnreachableRemotely(bind)) {
+      note(`ports are published on ${bind} only — remote viewers cannot reach them; set CEZ_PREVIEW_BIND (e.g. 0.0.0.0) on a hosted cockpit`, 'danger');
+    }
+
+    // A preview this run already has is replaced, not doubled.
+    if (run.preview && (run.preview.status === 'ready' || run.preview.status === 'stale' || run.preview.status === 'building')) {
+      await previewDown({ composeProject: run.preview.composeProject, cwd: opts.cwd }, runId);
+    }
+
+    const base = run.baseBranch ?? 'HEAD';
+    const anchor = { taskBranch: run.branch, runStartedAt: run.startedAt };
+    const changedFiles = ((await worktreeChangedFiles(opts.cwd, base, anchor)) ?? []).slice(0, 200);
+    const sha = await headSha(opts.cwd);
+    const tree = await worktreeTreeId(opts.cwd);
+    const startedAt = new Date().toISOString();
+    const slug = this.projectId ?? basename(this.repoRoot);
+    const composeProject = composeProjectName(slug, runId);
+    await this.makeRoomForPreview(runId, note);
+    this.store.updateRun(runId, { preview: { status: 'building', composeProject, ports: [], startedAt, ...(opts.trust ? { trusted: true } : {}) } });
+
+    let collected = '';
+    const result = await previewUp({
+      runId,
+      projectSlug: slug,
+      repoRoot: this.repoRoot,
+      worktree: opts.cwd,
+      dataDir: this.dataDir,
+      baseRef: base,
+      trustWorktreeConfig: opts.trust,
+      bind,
+      publicHost: previewPublicHost(),
+      ...(opts.notes ? { notes: opts.notes } : {}),
+      changedFiles,
+      ...(sha ? { builtFromSha: sha } : {}),
+      ...(tree ? { builtFromTree: tree } : {}),
+      signal: opts.signal,
+      onLog: (text) => {
+        collected = (collected + text).slice(-20_000);
+      },
+      dryRun: process.env.CEZ_DRY_RUN === '1',
+    });
+
+    if (!result.ok) {
+      opts.emit({ type: 'check-output', command: 'preview', text: result.output, exitCode: 1 });
+      const cancelled = opts.isCancelled() || opts.signal.aborted;
+      if (this.store.getRun(runId)) {
+        this.store.updateRun(runId, {
+          preview: {
+            status: cancelled ? 'stopped' : 'failed',
+            composeProject,
+            ports: [],
+            startedAt,
+            stoppedAt: new Date().toISOString(),
+            ...(cancelled ? { stopReason: opts.isCancelled() ? ('cancelled' as const) : ('user' as const) } : {}),
+            ...(opts.trust ? { trusted: true } : {}),
+            error: result.error,
+          },
+        });
+      }
+      note(`preview failed — ${result.error}`, 'danger');
+      return { ok: false, error: result.error, output: result.output };
+    }
+
+    // The task may have been deleted or archived while it built: nothing would ever stop a stack
+    // recorded after that, so take it straight back down.
+    const now = this.store.getRun(runId);
+    if (!now || now.archived) {
+      await previewDown({ composeProject, cwd: opts.cwd }, runId);
+      if (now) this.store.updateRun(runId, { preview: { ...result.state, status: 'stopped', stoppedAt: new Date().toISOString(), stopReason: 'archived' } });
+      return { ok: false, error: 'the task was archived or deleted while its preview built', output: collected };
+    }
+
+    if (collected.trim()) opts.emit({ type: 'check-output', command: 'preview', text: collected.trim(), exitCode: 0 });
+    for (const w of result.warnings) note(w, 'danger');
+    this.store.updateRun(runId, { preview: { ...result.state, ...(opts.trust ? { trusted: true } : {}) } });
+    const links = result.state.ports.map((p) => `${p.label} → :${p.hostPort}${p.path}`);
+    note(`preview ready — ${links.join(', ')}`);
+    for (const c of result.state.credentials ?? []) note(`login (${c.label}): ${c.user} / ${c.password}`);
+    return { ok: true, links, ports: result.state.ports.map((p) => p.hostPort), output: collected };
   }
 
   private runCheckStep(
