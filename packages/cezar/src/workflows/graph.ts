@@ -132,6 +132,10 @@ export const graphNodeSchema = z.discriminatedUnion('type', [
   /** Merge the freshest base (`origin/<base>`) into the task branch. On conflict the merge is
    *  LEFT in progress and the node leaves by `conflict`, so the next agent sees the conflicts. */
   z.object({ ...nodeBase, type: z.literal('git.sync-base') }),
+  /** Re-point the task's base before any work is done (spec 2026-11-25-workflow-set-base):
+   *  `branch` is templated; an empty render falls back to `fallback`, and both empty keep the
+   *  base the task forked from. Refuses once the task has commits or uncommitted changes. */
+  z.object({ ...nodeBase, type: z.literal('git.set-base'), branch: z.string(), fallback: z.string().optional() }),
   z.object({
     ...nodeBase,
     type: z.literal('github.pr-update'),
@@ -188,6 +192,7 @@ export const NODE_PORTS: Record<GraphNodeType, readonly string[]> = {
   if: ['true', 'false'],
   'git.push': ['done', 'failed'],
   'git.sync-base': ['done', 'conflict', 'failed'],
+  'git.set-base': ['done', 'unchanged', 'refused', 'failed'],
   'github.pr-update': ['done', 'failed'],
   'github.issue-comment': ['done', 'failed'],
   'notify.webhook': ['done', 'failed'],
@@ -224,6 +229,7 @@ export const NODE_CATALOG: NodeCatalogEntry[] = [
   { type: 'if', category: 'flow', label: 'If', description: 'Branch on the diff size, changed paths, a node output or the base branch.', ports: ['true', 'false'], outputs: ['result', 'value'] },
   { type: 'git.push', category: 'git', label: 'Push', description: 'Push the task branch to origin.', ports: ['done', 'failed'], outputs: [] },
   { type: 'git.sync-base', category: 'git', label: 'Sync with base', description: 'Merge the latest base branch in; stops on conflict for an agent to resolve.', ports: ['done', 'conflict', 'failed'], outputs: ['conflicts'] },
+  { type: 'git.set-base', category: 'git', label: 'Set base branch', description: "Re-point the task's base (e.g. from the ticket's epic) before any work is done; refuses once work exists.", ports: ['done', 'unchanged', 'refused', 'failed'], outputs: ['base', 'previous'] },
   { type: 'github.pr-update', category: 'git', label: 'Update PR', description: 'Mark the task PR ready, add labels, request reviewers.', ports: ['done', 'failed'], outputs: [] },
   { type: 'github.issue-comment', category: 'git', label: 'Issue comment', description: "Comment on the task's issue.", ports: ['done', 'failed'], outputs: ['issue'] },
   { type: 'notify.webhook', category: 'scripts', label: 'Webhook', description: 'POST a message to a URL (needs CEZ_WORKFLOW_WEBHOOKS=1).', ports: ['done', 'failed'], outputs: ['status'] },
@@ -231,7 +237,7 @@ export const NODE_CATALOG: NodeCatalogEntry[] = [
 ];
 
 /** Ports that end the run as `failed` when left unwired; every other unwired port succeeds. */
-const FAILURE_PORTS = new Set(['failed', 'fail', 'exhausted', 'reject', 'red', 'timeout', 'conflict']);
+const FAILURE_PORTS = new Set(['failed', 'fail', 'exhausted', 'reject', 'red', 'timeout', 'conflict', 'refused']);
 
 export function isFailurePort(port: string): boolean {
   return FAILURE_PORTS.has(port);
@@ -473,6 +479,8 @@ export function templatedText(n: GraphNode): string[] {
       return [n.body];
     case 'notify.webhook':
       return [n.body ?? ''];
+    case 'git.set-base':
+      return [n.branch, n.fallback ?? ''];
     default:
       return [];
   }

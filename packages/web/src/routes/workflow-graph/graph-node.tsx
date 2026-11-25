@@ -4,6 +4,7 @@ import {
   ExternalLinkIcon,
   FlagIcon,
   GitForkIcon,
+  GitBranchIcon,
   GitMergeIcon,
   MergeIcon,
   GitCommitIcon,
@@ -84,6 +85,7 @@ export const TYPE_CATEGORY: Record<GraphNodeType, Category> = {
   workflow: 'flow',
   'git.push': 'git',
   'git.sync-base': 'git',
+  'git.set-base': 'git',
   'github.pr-update': 'git',
   'github.issue-comment': 'git',
   'notify.webhook': 'scripts',
@@ -108,6 +110,7 @@ export const ICONS: Record<GraphNodeType, LucideIcon> = {
   workflow: WorkflowIcon,
   'git.push': UploadIcon,
   'git.sync-base': GitMergeIcon,
+  'git.set-base': GitBranchIcon,
   'github.pr-update': TagIcon,
   'github.issue-comment': MessageSquareIcon,
   'notify.webhook': WebhookIcon,
@@ -139,6 +142,7 @@ export const TYPE_LABEL: Record<GraphNodeType, string> = {
   workflow: 'Sub-workflow',
   'git.push': t('Push'),
   'git.sync-base': t('Sync with base'),
+  'git.set-base': t('Set base branch'),
   'github.pr-update': t('Update PR'),
   'github.issue-comment': t('Issue comment'),
   'notify.webhook': t('Webhook'),
@@ -188,6 +192,8 @@ export function nodeDetail(node: WorkflowGraphNode, loopCount?: number): string 
       return 'task branch → origin'
     case 'git.sync-base':
       return t('merge latest base')
+    case 'git.set-base':
+      return node.branch.trim() || (node.fallback ? t('fallback {branch}', { branch: node.fallback }) : t('keep fork base'))
     case 'github.pr-update':
       return [node.ready ? 'ready' : '', node.addLabels?.length ? `+${node.addLabels.join(', ')}` : '', node.reviewers?.length ? `@${node.reviewers.join(', @')}` : '']
         .filter(Boolean)

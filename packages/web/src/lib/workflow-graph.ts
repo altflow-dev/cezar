@@ -35,11 +35,12 @@ const PORTS: Record<GraphNodeType, readonly string[]> = {
   if: ['true', 'false'],
   'git.push': ['done', 'failed'],
   'git.sync-base': ['done', 'conflict', 'failed'],
+  'git.set-base': ['done', 'unchanged', 'refused', 'failed'],
   'github.pr-update': ['done', 'failed'],
   'github.issue-comment': ['done', 'failed'],
   'notify.webhook': ['done', 'failed'],
 }
-const FAILURE_PORTS = new Set(['failed', 'fail', 'exhausted', 'reject', 'red', 'timeout', 'conflict'])
+const FAILURE_PORTS = new Set(['failed', 'fail', 'exhausted', 'reject', 'red', 'timeout', 'conflict', 'refused'])
 
 export function portsOf(node: WorkflowGraphNode): readonly string[] {
   if (node.type === 'agent' && node.verdicts?.length) return [...new Set([...node.verdicts, 'failed'])]
@@ -51,7 +52,7 @@ export function portsOf(node: WorkflowGraphNode): readonly string[] {
 export function portTone(node: WorkflowGraphNode, port: string): PortTone {
   if (FAILURE_PORTS.has(port)) return 'failure'
   if (node.type === 'agent' && node.verdicts?.includes(port)) return 'verdict'
-  if (node.type === 'start' || node.type === 'fork' || port === 'nothing' || port === 'false') return 'neutral'
+  if (node.type === 'start' || node.type === 'fork' || port === 'nothing' || port === 'unchanged' || port === 'false') return 'neutral'
   return 'success'
 }
 
@@ -189,6 +190,8 @@ export function newNode(type: GraphNodeType, taken: Iterable<string>): WorkflowG
       return { id: uniqueId('push', taken), type }
     case 'git.sync-base':
       return { id: uniqueId('sync', taken), type }
+    case 'git.set-base':
+      return { id: uniqueId('base', taken), type, branch: '', fallback: 'dev' }
     case 'github.pr-update':
       return { id: uniqueId('pr-update', taken), type, ready: true }
     case 'github.issue-comment':

@@ -1296,6 +1296,7 @@ const OUTPUTS: Record<GraphNodeType, string[]> = {
   if: ['result', 'value'],
   'git.push': [],
   'git.sync-base': ['conflicts'],
+  'git.set-base': ['base', 'previous'],
   'github.pr-update': [],
   'github.issue-comment': ['issue'],
   'notify.webhook': ['status'],
@@ -1614,6 +1615,21 @@ function Inspector({
           <span style={{ color: TONE.failure }}>{t('conflict')}</span>{t(' — wire it to an agent to resolve it;')}{' '}
           <code>{t('{{nodes.{id}.conflicts}}', { id: node.id })}</code>{t(' lists the files.')}
         </p>
+      )}
+
+      {node.type === 'git.set-base' && (
+        <>
+          <Field label={t('branch — {{task}}, {{nodes.<id>.<field>}}')}>
+            <Input value={node.branch} placeholder="{{nodes.read-ticket.base}}" onChange={(e) => set({ branch: e.target.value })} className="h-8 font-mono text-[11px]" />
+          </Field>
+          <Field label={t('fallback — used when the branch is empty')}>
+            <Input value={node.fallback ?? ''} placeholder="dev" onChange={(e) => set({ fallback: e.target.value || undefined })} className="h-8 font-mono text-[11px]" />
+          </Field>
+          <p className="text-[11px] text-muted-foreground">
+            {t('Re-forks the task onto this branch and makes it the base for the diff, CEZ_BASE_* and the PR. Only before any work: once the task has commits or changes it leaves by')}{' '}
+            <span style={{ color: TONE.failure }}>{t('refused')}</span>{t(' and changes nothing.')}
+          </p>
+        </>
       )}
 
       {node.type === 'github.pr-update' && (
