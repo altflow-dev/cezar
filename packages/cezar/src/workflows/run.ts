@@ -77,6 +77,7 @@ import {
 } from '../git-worktree.ts';
 import { commentOnIssue, commentOnPr, fetchGithubChecks, updatePr } from '../server/forge/github.ts';
 import { createDraftPr } from '../server/pr.ts';
+import type { TrackerStateClient } from '../server/tracker/youtrack-state.ts';
 import { getHeadCommit, getRepoInfo } from '../server/git.ts';
 import { loadWorkflows, newerCatalogWorkflow } from './load.ts';
 import type { QueuedMessage, RunRecord, RunStore, StepState } from '../runs/store.ts';
@@ -1162,6 +1163,9 @@ export class RunManager {
   /** See the constructor option of the same name. */
   private readonly resolveTrackerEnv: ((root: string, expected: TrackerAssociation | undefined) => Promise<Record<string, string>>) | undefined;
 
+  /** See the constructor option of the same name. */
+  private readonly trackerState: TrackerStateClient | undefined;
+
   constructor(
     private readonly store: RunStore,
     private readonly repoRoot: string,
@@ -1174,11 +1178,17 @@ export class RunManager {
        * reach an agent. Secrets are registered with RunStore before any output arrives.
        */
       resolveTrackerEnv?: (root: string, expected: TrackerAssociation | undefined) => Promise<Record<string, string>>;
+      /**
+       * Reads and sets the ticket's State for the `tracker.set-state` node and its restore on
+       * cancel (spec 2026-11-26-workflow-tracker-state). Absent: the node changes nothing.
+       */
+      trackerState?: TrackerStateClient;
     } = {},
   ) {
     this.dataDir = join(repoRoot, '.ai/cezar');
     this.projectId = options.projectId;
     this.resolveTrackerEnv = options.resolveTrackerEnv;
+    this.trackerState = options.trackerState;
     this.semaphore = options.semaphore ?? new WorkspaceSemaphore();
     this.offSemaphore = this.semaphore.register({
       busySlots: () => this.busySlots(),
@@ -3119,6 +3129,7 @@ export class RunManager {
     }
     this.store.updateRun(runId, { status: 'cancelled', finishedAt, currentStepId: undefined });
     this.store.appendEvent(runId, { type: 'lifecycle', message: 'run cancelled' });
+    void this.restoreTrackerState(runId);
     // A startup wedge has no provider session to reap, so release its slot immediately. Once a
     // session has opened, keep the slot until its interrupt/teardown settles; admitting a
     // replacement while a non-cooperative provider is still alive would violate maxParallel.
@@ -3141,6 +3152,44 @@ export class RunManager {
       state.cancellationTimer.unref?.();
     }
     return true;
+  }
+
+  /**
+   * Put the ticket back where `tracker.set-state` found it (spec 2026-11-26-workflow-tracker-state).
+   * Only while it still sits in the state cezar set — a ticket someone has moved since is theirs.
+   * Fire-and-forget from `cancelOne`: never throws, every outcome is a lifecycle note.
+   */
+  private async restoreTrackerState(runId: string): Promise<void> {
+    const run = this.store.getRun(runId);
+    const moved = run?.trackerState;
+    const item = run?.trackerItem;
+    if (!moved || moved.restoredAt || !item || !this.trackerState) return;
+    const note = (message: string) => this.store.appendEvent(runId, { type: 'lifecycle', message });
+    try {
+      const issue = { id: item.id, url: item.url };
+      const now = await this.trackerState.get(this.repoRoot, issue);
+      if (!now.ok) {
+        note(`ticket ${item.id} not restored — ${now.reason}`);
+        return;
+      }
+      if (now.value !== moved.state) {
+        note(`ticket ${item.id} left in "${now.value}" — it was moved after cezar set "${moved.state}"`);
+        return;
+      }
+      if (!moved.previous) {
+        note(`ticket ${item.id} not restored — it had no state before cezar set "${moved.state}"`);
+        return;
+      }
+      const res = await this.trackerState.set(this.repoRoot, issue, moved.previous);
+      if (!res.ok) {
+        note(`ticket ${item.id} not restored to "${moved.previous}" — ${res.reason}`);
+        return;
+      }
+      this.store.updateRun(runId, { trackerState: { ...moved, restoredAt: new Date().toISOString() } });
+      note(`ticket ${item.id} restored: "${moved.state}" → "${moved.previous}"`);
+    } catch {
+      note(`ticket ${item.id} not restored — unexpected error`);
+    }
   }
 
   isActive(runId: string): boolean {
@@ -5321,6 +5370,41 @@ export class RunManager {
         const stat = await worktreeShortstat(state.cwd, res.base, { taskBranch: run.branch, runStartedAt: run.startedAt }).catch(() => null);
         if (stat) this.store.updateRun(runId, { diffStat: stat });
         note(`base re-pointed: ${previous} → ${res.base} (task branch ${run.branch} re-forked)`);
+        return 'done';
+      }
+      case 'tracker.set-state': {
+        // Spec 2026-11-26-workflow-tracker-state: move the ticket, remember where it was so a
+        // cancel can put it back. Every miss is `unchanged` or `failed` with a note — never a throw.
+        const run = record();
+        const item = run?.trackerItem;
+        const wanted = render(node.state).trim();
+        if (!item) {
+          note('this task was not launched from a ticket — no state to set');
+          return 'unchanged';
+        }
+        if (process.env.CEZ_DRY_RUN === '1' || !this.trackerState) {
+          note(`ticket ${item.id} left as it is — ${process.env.CEZ_DRY_RUN === '1' ? 'dry run' : 'no tracker client'}`);
+          return 'unchanged';
+        }
+        const issue = { id: item.id, url: item.url };
+        const before = await this.trackerState.get(this.repoRoot, issue);
+        if (!before.ok) {
+          note(`ticket ${item.id} state not set — ${before.reason}`, 'danger');
+          return 'failed';
+        }
+        outputs.set(node.id, { previous: before.value, state: wanted });
+        if (before.value === wanted) {
+          note(`ticket ${item.id} is already "${wanted}"`);
+          return 'unchanged';
+        }
+        const res = await this.trackerState.set(this.repoRoot, issue, wanted);
+        if (!res.ok) {
+          outputs.set(node.id, { previous: before.value, state: before.value });
+          note(`ticket ${item.id} state not set to "${wanted}" — ${res.reason}`, 'danger');
+          return 'failed';
+        }
+        this.store.updateRun(runId, { trackerState: { issue: item.id, previous: before.value, state: wanted } });
+        note(`ticket ${item.id}: "${before.value || '(none)'}" → "${wanted}"`);
         return 'done';
       }
       case 'github.pr-update': {

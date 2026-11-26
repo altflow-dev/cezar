@@ -67,6 +67,19 @@ export const runTrackerItemSchema = z
   .strict();
 export type RunTrackerItem = z.infer<typeof runTrackerItemSchema>;
 
+/** What a workflow's `tracker.set-state` node did to the ticket (spec 2026-11-26-workflow-tracker-state):
+ *  the State value it found and the one it set, so a cancel can put the ticket back. */
+export const runTrackerStateSchema = z
+  .object({
+    issue: z.string().min(1),
+    previous: z.string(),
+    state: z.string().min(1),
+    /** Set once a cancel put `previous` back. */
+    restoredAt: z.string().optional(),
+  })
+  .strict();
+export type RunTrackerState = z.infer<typeof runTrackerStateSchema>;
+
 /** Non-secret read identity; display-name changes do not move an issue to another source. */
 export function trackerReadScope(association: TrackerAssociation): string {
   return JSON.stringify([association.kind, association.source.id, association.source.webUrl, association.externalId, association.connectionId ?? null]);

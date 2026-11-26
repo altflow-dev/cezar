@@ -1297,6 +1297,7 @@ const OUTPUTS: Record<GraphNodeType, string[]> = {
   'git.push': [],
   'git.sync-base': ['conflicts'],
   'git.set-base': ['base', 'previous'],
+  'tracker.set-state': ['previous', 'state'],
   'github.pr-update': [],
   'github.issue-comment': ['issue'],
   'notify.webhook': ['status'],
@@ -1628,6 +1629,17 @@ function Inspector({
           <p className="text-[11px] text-muted-foreground">
             {t('Re-forks the task onto this branch and makes it the base for the diff, CEZ_BASE_* and the PR. Only before any work: once the task has commits or changes it leaves by')}{' '}
             <span style={{ color: TONE.failure }}>{t('refused')}</span>{t(' and changes nothing.')}
+          </p>
+        </>
+      )}
+
+      {node.type === 'tracker.set-state' && (
+        <>
+          <Field label={t('state — the YouTrack State value (API name)')}>
+            <Input value={node.state} placeholder="In Progress" onChange={(e) => set({ state: e.target.value })} className="h-8 font-mono text-[11px]" />
+          </Field>
+          <p className="text-[11px] text-muted-foreground">
+            {t('Moves the ticket the task was launched from, through the YouTrack connection of this project. Cancelling the task puts back the state it found, unless someone moved the ticket since.')}
           </p>
         </>
       )}

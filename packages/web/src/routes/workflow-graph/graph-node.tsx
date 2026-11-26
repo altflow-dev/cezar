@@ -86,6 +86,7 @@ export const TYPE_CATEGORY: Record<GraphNodeType, Category> = {
   'git.push': 'git',
   'git.sync-base': 'git',
   'git.set-base': 'git',
+  'tracker.set-state': 'scripts',
   'github.pr-update': 'git',
   'github.issue-comment': 'git',
   'notify.webhook': 'scripts',
@@ -111,6 +112,7 @@ export const ICONS: Record<GraphNodeType, LucideIcon> = {
   'git.push': UploadIcon,
   'git.sync-base': GitMergeIcon,
   'git.set-base': GitBranchIcon,
+  'tracker.set-state': FlagIcon,
   'github.pr-update': TagIcon,
   'github.issue-comment': MessageSquareIcon,
   'notify.webhook': WebhookIcon,
@@ -143,6 +145,7 @@ export const TYPE_LABEL: Record<GraphNodeType, string> = {
   'git.push': t('Push'),
   'git.sync-base': t('Sync with base'),
   'git.set-base': t('Set base branch'),
+  'tracker.set-state': t('Set ticket state'),
   'github.pr-update': t('Update PR'),
   'github.issue-comment': t('Issue comment'),
   'notify.webhook': t('Webhook'),
@@ -194,6 +197,8 @@ export function nodeDetail(node: WorkflowGraphNode, loopCount?: number): string 
       return t('merge latest base')
     case 'git.set-base':
       return node.branch.trim() || (node.fallback ? t('fallback {branch}', { branch: node.fallback }) : t('keep fork base'))
+    case 'tracker.set-state':
+      return `→ ${node.state}`
     case 'github.pr-update':
       return [node.ready ? 'ready' : '', node.addLabels?.length ? `+${node.addLabels.join(', ')}` : '', node.reviewers?.length ? `@${node.reviewers.join(', @')}` : '']
         .filter(Boolean)

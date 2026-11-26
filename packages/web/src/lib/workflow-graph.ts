@@ -36,6 +36,7 @@ const PORTS: Record<GraphNodeType, readonly string[]> = {
   'git.push': ['done', 'failed'],
   'git.sync-base': ['done', 'conflict', 'failed'],
   'git.set-base': ['done', 'unchanged', 'refused', 'failed'],
+  'tracker.set-state': ['done', 'unchanged', 'failed'],
   'github.pr-update': ['done', 'failed'],
   'github.issue-comment': ['done', 'failed'],
   'notify.webhook': ['done', 'failed'],
@@ -192,6 +193,8 @@ export function newNode(type: GraphNodeType, taken: Iterable<string>): WorkflowG
       return { id: uniqueId('sync', taken), type }
     case 'git.set-base':
       return { id: uniqueId('base', taken), type, branch: '', fallback: 'dev' }
+    case 'tracker.set-state':
+      return { id: uniqueId('ticket-state', taken), type, state: 'In Progress' }
     case 'github.pr-update':
       return { id: uniqueId('pr-update', taken), type, ready: true }
     case 'github.issue-comment':

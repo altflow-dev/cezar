@@ -347,6 +347,7 @@ whose counter never resets within a run, so every run is finite.
 | `git.push` | `done`, `failed` | — |
 | `git.sync-base` | `done`, `conflict`, `failed` | `conflicts` |
 | `git.set-base` (`branch` — templated, `fallback?`) | `done`, `unchanged`, `refused`, `failed` | `base`, `previous` |
+| `tracker.set-state` (`state` — templated) | `done`, `unchanged`, `failed` | `previous`, `state` |
 | `github.pr-update` (`ready?`, `addLabels?`, `reviewers?`) | `done`, `failed` | — |
 | `github.issue-comment` (`body`, `issue?` — default: the task's issue) | `done`, `failed` | `issue` |
 | `notify.webhook` (`url`, `body?` — needs `CEZ_WORKFLOW_WEBHOOKS=1`) | `done`, `failed` | `status` |
@@ -373,6 +374,13 @@ whose counter never resets within a run, so every run is finite.
   reader check (`(no output)`) counts as empty, so `fallback` applies. An empty
   `branch` (and no `fallback`) or the base already in use leaves by `unchanged`; an
   invalid or unknown branch by `failed`.
+- **`tracker.set-state`** moves the YouTrack ticket the task was launched from to a State,
+  e.g. `state: In Progress` when the work starts. Use the State value's API name, not
+  its localized label. It writes through the project's own YouTrack connection, and only
+  to that connection's host. Cancelling the task puts back the state the node found,
+  unless someone has moved the ticket since. A task not launched from a ticket, a dry
+  run, or a ticket already in that state leaves by `unchanged`. A tracker error (for
+  example no permission or an unknown value) leaves by `failed` with the reason in a note.
 - **Built-in templates** — `implement-and-verify`, `implement-review-pr`, `review-council`
   (three fresh reviewers at once, then a judge that ships or sends it back), `fix-ci` — sit
   next to `quick-task` (still the default). Open one in the editor; it saves as your copy.
