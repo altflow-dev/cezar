@@ -37,18 +37,32 @@ beforeEach(async () => {
 });
 afterEach(async () => { await rm(root, { recursive: true, force: true }); });
 
+// A Polish instance, as SPM is: the field is localized "Status", the value "Zgłoszona" — but the
+// API names (`State`, `Submitted`) are what the REST API reads and writes.
+const stateField = (value: string) => ({
+  customFields: [
+    { name: 'Priority', $type: 'SingleEnumIssueCustomField', value: { name: 'Normal' } },
+    { name: 'State', $type: 'StateIssueCustomField', value: { name: value } },
+  ],
+});
+
 it('reads the State value name from the issue', async () => {
-  const client = createYouTrackStateClient(fetcher([{ status: 200, body: { customFields: [{ name: 'Priority', value: { name: 'Normal' } }, { name: 'State', value: { name: 'Submitted' } }] } }]), env);
+  const client = createYouTrackStateClient(fetcher([{ status: 200, body: stateField('Submitted') }]), env);
   expect(await client.get(project, issue)).toEqual({ ok: true, value: 'Submitted' });
-  expect(calls[0]!.url).toBe('https://acme.youtrack.cloud/api/issues/SPM-405?fields=customFields(name,value(name))');
+  expect(calls[0]!.url).toBe('https://acme.youtrack.cloud/api/issues/SPM-405?fields=customFields(name,$type,value(name))');
   expect((calls[0]!.init.headers as Record<string, string>).Authorization).toBe('Bearer synthetic-token');
 });
 
-it('sets the state with a braced command, so a two-word value stays one token', async () => {
-  const client = createYouTrackStateClient(fetcher([{ status: 200, body: {} }]), env);
+it('sets the State field by API names, not a command — commands are parsed in the instance language', async () => {
+  // A command `State {In Progress}` came back 400 "Oczekiwano Status: {In Progress}" on SPM-406.
+  const client = createYouTrackStateClient(fetcher([{ status: 200, body: stateField('Submitted') }, { status: 200, body: {} }]), env);
   expect(await client.set(project, issue, 'In Progress')).toEqual({ ok: true, value: true });
-  expect(calls[0]!.url).toBe('https://acme.youtrack.cloud/api/commands');
-  expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ query: 'State {In Progress}', issues: [{ idReadable: 'SPM-405' }] });
+  expect(calls.map((c) => c.url)).not.toContain('https://acme.youtrack.cloud/api/commands');
+  expect(calls[1]!.url).toBe('https://acme.youtrack.cloud/api/issues/SPM-405?fields=id');
+  expect(calls[1]!.init.method).toBe('POST');
+  expect(JSON.parse(String(calls[1]!.init.body))).toEqual({
+    customFields: [{ name: 'State', $type: 'StateIssueCustomField', value: { name: 'In Progress' } }],
+  });
 });
 
 it('never sends the token to a ticket on another host', async () => {
@@ -60,7 +74,7 @@ it('never sends the token to a ticket on another host', async () => {
 });
 
 it('reports an HTTP refusal with YouTrack\'s own reason, without throwing', async () => {
-  const client = createYouTrackStateClient(fetcher([{ status: 403, body: { error: 'Forbidden', error_description: 'No permission' } }]), env);
+  const client = createYouTrackStateClient(fetcher([{ status: 200, body: stateField('Submitted') }, { status: 403, body: { error: 'Forbidden', error_description: 'No permission' } }]), env);
   expect(await client.set(project, issue, 'In Progress')).toEqual({ ok: false, reason: 'YouTrack answered HTTP 403 (No permission)' });
 });
 
