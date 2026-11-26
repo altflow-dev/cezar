@@ -16,7 +16,7 @@ export type TrackerStateResult<T> = { ok: true; value: T } | { ok: false; reason
 export interface TrackerStateClient {
   /** The issue's current State value name (API name, e.g. `In Progress`); `''` when it has none. */
   get(root: string, issue: { id: string; url: string }): Promise<TrackerStateResult<string>>;
-  /** Apply `State {<state>}` to the issue. */
+  /** Set the issue's State field to the value with this API name (e.g. `In Progress`). */
   set(root: string, issue: { id: string; url: string }, state: string): Promise<TrackerStateResult<true>>;
 }
 
@@ -77,27 +77,40 @@ async function call(fetcher: typeof fetch, url: string, token: string, init: Req
   }
 }
 
+interface StateField { name: string; type: string; value: string }
+
+/** The issue's `State` field: its API name, its issue-field `$type` (needed to write it) and value. */
+async function readStateField(fetcher: typeof fetch, t: Target, id: string): Promise<TrackerStateResult<StateField>> {
+  const res = await call(fetcher, `${t.origin}/api/issues/${encodeURIComponent(id)}?fields=customFields(name,$type,value(name))`, t.token);
+  if (!res.ok) return res;
+  const fields = (res.value as { customFields?: { name?: string; $type?: string; value?: { name?: string } | null }[] } | null)?.customFields;
+  if (!Array.isArray(fields)) return { ok: false, reason: 'YouTrack returned no custom fields for the issue' };
+  const field = fields.find((f) => f.name === 'State');
+  if (!field) return { ok: false, reason: 'the issue has no State field' };
+  return { ok: true, value: { name: 'State', type: field.$type ?? 'StateIssueCustomField', value: field.value?.name ?? '' } };
+}
+
 export function createYouTrackStateClient(fetcher: typeof fetch = fetch, env: NodeJS.ProcessEnv = process.env): TrackerStateClient {
   return {
     async get(root, issue) {
       const t = await target(root, issue, env);
       if (!t.ok) return t;
-      const res = await call(fetcher, `${t.value.origin}/api/issues/${encodeURIComponent(issue.id)}?fields=customFields(name,value(name))`, t.value.token);
-      if (!res.ok) return res;
-      const fields = (res.value as { customFields?: { name?: string; value?: { name?: string } | null }[] } | null)?.customFields;
-      if (!Array.isArray(fields)) return { ok: false, reason: 'YouTrack returned no custom fields for the issue' };
-      const field = fields.find((f) => f.name === 'State');
-      if (!field) return { ok: false, reason: 'the issue has no State field' };
-      return { ok: true, value: field.value?.name ?? '' };
+      const field = await readStateField(fetcher, t.value, issue.id);
+      return field.ok ? { ok: true, value: field.value.value } : field;
     },
     async set(root, issue, state) {
       const t = await target(root, issue, env);
       if (!t.ok) return t;
-      // Braces keep a multi-word value (`In Progress`) one token; a value with braces cannot be named.
-      if (!state.trim() || /[{}]/.test(state)) return { ok: false, reason: `"${state}" is not a usable State value` };
-      const res = await call(fetcher, `${t.value.origin}/api/commands`, t.value.token, {
+      const wanted = state.trim();
+      if (!wanted) return { ok: false, reason: 'no State value to set' };
+      // The field itself, by API names — not a command. YouTrack parses commands in the
+      // instance's language (`Status`/`W realizacji` on a Polish one), so `State {In Progress}`
+      // was rejected there; the REST field update takes the API names on every instance.
+      const field = await readStateField(fetcher, t.value, issue.id);
+      if (!field.ok) return field;
+      const res = await call(fetcher, `${t.value.origin}/api/issues/${encodeURIComponent(issue.id)}?fields=id`, t.value.token, {
         method: 'POST',
-        body: JSON.stringify({ query: `State {${state.trim()}}`, issues: [{ idReadable: issue.id }] }),
+        body: JSON.stringify({ customFields: [{ name: field.value.name, $type: field.value.type, value: { name: wanted } }] }),
       });
       return res.ok ? { ok: true, value: true } : res;
     },

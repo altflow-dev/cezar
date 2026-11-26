@@ -32,11 +32,17 @@ Ports: `done`, `unchanged`, `failed`. Outputs: `previous` and `state`.
 2. Read the issue's current `State` value name (`GET /api/issues/<id>?fields=customFields(name,value(name))`).
 3. Already `state`: leave by **`unchanged`** and record nothing. Cezar did not move the ticket,
    so a cancel must not move it either.
-4. Otherwise apply the YouTrack command `State {<state>}` (`POST /api/commands`). Commands work
-   whether or not the project's State field is a state machine. On success, record
-   `run.trackerState = { issue, previous, state }` and leave by **`done`**. On any failure
-   (HTTP error, timeout, unknown value, no permission), leave by **`failed`** with the reason in
-   a note. The node never throws.
+4. Otherwise set the field itself over REST, by API names:
+   `POST /api/issues/<id>` with `customFields: [{ name: 'State', $type: <the issue field's $type from step 2>, value: { name: <state> } }]`.
+   On success, record `run.trackerState = { issue, previous, state }` and leave by **`done`**.
+   On any failure (HTTP error, timeout, unknown value, no permission), leave by **`failed`** with
+   the reason in a note. The node never throws.
+
+   *Not a YouTrack command.* The first version applied `State {<state>}` through
+   `/api/commands`. YouTrack parses commands in the instance's language, so on a Polish
+   instance it answered 400 `Oczekiwano Status: {In Progress}` (the field is "Status" and the
+   value "W realizacji" there). This happened live on SPM-406. The REST field update takes the
+   API names on every instance.
 
 The value name is the API name (`In Progress`). The localized label (`W realizacji`) depends on
 the instance's language, and a command written with it fails on an English instance.
@@ -52,7 +58,7 @@ instance's token: the node leaves by `failed`.
 ### Cancel restores
 
 `cancelOne` on an active run with a recorded `trackerState` and no `restoredAt` reads the
-issue's current state. If it is still the `state` cezar set, cezar applies `previous` again.
+issue's current state. If it is still the `state` cezar set, cezar sets `previous` again the same way.
 If someone has moved the ticket since, cezar leaves it alone. Either way the outcome is a
 lifecycle note, and `restoredAt` is set when the ticket was restored. This is fire-and-forget:
 cancel never waits on the network, and a failure is a note.
