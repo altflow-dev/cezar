@@ -148,6 +148,7 @@ export const workflowGraphNodeSchema = z.discriminatedUnion('type', [
   z.object({ ...graphNodeBase, type: z.literal('git.push') }),
   z.object({ ...graphNodeBase, type: z.literal('git.sync-base') }),
   z.object({ ...graphNodeBase, type: z.literal('git.set-base'), branch: z.string(), fallback: z.string().optional() }),
+  z.object({ ...graphNodeBase, type: z.literal('tracker.set-state'), state: z.string().min(1) }),
   z.object({
     ...graphNodeBase,
     type: z.literal('github.pr-update'),
@@ -271,6 +272,7 @@ export const workflowNodeCatalogResponseSchema = z.object({
         'git.push',
         'git.sync-base',
         'git.set-base',
+        'tracker.set-state',
         'github.pr-update',
         'github.issue-comment',
         'notify.webhook',

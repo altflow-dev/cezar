@@ -13,7 +13,7 @@ import { MAX_REF } from './task-refs.ts';
 import { workflowDefSchema } from '../workflows/types.ts';
 // A contract VALUE, like `workspaceUiStateSchema` in `workspace/migrations.ts`: the persisted
 // `dispatch` object and its wire half are literally the same schema, so they cannot drift.
-import { dispatchSchema, runTrackerItemSchema, trackerAssociationSchema, trackerAutomationEventSchema } from '@open-mercato/cezar-contract';
+import { dispatchSchema, runTrackerItemSchema, runTrackerStateSchema, trackerAssociationSchema, trackerAutomationEventSchema } from '@open-mercato/cezar-contract';
 
 import { RUNNER_IDS } from '../core/agent-runner.ts';
 
@@ -341,6 +341,8 @@ export const runRecordSchema = z.object({
   /** The YouTrack ticket this task was launched from (spec 2026-10-15 §13). Set once, right after
    *  creation, and never edited: the branch, cezar's commits and the PR title all name it. */
   trackerItem: runTrackerItemSchema.optional(),
+  /** What a `tracker.set-state` node did to that ticket, so a cancel can restore it (spec 2026-11-26). */
+  trackerState: runTrackerStateSchema.optional(),
   /** Stable baseline for session git views: a worktree's fork ref, or an in-place run's starting commit. */
   baseBranch: z.string().optional(),
   /** Set when count-based retention (#483) reclaimed this run's worktree

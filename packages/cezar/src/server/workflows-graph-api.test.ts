@@ -65,6 +65,7 @@ describe('the workflow graph API', () => {
       'git.push',
       'git.sync-base',
       'git.set-base',
+      'tracker.set-state',
       'github.pr-update',
       'github.issue-comment',
       'notify.webhook',

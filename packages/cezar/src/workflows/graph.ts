@@ -136,6 +136,9 @@ export const graphNodeSchema = z.discriminatedUnion('type', [
    *  `branch` is templated; an empty render falls back to `fallback`, and both empty keep the
    *  base the task forked from. Refuses once the task has commits or uncommitted changes. */
   z.object({ ...nodeBase, type: z.literal('git.set-base'), branch: z.string(), fallback: z.string().optional() }),
+  /** Move the task's ticket to a State (spec 2026-11-26-workflow-tracker-state), e.g. `In Progress`
+   *  when work starts; a cancel puts back the state it found. `state` is templated. */
+  z.object({ ...nodeBase, type: z.literal('tracker.set-state'), state: z.string().min(1) }),
   z.object({
     ...nodeBase,
     type: z.literal('github.pr-update'),
@@ -193,6 +196,7 @@ export const NODE_PORTS: Record<GraphNodeType, readonly string[]> = {
   'git.push': ['done', 'failed'],
   'git.sync-base': ['done', 'conflict', 'failed'],
   'git.set-base': ['done', 'unchanged', 'refused', 'failed'],
+  'tracker.set-state': ['done', 'unchanged', 'failed'],
   'github.pr-update': ['done', 'failed'],
   'github.issue-comment': ['done', 'failed'],
   'notify.webhook': ['done', 'failed'],
@@ -230,6 +234,7 @@ export const NODE_CATALOG: NodeCatalogEntry[] = [
   { type: 'git.push', category: 'git', label: 'Push', description: 'Push the task branch to origin.', ports: ['done', 'failed'], outputs: [] },
   { type: 'git.sync-base', category: 'git', label: 'Sync with base', description: 'Merge the latest base branch in; stops on conflict for an agent to resolve.', ports: ['done', 'conflict', 'failed'], outputs: ['conflicts'] },
   { type: 'git.set-base', category: 'git', label: 'Set base branch', description: "Re-point the task's base (e.g. from the ticket's epic) before any work is done; refuses once work exists.", ports: ['done', 'unchanged', 'refused', 'failed'], outputs: ['base', 'previous'] },
+  { type: 'tracker.set-state', category: 'scripts', label: 'Set ticket state', description: "Move the task's YouTrack ticket to a State (e.g. In Progress); a cancel restores the state it found.", ports: ['done', 'unchanged', 'failed'], outputs: ['previous', 'state'] },
   { type: 'github.pr-update', category: 'git', label: 'Update PR', description: 'Mark the task PR ready, add labels, request reviewers.', ports: ['done', 'failed'], outputs: [] },
   { type: 'github.issue-comment', category: 'git', label: 'Issue comment', description: "Comment on the task's issue.", ports: ['done', 'failed'], outputs: ['issue'] },
   { type: 'notify.webhook', category: 'scripts', label: 'Webhook', description: 'POST a message to a URL (needs CEZ_WORKFLOW_WEBHOOKS=1).', ports: ['done', 'failed'], outputs: ['status'] },
@@ -481,6 +486,8 @@ export function templatedText(n: GraphNode): string[] {
       return [n.body ?? ''];
     case 'git.set-base':
       return [n.branch, n.fallback ?? ''];
+    case 'tracker.set-state':
+      return [n.state];
     default:
       return [];
   }

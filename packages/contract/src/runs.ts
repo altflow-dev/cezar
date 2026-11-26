@@ -8,7 +8,7 @@ import { workflowDefSchema, workflowStepDefSchema } from './workflows.ts';
 // one. `src/runs/store.ts` imports the SAME value for its persistence twin, so the two halves of
 // `contract-parity.runs.test.ts` cannot drift apart by construction.
 import { dispatchIntentSchema, dispatchSchema } from './dispatch.ts';
-import { runTrackerItemSchema, trackerAssociationSchema, trackerAutomationEventSchema } from './tracker.ts';
+import { runTrackerItemSchema, runTrackerStateSchema, trackerAssociationSchema, trackerAutomationEventSchema } from './tracker.ts';
 
 /**
  * The RUNS family of `/api/v1` — a task's record, its lifecycle mutations, and the artifacts
@@ -299,6 +299,8 @@ export const runRecordSchema = z.object({
   branch: z.string().optional(),
   /** The YouTrack ticket this task was launched from (spec 2026-10-15 §13), fixed at creation. */
   trackerItem: runTrackerItemSchema.optional(),
+  /** What a `tracker.set-state` node did to that ticket, so a cancel can restore it (spec 2026-11-26). */
+  trackerState: runTrackerStateSchema.optional(),
   /** Stable baseline for session git views: a worktree's fork ref, or an in-place run's starting commit. */
   baseBranch: z.string().optional(),
   /** Set when count-based retention (#483) reclaimed the worktree DIRECTORY (the branch is
